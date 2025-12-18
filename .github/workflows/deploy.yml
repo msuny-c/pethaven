@@ -19,6 +19,23 @@ jobs:
       - name: Install sshpass and rsync
         run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
+      - name: Ensure rsync on server
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} <<'EOF'
+            if ! command -v rsync >/dev/null 2>&1; then
+              if command -v apt-get >/dev/null 2>&1; then
+                (sudo apt-get update || apt-get update) && (sudo apt-get install -y rsync || apt-get install -y rsync)
+              elif command -v yum >/dev/null 2>&1; then
+                (sudo yum install -y rsync || yum install -y rsync)
+              elif command -v apk >/dev/null 2>&1; then
+                (sudo apk add --no-cache rsync || apk add --no-cache rsync)
+              else
+                echo "rsync is missing and no known package manager found" >&2
+                exit 1
+              fi
+            fi
+          EOF
+
       - name: Copy project to server
         run: |
           sshpass -p "$SSH_PASSWORD" rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${SSH_USER}@${SSH_HOST}:/opt/pethaven
