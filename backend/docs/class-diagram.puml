@@ -1,0 +1,147 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+package Controller {
+  class AuthController
+  class AnimalController
+  class AdoptionController
+  class MedicalController
+  class NotificationController
+  class PersonController
+  class PostAdoptionReportController
+  class ShiftController
+  class TaskController
+  class VolunteerController
+  class MediaController
+}
+
+package Service {
+  class AuthService
+  class AnimalService
+  class AdoptionService
+  class MedicalService
+  class NotificationService
+  class PersonService
+  class TokenService
+  class ShiftService
+  class VolunteerService
+  class VolunteerApplicationService
+  class ObjectStorageService
+  class PostAdoptionReminderScheduler
+}
+
+package Repository {
+  class AnimalRepository
+  class AnimalMediaRepository
+  class AdoptionApplicationRepository
+  class AgreementRepository
+  class InterviewRepository
+  class InterviewSlotRepository
+  class MedicalRecordRepository
+  class NotificationRepository
+  class PersonRepository
+  class PostAdoptionReportRepository
+  class RoleRepository
+  class ShiftRepository
+  class ShiftVolunteerRepository
+  class TaskRepository
+  class TaskShiftRepository
+  class VolunteerMentorRepository
+  class VolunteerApplicationRepository
+}
+
+package Security {
+  class SecurityConfig
+  class JwtService
+  class JwtAuthFilter
+  class OpenApiConfig
+  class CorsConfig
+  class StaticResourceConfig
+}
+
+class PetHavenApplication
+
+class PersonEntity
+class RoleEntity
+class AnimalEntity
+class AnimalMediaEntity
+class MedicalRecordEntity
+class AdoptionApplicationEntity
+class InterviewSlotEntity
+class InterviewEntity
+class AgreementEntity
+class PostAdoptionReportEntity
+class VolunteerApplicationEntity
+class VolunteerMentorEntity
+class ShiftEntity
+class ShiftVolunteerEntity
+class TaskEntity
+class TaskShiftEntity
+class NotificationEntity
+
+PetHavenApplication --> AuthController
+PetHavenApplication --> AnimalController
+PetHavenApplication --> MediaController
+
+AuthController --> AuthService
+AnimalController --> AnimalService
+AnimalController --> ObjectStorageService
+AdoptionController --> AdoptionService
+MedicalController --> MedicalService
+NotificationController --> NotificationService
+PersonController --> PersonService
+PersonController --> ObjectStorageService
+PostAdoptionReportController --> PostAdoptionReportRepository
+ShiftController --> ShiftService
+TaskController --> TaskRepository
+VolunteerController --> VolunteerService
+VolunteerController --> VolunteerApplicationService
+
+AuthService --> PersonRepository
+AuthService --> RoleRepository
+AuthService --> JwtService
+AuthService --> TokenService
+AnimalService --> AnimalRepository
+AnimalService --> AnimalMediaRepository
+AdoptionService --> AdoptionApplicationRepository
+AdoptionService --> InterviewRepository
+AdoptionService --> AgreementRepository
+AdoptionService --> InterviewSlotRepository
+AdoptionService --> NotificationService
+AdoptionService --> AnimalRepository
+MedicalService --> MedicalRecordRepository
+NotificationService --> NotificationRepository
+PersonService --> PersonRepository
+PersonService --> RoleRepository
+ShiftService --> ShiftRepository
+ShiftService --> ShiftVolunteerRepository
+ShiftService --> TaskShiftRepository
+VolunteerService --> VolunteerMentorRepository
+VolunteerApplicationService --> VolunteerApplicationRepository
+PostAdoptionReminderScheduler --> PostAdoptionReportRepository
+
+PersonEntity "many" -- "many" RoleEntity : roles
+VolunteerApplicationEntity "1" -- "1" PersonEntity : applicant
+VolunteerMentorEntity "1" -- PersonEntity : mentor
+VolunteerMentorEntity "1" -- PersonEntity : volunteer
+AnimalMediaEntity "many" -- "1" AnimalEntity
+MedicalRecordEntity "many" -- "1" AnimalEntity
+AdoptionApplicationEntity "many" -- "1" AnimalEntity
+InterviewEntity "many" -- "1" AdoptionApplicationEntity
+InterviewSlotEntity "many" -- "1" PersonEntity : interviewer
+AgreementEntity "1" -- "1" AdoptionApplicationEntity
+PostAdoptionReportEntity "many" -- "1" AgreementEntity
+TaskEntity "many" -- "0..1" AnimalEntity
+TaskShiftEntity "many" -- "1" TaskEntity
+TaskShiftEntity "many" -- "1" ShiftEntity
+ShiftVolunteerEntity "many" -- "1" ShiftEntity
+ShiftVolunteerEntity "many" -- "1" PersonEntity : volunteer
+NotificationEntity "many" -- "1" PersonEntity
+
+SecurityConfig ..> JwtAuthFilter
+JwtAuthFilter ..> JwtService
+SecurityConfig ..> OpenApiConfig
+SecurityConfig ..> CorsConfig
+SecurityConfig ..> StaticResourceConfig
+@enduml

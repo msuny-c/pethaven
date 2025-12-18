@@ -1,0 +1,68 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
+import { Calendar, PawPrint } from 'lucide-react';
+import { Application, Animal } from '../../types';
+import { getApplications, getAnimals } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+export function CandidateApplications() {
+  const { user } = useAuth();
+  const [myApps, setMyApps] = useState<Application[]>([]);
+  const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([getApplications(), getAnimals()]).then(([apps, animals]) => {
+      setMyApps(apps.filter(a => a.candidateId === user.id));
+      const map: Record<number, Animal> = {};
+      animals.forEach(a => map[a.id] = a);
+      setAnimalMap(map);
+    });
+  }, [user]);
+
+  return <DashboardLayout title="Мои заявки">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {myApps.length > 0 ? <div className="divide-y divide-gray-100">
+            {myApps.map(app => {
+          const animal = animalMap[app.animalId];
+          return <div key={app.id} className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start">
+                      <img src={(animal?.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'} alt={animal?.name} className="w-16 h-16 rounded-lg object-cover mr-4" />
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <h3 className="text-lg font-bold text-gray-900 mr-3">
+                            {animal?.name}
+                          </h3>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${app.status === 'approved' ? 'bg-green-100 text-green-700' : app.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {app.status === 'submitted' ? 'Отправлено' : app.status === 'under_review' ? 'На рассмотрении' : app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                          <PawPrint className="w-3 h-3 mr-1" />
+                          {animal?.breed}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          Подано: {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      {app.status === 'approved' && <div className="text-sm text-green-600 font-medium mb-2">
+                          Ожидайте звонка координатора
+                        </div>}
+                      <Link to={`/candidate/applications/${app.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        Открыть страницу
+                      </Link>
+                    </div>
+                  </div>
+                </div>;
+        })}
+          </div> : <div className="p-12 text-center text-gray-500">
+            <p>У вас пока нет заявок</p>
+          </div>}
+      </div>
+    </DashboardLayout>;
+}
