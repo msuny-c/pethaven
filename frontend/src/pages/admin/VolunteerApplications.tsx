@@ -8,6 +8,7 @@ export function AdminVolunteerApplications() {
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [comment, setComment] = useState<Record<number, string>>({});
+  const [busy, setBusy] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     refresh();
@@ -24,8 +25,16 @@ export function AdminVolunteerApplications() {
   };
 
   const decide = async (id: number, status: VolunteerApplication['status']) => {
-    await decideVolunteerApplication(id, status, comment[id]);
-    await refresh();
+    setBusy((prev) => ({ ...prev, [id]: true }));
+    try {
+      await decideVolunteerApplication(id, status, comment[id]);
+      await refresh();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Не удалось обновить заявку';
+      alert(msg);
+    } finally {
+      setBusy((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
   const statusChip = (status: VolunteerApplication['status']) => {
@@ -88,20 +97,23 @@ export function AdminVolunteerApplications() {
                   <td className="px-6 py-4 text-right space-x-2">
                     <button
                       onClick={() => decide(app.id, 'approved')}
-                      className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600"
+                      disabled={!!busy[app.id]}
+                      className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 disabled:opacity-50"
                     >
                       <Check className="w-4 h-4 mr-1" /> Одобрить
                     </button>
                     <button
                       onClick={() => decide(app.id, 'rejected')}
-                      className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600"
+                      disabled={!!busy[app.id]}
+                      className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
                     >
                       <X className="w-4 h-4 mr-1" /> Отклонить
                     </button>
                     {app.status === 'submitted' && (
                       <button
                         onClick={() => decide(app.id, 'under_review')}
-                        className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600"
+                        disabled={!!busy[app.id]}
+                        className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 disabled:opacity-50"
                       >
                         <Clock className="w-4 h-4 mr-1" /> В работу
                       </button>

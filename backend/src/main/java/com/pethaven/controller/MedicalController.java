@@ -1,6 +1,7 @@
 package com.pethaven.controller;
 
 import com.pethaven.entity.MedicalRecordEntity;
+import com.pethaven.model.enums.MedicalProcedure;
 import com.pethaven.service.MedicalService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,10 @@ public class MedicalController {
 
     @PostMapping
     public ResponseEntity<Void> create(@Valid @RequestBody MedicalRecordEntity record) {
+        if (record.getProcedure() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        // описание будет проставлено сервисом согласно процедуре
         Long id = medicalService.addRecord(record);
         return ResponseEntity.created(URI.create("/api/v1/medical/" + id)).build();
     }

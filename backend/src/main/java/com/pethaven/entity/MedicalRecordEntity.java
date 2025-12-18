@@ -1,5 +1,6 @@
 package com.pethaven.entity;
 
+import com.pethaven.model.enums.MedicalProcedure;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,7 +27,11 @@ public class MedicalRecordEntity {
     @Column(name = "vet_id")
     private Long vetId;
 
-    private String procedure;
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "medical_procedure_type")
+    private MedicalProcedure procedure;
+
+    @Column(nullable = false)
     private String description;
 
     @Column(name = "administered_date")

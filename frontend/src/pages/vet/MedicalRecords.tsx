@@ -66,12 +66,10 @@ export function VetMedicalRecords() {
     switch (type) {
       case 'vaccination':
         return Syringe;
-      case 'checkup':
-        return Stethoscope;
-      case 'surgery':
+      case 'sterilization':
         return Scissors;
-      case 'treatment':
-        return Pill;
+      case 'microchip':
+        return Stethoscope;
       default:
         return Stethoscope;
     }
@@ -80,12 +78,6 @@ export function VetMedicalRecords() {
     switch (type) {
       case 'vaccination':
         return 'Вакцинация';
-      case 'checkup':
-        return 'Плановый осмотр';
-      case 'surgery':
-        return 'Операция';
-      case 'treatment':
-        return 'Лечение/обработка';
       case 'sterilization':
         return 'Стерилизация';
       case 'microchip':
@@ -108,7 +100,7 @@ export function VetMedicalRecords() {
       await createMedicalRecord({
         animalId: Number(animalId),
         procedure,
-        description: procedure === 'vaccination' ? 'Вакцинация выполнена' : procedure === 'sterilization' ? 'Стерилизация выполнена' : 'Чип установлен',
+    description: procedure === 'vaccination' ? 'Вакцинация выполнена' : procedure === 'sterilization' ? 'Стерилизация выполнена' : 'Чип установлен',
         administeredDate: new Date().toISOString().slice(0, 10),
         vetId: 1
       });

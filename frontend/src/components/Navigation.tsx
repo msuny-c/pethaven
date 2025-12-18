@@ -18,9 +18,6 @@ export function Navigation() {
     name: 'Питомцы',
     path: '/animals'
   }, {
-    name: 'Волонтёрство',
-    path: '/volunteer'
-  }, {
     name: 'О приюте',
     path: '/about'
   }];
@@ -83,6 +80,9 @@ export function Navigation() {
               {links.map(link => <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)} className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === link.path ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   {link.name}
                 </Link>)}
+              <Link to="/volunteer" onClick={() => setIsOpen(false)} className={`block px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/volunteer' ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                Помочь приюту
+              </Link>
               <div className="pt-4 border-t border-gray-100 mt-2">
                 {isAuthenticated ? <Link to={getDashboardLink()} onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-amber-600">
                     Личный кабинет
