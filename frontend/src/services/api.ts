@@ -26,6 +26,11 @@ export async function getAnimals(): Promise<Animal[]> {
   return data;
 }
 
+export async function getAnimalSpecies(): Promise<string[]> {
+  const { data } = await api.get<string[]>('/animals/species');
+  return data;
+}
+
 export async function getAnimal(id: number): Promise<Animal | null> {
   try {
     const { data } = await api.get<Animal>(`/animals/${id}`);

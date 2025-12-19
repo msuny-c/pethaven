@@ -19,6 +19,7 @@ export function VolunteerPostAdoptionReview() {
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
   const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
   const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -168,7 +169,12 @@ export function VolunteerPostAdoptionReview() {
                       {(mediaMap[report.id] || []).length > 0 && (
                         <div className="grid grid-cols-3 gap-2 mt-3">
                           {(mediaMap[report.id] || []).map((m) => (
-                            <img key={m.id} src={m.url} className="w-full h-20 object-cover rounded-lg border" />
+                            <img
+                              key={m.id}
+                              src={m.url}
+                              className="w-full h-20 object-cover rounded-lg border cursor-pointer"
+                              onClick={() => setLightbox(m.url || '')}
+                            />
                           ))}
                         </div>
                       )}
@@ -186,6 +192,11 @@ export function VolunteerPostAdoptionReview() {
           })}
           {reports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
         </div>
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} className="max-w-4xl max-h-[90vh] object-contain rounded-xl shadow-2xl" />
+        </div>
+      )}
       </div>
     </DashboardLayout>
   );

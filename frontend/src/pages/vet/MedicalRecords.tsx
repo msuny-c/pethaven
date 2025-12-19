@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Plus, Calendar, Syringe, Stethoscope, Scissors, Pill } from 'lucide-react';
-import { MedicalRecord } from '../../types';
+import { Plus, Calendar, Syringe, Stethoscope, Scissors, Pill, PawPrint, User, Heart } from 'lucide-react';
+import { MedicalRecord, Animal } from '../../types';
 import { getAnimal, getMedicalRecords, createMedicalRecord } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ export function VetMedicalRecords() {
   const [animalName, setAnimalName] = useState<string>('');
   const [animalBreed, setAnimalBreed] = useState<string>('');
   const [animalPhoto, setAnimalPhoto] = useState<string>('');
+  const [animal, setAnimal] = useState<Animal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { primaryRole } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -28,6 +29,7 @@ export function VetMedicalRecords() {
         try {
           const animal = await getAnimal(idNum);
           if (animal) {
+            setAnimal(animal);
             setAnimalName(animal.name);
             setAnimalBreed(animal.breed || '');
             setAnimalPhoto((animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80');
@@ -137,6 +139,27 @@ export function VetMedicalRecords() {
               <p className="text-sm text-gray-500">{animalBreed}</p>
             </div>
           </div>
+          {animal && (
+            <div className="space-y-2 text-sm text-gray-700">
+              <div className="flex items-center">
+                <PawPrint className="w-4 h-4 mr-2 text-amber-500" />
+                Вид: {animal.species === 'cat' ? 'Кошка' : 'Собака'}
+              </div>
+              <div className="flex items-center">
+                <User className="w-4 h-4 mr-2 text-blue-500" />
+                Пол: {animal.gender === 'male' ? 'Самец' : animal.gender === 'female' ? 'Самка' : '—'}
+              </div>
+              <div className="flex items-center">
+                <Heart className="w-4 h-4 mr-2 text-red-500" />
+                Статус: {animal.status}
+              </div>
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                Возраст: ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
+              </div>
+              {animal.behaviorNotes && <div className="text-gray-600">Поведение: {animal.behaviorNotes}</div>}
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">

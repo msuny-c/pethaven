@@ -91,6 +91,23 @@ public class PostAdoptionReportController {
         return ApiMessage.of("Отправлено напоминаний: " + (processed == null ? 0 : processed));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> byId(@PathVariable Long id, Authentication authentication) {
+        boolean isCandidate = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDATE"));
+        if (isCandidate) {
+            if (authentication.getPrincipal() instanceof Long uid) {
+                return reportRepository.findByIdAndCandidate(id, uid)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.status(403).build());
+            }
+            return ResponseEntity.status(401).build();
+        }
+        return reportRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{id}/submit")
     public ResponseEntity<ApiMessage> submit(@PathVariable Long id,
                                              @RequestBody PostAdoptionReportRequest request,

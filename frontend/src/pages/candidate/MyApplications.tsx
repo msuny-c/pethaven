@@ -2,21 +2,27 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, PawPrint } from 'lucide-react';
-import { Application, Animal } from '../../types';
-import { getApplications, getAnimals } from '../../services/api';
+import { Application, Animal, Agreement } from '../../types';
+import { getApplications, getAnimals, getAgreements } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 export function CandidateApplications() {
   const { user } = useAuth();
   const [myApps, setMyApps] = useState<Application[]>([]);
   const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
+  const [agreements, setAgreements] = useState<Record<number, Agreement>>({});
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([getApplications(), getAnimals()]).then(([apps, animals]) => {
+    Promise.all([getApplications(), getAnimals(), getAgreements()]).then(([apps, animals, agrs]) => {
       setMyApps(apps.filter(a => a.candidateId === user.id));
       const map: Record<number, Animal> = {};
       animals.forEach(a => map[a.id] = a);
       setAnimalMap(map);
+      const agrMap: Record<number, Agreement> = {};
+      agrs.forEach((a) => {
+        agrMap[a.applicationId] = a;
+      });
+      setAgreements(agrMap);
     });
   }, [user]);
 
@@ -50,9 +56,15 @@ export function CandidateApplications() {
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
-                      {app.status === 'approved' && <div className="text-sm text-green-600 font-medium mb-2">
+                      {agreements[app.id] ? (
+                        <div className="text-sm text-green-600 font-medium mb-2">
+                          Передача оформлена
+                        </div>
+                      ) : app.status === 'approved' ? (
+                        <div className="text-sm text-green-600 font-medium mb-2">
                           Ожидайте звонка координатора
-                        </div>}
+                        </div>
+                      ) : null}
                       <Link to={`/candidate/applications/${app.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                         Открыть страницу
                       </Link>

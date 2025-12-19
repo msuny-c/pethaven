@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, CheckCircle, Upload } from 'lucide-react';
 import { getPostAdoptionReports, getAnimals, submitReport, getReportMedia, uploadReportMedia } from '../../services/api';
@@ -10,6 +11,7 @@ export function CandidateReports() {
   const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
   const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
   const [uploading, setUploading] = useState<Record<number, boolean>>({});
+  const [lightbox, setLightbox] = useState<{ open: boolean; url: string }>({ open: false, url: '' });
 
   const loadData = async () => {
     const [reports, animals] = await Promise.all([getPostAdoptionReports(), getAnimals()]);
@@ -183,29 +185,26 @@ export function CandidateReports() {
                                   : 'Ожидается'}
                           </span>
                         </div>
-                        {report.reportText && (
-                          <p className="text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3">
-                            {report.reportText}
-                          </p>
-                        )}
-                        {report.volunteerFeedback && (
-                          <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                            Комментарий координатора: {report.volunteerFeedback}
-                          </p>
-                        )}
-                        {(mediaMap[report.id] || []).length > 0 && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {(mediaMap[report.id] || []).map((m) => (
-                              <img key={m.id} src={m.url} className="w-full h-20 object-cover rounded-lg border" />
-                            ))}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-sm text-gray-600">
+                            <span>Дедлайн: {report.dueDate}</span>
+                            {report.submittedDate && <span>Сдан: {report.submittedDate}</span>}
                           </div>
-                        )}
+                          <Link className="text-blue-600 text-sm font-medium hover:underline" to={`/candidate/reports/${report.id}`}>
+                            Открыть отчёт
+                          </Link>
+                        </div>
                       </div>
                     </div>;
             })}
               </div> : <p className="p-6 text-center text-gray-500">История пуста</p>}
           </div>
         </div>
+      {lightbox.open && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setLightbox({ open: false, url: '' })}>
+          <img src={lightbox.url} className="max-w-4xl max-h-[90vh] object-contain rounded-xl shadow-2xl" />
+        </div>
+      )}
       </div>
     </DashboardLayout>;
 }

@@ -47,6 +47,7 @@ import { CandidateApplications } from './pages/candidate/MyApplications';
 import { CandidateAnimals } from './pages/candidate/Animals';
 import { ProfilePage } from './pages/Profile';
 import { CandidateReports } from './pages/candidate/Reports';
+import { CandidateReportDetail } from './pages/candidate/ReportDetail';
 import { CandidateApplicationForm } from './pages/candidate/ApplicationForm';
 import { CandidateApplicationDetail } from './pages/candidate/ApplicationDetail';
 function ScrollToTop() {
@@ -138,6 +139,7 @@ export function App() {
               <Route path="/candidate/animals/:id" element={<CandidateAnimalDetail />} />
               <Route path="/candidate/apply/:id" element={<CandidateApplicationForm />} />
               <Route path="/candidate/reports" element={<CandidateReports />} />
+              <Route path="/candidate/reports/:id" element={<CandidateReportDetail />} />
               <Route path="/candidate/profile" element={<ProfilePage />} />
             </Route>
 

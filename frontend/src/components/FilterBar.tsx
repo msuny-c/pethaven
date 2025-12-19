@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FilterState } from '../types';
 import { Filter } from 'lucide-react';
-import { getAnimals } from '../services/api';
+import { getAnimalSpecies } from '../services/api';
 interface FilterBarProps {
   filters: FilterState;
   setFilters: (filters: FilterState) => void;
@@ -13,10 +13,7 @@ export function FilterBar({
   const [speciesOptions, setSpeciesOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    getAnimals().then((animals) => {
-      const unique = Array.from(new Set(animals.filter((a) => a.status === 'available').map((a) => a.species)));
-      setSpeciesOptions(unique);
-    }).catch(() => setSpeciesOptions([]));
+    getAnimalSpecies().then(setSpeciesOptions).catch(() => setSpeciesOptions([]));
   }, []);
 
   return <div className="sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 py-4 mb-8">
