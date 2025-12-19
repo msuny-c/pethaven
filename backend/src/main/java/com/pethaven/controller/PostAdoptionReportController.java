@@ -183,10 +183,12 @@ public class PostAdoptionReportController {
         if (hasPending) {
             return;
         }
-        int interval = settingService.getInt(SettingService.REPORT_INTERVAL_DAYS, 30);
+        int interval = Math.max(1, settingService.getInt(SettingService.REPORT_INTERVAL_DAYS, 30));
         PostAdoptionReportEntity next = new PostAdoptionReportEntity();
         next.setAgreementId(submittedReport.getAgreementId());
-        java.time.LocalDate baseDate = submittedReport.getSubmittedDate() != null ? submittedReport.getSubmittedDate() : java.time.LocalDate.now();
+        java.time.LocalDate baseDate = submittedReport.getDueDate() != null
+                ? submittedReport.getDueDate()
+                : (submittedReport.getSubmittedDate() != null ? submittedReport.getSubmittedDate() : java.time.LocalDate.now());
         next.setDueDate(baseDate.plusDays(interval));
         next.setStatus(ReportStatus.pending);
         reportRepository.save(next);
