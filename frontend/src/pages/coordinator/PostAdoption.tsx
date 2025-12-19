@@ -20,6 +20,7 @@ export function CoordinatorPostAdoption() {
   const [agreements, setAgreements] = useState<Record<number, Agreement>>({});
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
   const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
+  const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
 
   useEffect(() => {
     const load = async () => {
