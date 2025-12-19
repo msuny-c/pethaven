@@ -19,31 +19,22 @@ jobs:
       - name: Install sshpass and rsync
         run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
-      - name: Ensure rsync on server
+      - name: Push project to server
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} <<'EOF'
-            if ! command -v rsync >/dev/null 2>&1; then
-              if command -v apt-get >/dev/null 2>&1; then
-                (sudo apt-get update || apt-get update) && (sudo apt-get install -y rsync || apt-get install -y rsync)
-              elif command -v yum >/dev/null 2>&1; then
-                (sudo yum install -y rsync || yum install -y rsync)
-              elif command -v apk >/dev/null 2>&1; then
-                (sudo apk add --no-cache rsync || apk add --no-cache rsync)
-              else
-                echo "rsync is missing and no known package manager found" >&2
-                exit 1
-              fi
-            fi
-          EOF
-
-      - name: Copy project to server
-        run: |
-          sshpass -p "$SSH_PASSWORD" rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${SSH_USER}@${SSH_HOST}:/opt/pethaven
+          tar czf /tmp/pethaven.tar.gz . 
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "mkdir -p /opt/pethaven"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no /tmp/pethaven.tar.gz ${SSH_USER}@${SSH_HOST}:/opt/pethaven/pethaven.tar.gz
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "cd /opt/pethaven && tar xzf pethaven.tar.gz --strip-components=1"
 
       - name: Deploy with docker-compose
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} <<'EOF'
             cd /opt/pethaven
-            docker compose pull || true
-            docker compose up -d --build
+            if command -v docker compose >/dev/null 2>&1; then
+              docker compose pull || true
+              docker compose up -d --build
+            else
+              docker-compose pull || true
+              docker-compose up -d --build
+            fi
           EOF
