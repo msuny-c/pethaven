@@ -28,6 +28,7 @@ public class MedicalRecordEntity {
     private Long vetId;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
     @Column(columnDefinition = "medical_procedure_type")
     private MedicalProcedure procedure;
 

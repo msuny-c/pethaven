@@ -6,9 +6,10 @@ import {
   getAnimals,
   getApplications,
   getPostAdoptionReports,
-  getUsers
+  getUsers,
+  getReportMedia
 } from '../../services/api';
-import { Agreement, Animal, Application, PostAdoptionReport, UserProfile } from '../../types';
+import { Agreement, Animal, Application, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
 
 export function VolunteerPostAdoptionReview() {
   const [reports, setReports] = useState<PostAdoptionReport[]>([]);
@@ -16,6 +17,8 @@ export function VolunteerPostAdoptionReview() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [animals, setAnimals] = useState<Record<number, Animal>>({});
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
+  const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
+  const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -46,6 +49,20 @@ export function VolunteerPostAdoptionReview() {
         }
       });
       setAgreements(agrMap);
+
+      const mediaEntries = await Promise.all(
+        reportsData.map(async (r) => {
+          try {
+            const media = await getReportMedia(r.id);
+            return [r.id, media] as const;
+          } catch {
+            return [r.id, []] as const;
+          }
+        })
+      );
+      const m: Record<number, ReportMedia[]> = {};
+      mediaEntries.forEach(([id, list]) => (m[id] = list));
+      setMediaMap(m);
     };
     load();
   }, []);
@@ -138,6 +155,23 @@ export function VolunteerPostAdoptionReview() {
                         Срок сдачи: {report.dueDate}
                         {report.submittedDate && ` • Сдан: ${report.submittedDate}`}
                       </div>
+                      {report.reportText && (
+                        <p className="text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3 mt-3">
+                          {report.reportText}
+                        </p>
+                      )}
+                      {report.volunteerFeedback && (
+                        <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3 mt-2">
+                          Комментарий координатора: {report.volunteerFeedback}
+                        </p>
+                      )}
+                      {(mediaMap[report.id] || []).length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                          {(mediaMap[report.id] || []).map((m) => (
+                            <img key={m.id} src={m.url} className="w-full h-20 object-cover rounded-lg border" />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {isOverdue && (

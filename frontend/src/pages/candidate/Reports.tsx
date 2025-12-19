@@ -149,37 +149,58 @@ export function CandidateReports() {
             <h3 className="text-lg font-bold text-gray-900 mb-6">
               История отчётов
             </h3>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              {myReports.length > 0 ? <div className="divide-y divide-gray-100">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {myReports.length > 0 ? <div className="divide-y divide-gray-100">
                 {myReports.map(report => {
               const animal = resolveAnimal(report) || Object.values(animalMap)[0];
               return <div key={report.id} className="p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Calendar className="w-5 h-5 text-gray-400 mr-3" />
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            Отчёт от {report.submittedDate || report.dueDate}
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                Отчёт от {report.submittedDate || report.dueDate}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {animal?.name || report.animalName || 'Питомец'}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {animal?.name || report.animalName || 'Питомец'}
-                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            report.status === 'submitted' || report.status === 'reviewed'
+                              ? 'bg-green-100 text-green-700'
+                              : report.status === 'overdue'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {report.status === 'reviewed'
+                              ? 'Проверен'
+                              : report.status === 'submitted'
+                                ? 'Отправлен'
+                                : report.status === 'overdue'
+                                  ? 'Просрочен'
+                                  : 'Ожидается'}
+                          </span>
                         </div>
+                        {report.reportText && (
+                          <p className="text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3">
+                            {report.reportText}
+                          </p>
+                        )}
+                        {report.volunteerFeedback && (
+                          <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                            Комментарий координатора: {report.volunteerFeedback}
+                          </p>
+                        )}
+                        {(mediaMap[report.id] || []).length > 0 && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {(mediaMap[report.id] || []).map((m) => (
+                              <img key={m.id} src={m.url} className="w-full h-20 object-cover rounded-lg border" />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        report.status === 'submitted' || report.status === 'reviewed'
-                          ? 'bg-green-100 text-green-700'
-                          : report.status === 'overdue'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {report.status === 'reviewed'
-                          ? 'Проверен'
-                          : report.status === 'submitted'
-                            ? 'Отправлен'
-                            : report.status === 'overdue'
-                              ? 'Просрочен'
-                              : 'Ожидается'}
-                      </span>
                     </div>;
             })}
               </div> : <p className="p-6 text-center text-gray-500">История пуста</p>}

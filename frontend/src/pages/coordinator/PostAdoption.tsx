@@ -6,10 +6,11 @@ import {
   getAnimals,
   getApplications,
   getPostAdoptionReports,
-  getUsers
+  getUsers,
+  getReportMedia
 } from '../../services/api';
 import { updatePostAdoptionReport } from '../../services/api';
-import { Agreement, Animal, Application, PostAdoptionReport, UserProfile } from '../../types';
+import { Agreement, Animal, Application, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
 
 export function CoordinatorPostAdoption() {
   const [reports, setReports] = useState<PostAdoptionReport[]>([]);
@@ -17,6 +18,8 @@ export function CoordinatorPostAdoption() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [agreements, setAgreements] = useState<Record<number, Agreement>>({});
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
+  const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
+  const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -47,6 +50,20 @@ export function CoordinatorPostAdoption() {
         }
       });
       setAgreements(agrMap);
+
+      const mediaEntries = await Promise.all(
+        reportsData.map(async (r) => {
+          try {
+            const media = await getReportMedia(r.id);
+            return [r.id, media] as const;
+          } catch {
+            return [r.id, []] as const;
+          }
+        })
+      );
+      const m: Record<number, ReportMedia[]> = {};
+      mediaEntries.forEach(([id, list]) => (m[id] = list));
+      setMediaMap(m);
     };
     load();
   }, []);
@@ -152,48 +169,106 @@ export function CoordinatorPostAdoption() {
                   <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
                     {agreement?.postAdoptionPlan || '—'}
                   </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        report.status === 'submitted'
-                          ? 'bg-green-100 text-green-800'
+              <td className="px-6 py-4">
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    report.status === 'submitted'
+                      ? 'bg-green-100 text-green-800'
                           : isOverdue
                             ? 'bg-red-100 text-red-800'
                             : 'bg-amber-100 text-amber-800'
                       }`}
+                >
+                  {report.status === 'submitted'
+                    ? 'Получено'
+                    : isOverdue
+                      ? 'Просрочено'
+                      : 'Ожидается'}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-right">
+                <div className="space-y-2">
+                  <button
+                    className="text-sm text-blue-600 font-medium hover:underline"
+                    onClick={() => setSelected(report)}
+                  >
+                    Подробнее
+                  </button>
+                  {report.status === 'pending' && (
+                    <button
+                      className="text-sm text-emerald-600 font-medium hover:underline"
+                      onClick={async () => {
+                        await updatePostAdoptionReport(report.id, {
+                          status: 'submitted',
+                          submittedDate: new Date().toISOString().slice(0, 10)
+                        });
+                        const refreshed = await getPostAdoptionReports();
+                        setReports(refreshed);
+                      }}
                     >
-                      {report.status === 'submitted'
-                        ? 'Получено'
-                        : isOverdue
-                          ? 'Просрочено'
-                          : 'Ожидается'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {report.status === 'pending' && (
-                      <button
-                        className="text-sm text-blue-600 font-medium"
-                        onClick={async () => {
-                          await updatePostAdoptionReport(report.id, {
-                            status: 'submitted',
-                            submittedDate: new Date().toISOString().slice(0, 10)
-                          });
-                          const refreshed = await getPostAdoptionReports();
-                          setReports(refreshed);
-                        }}
-                      >
-                        Пометить как получено
-                      </button>
-                    )}
-                    {report.status === 'submitted' && <span className="text-sm text-gray-500">Отчёт загружен</span>}
-                  </td>
-                </tr>
-              );
-            })}
+                      Пометить как получено
+                    </button>
+                  )}
+                  {report.status === 'submitted' && <span className="text-sm text-gray-500 block">Отчёт загружен</span>}
+                </div>
+              </td>
+            </tr>
+          );
+        })}
           </tbody>
         </table>
-        {reports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
+      {reports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
       </div>
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase text-gray-500">Отчёт #{selected.id}</div>
+                <div className="font-bold text-gray-900">
+                  {(() => {
+                    const agreement = agreements[selected.agreementId];
+                    const application = agreement
+                      ? applications.find((a) => a.id === agreement.applicationId)
+                      : undefined;
+                    const animal = application ? animals[application.animalId] : undefined;
+                    return animal?.name || `Животное #${application?.animalId || '—'}`;
+                  })()}
+                </div>
+              </div>
+              <button
+                className="text-sm text-gray-500 hover:text-gray-900"
+                onClick={() => setSelected(null)}
+              >
+                Закрыть
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="text-sm text-gray-600">
+                Срок сдачи: {selected.dueDate}
+                {selected.submittedDate && ` • Сдан: ${selected.submittedDate}`}
+              </div>
+              {selected.reportText && (
+                <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm text-gray-800">
+                  {selected.reportText}
+                </div>
+              )}
+              {selected.volunteerFeedback && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-900">
+                  Комментарий волонтёра: {selected.volunteerFeedback}
+                </div>
+              )}
+              {(mediaMap[selected.id] || []).length > 0 && (
+                <div className="grid grid-cols-3 gap-3">
+                  {(mediaMap[selected.id] || []).map((m) => (
+                    <img key={m.id} src={m.url} className="w-full h-24 object-cover rounded-lg border" />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
