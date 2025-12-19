@@ -20,7 +20,6 @@ export function CoordinatorPostAdoption() {
   const [agreements, setAgreements] = useState<Record<number, Agreement>>({});
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
   const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
-  const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -188,30 +187,12 @@ export function CoordinatorPostAdoption() {
                 </span>
               </td>
               <td className="px-6 py-4 text-right">
-                <div className="space-y-2">
-                  <Link
-                    to={`/coordinator/reports/${report.id}`}
-                    className="text-sm text-blue-600 font-medium hover:underline"
-                  >
-                    Подробнее
-                  </Link>
-                  {report.status === 'pending' && (
-                    <button
-                      className="text-sm text-emerald-600 font-medium hover:underline"
-                      onClick={async () => {
-                        await updatePostAdoptionReport(report.id, {
-                          status: 'submitted',
-                          submittedDate: new Date().toISOString().slice(0, 10)
-                        });
-                        const refreshed = await getPostAdoptionReports();
-                        setReports(refreshed);
-                      }}
-                    >
-                      Пометить как получено
-                    </button>
-                  )}
-                  {report.status === 'submitted' && <span className="text-sm text-gray-500 block">Отчёт загружен</span>}
-                </div>
+                <Link
+                  to={`/coordinator/reports/${report.id}`}
+                  className="text-sm text-blue-600 font-medium hover:underline"
+                >
+                  Подробнее
+                </Link>
               </td>
             </tr>
           );

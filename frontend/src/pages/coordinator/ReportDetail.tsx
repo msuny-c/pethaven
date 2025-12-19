@@ -139,9 +139,9 @@ export function CoordinatorReportDetail() {
                     {media.map((m) => (
                       <img
                         key={m.id}
-                        src={m.url}
+                        src={m.url || (m as any).fileUrl}
                         className="w-full h-24 object-cover rounded-lg border cursor-pointer"
-                        onClick={() => setLightbox(m.url || '')}
+                        onClick={() => setLightbox(m.url || (m as any).fileUrl || '')}
                       />
                     ))}
                   </div>
@@ -163,17 +163,8 @@ export function CoordinatorReportDetail() {
               value={recommendation}
               onChange={(e) => setRecommendation(e.target.value)}
             />
-            <div className="mt-3 flex justify-end">
-              <button
-                onClick={saveRecommendation}
-                disabled={saving}
-                className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
-              >
-                {saving ? 'Сохраняем...' : 'Сохранить'}
-              </button>
-            </div>
-            {(report.status === 'pending' || report.status === 'overdue') && (
-              <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex flex-wrap gap-3 justify-end">
+              {(report.status === 'pending' || report.status === 'overdue') && (
                 <button
                   onClick={async () => {
                     if (!report) return;
@@ -201,8 +192,15 @@ export function CoordinatorReportDetail() {
                 >
                   Пометить как получено
                 </button>
-              </div>
-            )}
+              )}
+              <button
+                onClick={saveRecommendation}
+                disabled={saving}
+                className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
+              >
+                {saving ? 'Сохраняем...' : 'Сохранить рекомендации'}
+              </button>
+            </div>
           </div>
         </div>
 
