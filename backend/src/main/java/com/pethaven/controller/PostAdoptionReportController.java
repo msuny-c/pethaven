@@ -9,6 +9,8 @@ import com.pethaven.repository.PostAdoptionReportRepository;
 import com.pethaven.repository.ReportMediaRepository;
 import com.pethaven.service.ObjectStorageService;
 import com.pethaven.service.SettingService;
+import com.pethaven.service.NotificationService;
+import com.pethaven.repository.PersonRepository;
 import com.pethaven.dto.ApiMessage;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -33,15 +35,21 @@ public class PostAdoptionReportController {
     private final ReportMediaRepository reportMediaRepository;
     private final ObjectStorageService storageService;
     private final SettingService settingService;
+    private final NotificationService notificationService;
+    private final PersonRepository personRepository;
 
     public PostAdoptionReportController(PostAdoptionReportRepository reportRepository,
                                         ReportMediaRepository reportMediaRepository,
                                         ObjectStorageService storageService,
-                                        SettingService settingService) {
+                                        SettingService settingService,
+                                        NotificationService notificationService,
+                                        PersonRepository personRepository) {
         this.reportRepository = reportRepository;
         this.reportMediaRepository = reportMediaRepository;
         this.storageService = storageService;
         this.settingService = settingService;
+        this.notificationService = notificationService;
+        this.personRepository = personRepository;
     }
 
     @GetMapping
@@ -126,6 +134,7 @@ public class PostAdoptionReportController {
                     report.setStatus(request.status() != null ? request.status() : ReportStatus.submitted);
                     reportRepository.save(report);
                     scheduleNext(report);
+                    notifyCoordinators(report.getId());
                     return ResponseEntity.ok(ApiMessage.of("Отчёт отправлен"));
                 })
                 .orElseGet(() -> ResponseEntity.status(403).body(ApiMessage.of("Отчёт не найден или не принадлежит кандидату")));
@@ -194,5 +203,15 @@ public class PostAdoptionReportController {
         next.setDueDate(baseDate.plusDays(total));
         next.setStatus(ReportStatus.pending);
         reportRepository.save(next);
+    }
+
+    private void notifyCoordinators(Long reportId) {
+        personRepository.findActiveByRole(com.pethaven.model.enums.SystemRole.coordinator.name())
+                .forEach(person -> notificationService.push(
+                        person.getId(),
+                        com.pethaven.model.enums.NotificationType.report_due,
+                        "Новый постадопционный отчёт",
+                        "Поступил отчёт #" + reportId + " от кандидата"
+                ));
     }
 }

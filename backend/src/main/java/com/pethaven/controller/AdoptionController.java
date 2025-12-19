@@ -79,8 +79,12 @@ public class AdoptionController {
     }
 
     @PatchMapping("/applications/status")
-    public ResponseEntity<ApiMessage> decide(@Valid @RequestBody AdoptionDecisionRequest request) {
-        adoptionService.updateStatus(request);
+    public ResponseEntity<ApiMessage> decide(@Valid @RequestBody AdoptionDecisionRequest request,
+                                             Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long actorId)) {
+            return ResponseEntity.status(401).build();
+        }
+        adoptionService.updateStatus(request, actorId);
         return ResponseEntity.ok(ApiMessage.of("Статус заявки обновлен"));
     }
 

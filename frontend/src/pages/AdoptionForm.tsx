@@ -176,12 +176,6 @@ export function AdoptionForm() {
               <h3 className="text-lg font-bold text-gray-900 border-b pb-2 pt-4">
                 Условия проживания
               </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Адрес проживания
-                </label>
-                <input required type="text" className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" placeholder="Город, улица" />
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -225,12 +219,6 @@ export function AdoptionForm() {
                 experience: e.target.value
               }))}></textarea>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Есть ли дети?
-                  </label>
-                <textarea rows={2} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" placeholder="Если да, укажите возраст"></textarea>
-              </div>
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Почему вы выбрали именно этого питомца?

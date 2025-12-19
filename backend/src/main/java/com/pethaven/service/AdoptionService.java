@@ -117,13 +117,16 @@ public class AdoptionService {
         return adoptionRepository.findById(id);
     }
 
-    public void updateStatus(AdoptionDecisionRequest request) {
+    public void updateStatus(AdoptionDecisionRequest request, Long actorId) {
         adoptionRepository.findById(request.applicationId()).ifPresent(entity -> {
             entity.setStatus(request.status());
             String comment = (request.decisionComment() == null || request.decisionComment().isBlank())
                     ? "Комментарий отсутствует"
                     : request.decisionComment();
             entity.setDecisionComment(comment);
+            if (actorId != null) {
+                entity.setProcessedBy(actorId);
+            }
             adoptionRepository.save(entity);
             if (request.status() == ApplicationStatus.approved) {
                 animalRepository.findById(entity.getAnimalId()).ifPresent(animal -> {
@@ -268,12 +271,16 @@ public class AdoptionService {
         }
         interview.setStatus(request.status());
         interview.setCoordinatorNotes(request.notes());
+        interview.setProcessedBy(actorId);
         interviewRepository.save(interview);
         if (request.status() == InterviewStatus.completed && request.autoApproveApplicationId() != null) {
             adoptionRepository.findById(request.autoApproveApplicationId()).ifPresent(app -> {
                 if (app.getStatus() == ApplicationStatus.under_review || app.getStatus() == ApplicationStatus.submitted) {
                     app.setStatus(ApplicationStatus.approved);
                     app.setDecisionComment(request.notes());
+                    if (actorId != null) {
+                        app.setProcessedBy(actorId);
+                    }
                     adoptionRepository.save(app);
                     animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
                         animal.setStatus(com.pethaven.model.enums.AnimalStatus.reserved);
@@ -289,6 +296,9 @@ public class AdoptionService {
             AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
             app.setStatus(ApplicationStatus.rejected);
             app.setDecisionComment(request.notes());
+            if (actorId != null) {
+                app.setProcessedBy(actorId);
+            }
             adoptionRepository.save(app);
             animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
                 if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {

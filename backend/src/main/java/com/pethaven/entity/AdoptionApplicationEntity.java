@@ -41,6 +41,9 @@ public class AdoptionApplicationEntity {
     @Column(name = "decision_comment")
     private String decisionComment;
 
+    @Column(name = "processed_by")
+    private Long processedBy;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

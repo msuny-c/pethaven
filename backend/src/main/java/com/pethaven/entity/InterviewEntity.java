@@ -39,4 +39,7 @@ public class InterviewEntity {
 
     @Column(name = "coordinator_notes")
     private String coordinatorNotes;
+
+    @Column(name = "processed_by")
+    private Long processedBy;
 }
