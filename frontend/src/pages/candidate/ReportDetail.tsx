@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { getAnimals, getPostAdoptionReports, getReportMedia, getUsers } from '../../services/api';
+import { getAgreement, getAnimals, getApplicationById, getPostAdoptionReports, getReportMedia, getUsers } from '../../services/api';
 import { Animal, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
-import { ArrowLeft, Calendar, PawPrint, FileText, User } from 'lucide-react';
+import { ArrowLeft, Calendar, PawPrint } from 'lucide-react';
 
 export function CandidateReportDetail() {
   const { id } = useParams();
@@ -22,12 +22,31 @@ export function CandidateReportDetail() {
       setReport(current || null);
       if (!current) return;
       const [animalsList, users] = await Promise.all([getAnimals(), getUsers()]);
-      if (current.animalId) {
-        setAnimal(animalsList.find((a) => a.id === current.animalId) || null);
+      const resolveAnimal = (animalId?: number | null) => {
+        if (!animalId) return null;
+        return animalsList.find((a) => a.id === animalId) || null;
+      };
+
+      let relatedApplicationId = current.applicationId;
+      if (!relatedApplicationId && current.agreementId) {
+        try {
+          const agr = await getAgreement(current.agreementId);
+          relatedApplicationId = agr.applicationId;
+        } catch {
+          relatedApplicationId = null;
+        }
       }
-      if (current.authorId) {
-        setCoordinator(users.find((u) => u.id === current.authorId) || null);
-      }
+
+      const author = current.authorId ? users.find((u) => u.id === current.authorId) || null : null;
+      setCoordinator(author);
+
+      const resolvedAnimal =
+        resolveAnimal(current.animalId) ||
+        (relatedApplicationId
+          ? await getApplicationById(relatedApplicationId).then((app) => resolveAnimal(app.animalId)).catch(() => null)
+          : null);
+
+      setAnimal(resolvedAnimal);
       try {
         const mediaList = await getReportMedia(current.id);
         setMedia(mediaList.map((m) => ({ ...m, url: m.url || (m as any).fileUrl })));
@@ -53,6 +72,10 @@ export function CandidateReportDetail() {
       </DashboardLayout>
     );
   }
+
+  const commentAuthorName = `${report.authorFirstName || coordinator?.firstName || ''} ${report.authorLastName || coordinator?.lastName || ''}`.trim();
+  const commentAuthorAvatar =
+    report.authorAvatar || coordinator?.avatarUrl || 'https://i.pravatar.cc/80';
 
   return (
     <DashboardLayout
@@ -102,7 +125,16 @@ export function CandidateReportDetail() {
               </div>
               {report.volunteerFeedback && (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-900">
-                  Комментарий координатора: {report.volunteerFeedback}
+                  <div className="flex items-center gap-3 mb-2">
+                    <img src={commentAuthorAvatar} className="w-10 h-10 rounded-full object-cover" />
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {commentAuthorName || 'Координатор'}
+                      </div>
+                      <div className="text-xs text-emerald-700">Комментарий координатора</div>
+                    </div>
+                  </div>
+                  <div>{report.volunteerFeedback}</div>
                 </div>
               )}
               {media.length > 0 && (
@@ -135,36 +167,11 @@ export function CandidateReportDetail() {
                 <div className="text-sm text-gray-600">{animal.breed}</div>
               </div>
             ) : (
-              <div className="text-sm text-gray-500">Данные животного не найдены</div>
+              <div className="text-sm text-gray-500">
+                {report.animalName ? `Питомец: ${report.animalName}` : 'Данные животного не найдены'}
+              </div>
             )}
           </div>
-
-          {report.volunteerFeedback && (
-            <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-              <div className="flex items-center mb-3">
-                <User className="w-4 h-4 text-amber-500 mr-2" />
-                <div className="font-semibold text-gray-900">Комментарий координатора</div>
-              </div>
-              <div className="flex items-start gap-3">
-                <img
-                  src={
-                    report.authorAvatar ||
-                    coordinator?.avatarUrl ||
-                    'https://i.pravatar.cc/80'
-                  }
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                  <div className="text-sm text-gray-700 font-medium mb-1">
-                    {(report.authorFirstName || coordinator?.firstName || '') + ' ' + (report.authorLastName || coordinator?.lastName || '')}
-                  </div>
-                  <div className="inline-block bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 text-sm text-emerald-900">
-                    {report.volunteerFeedback}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
