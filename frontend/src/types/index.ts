@@ -153,6 +153,10 @@ export interface PostAdoptionReport {
   reportText?: string;
   volunteerFeedback?: string;
   status: 'pending' | 'submitted' | 'overdue' | 'reviewed';
+  authorId?: number;
+  authorFirstName?: string;
+  authorLastName?: string;
+  authorAvatar?: string;
 }
 
 export interface SystemSetting {

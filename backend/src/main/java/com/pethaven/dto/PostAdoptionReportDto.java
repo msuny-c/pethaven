@@ -15,7 +15,11 @@ public record PostAdoptionReportDto(
         LocalDate submittedDate,
         String reportText,
         String volunteerFeedback,
-        ReportStatus status
+        ReportStatus status,
+        Long authorId,
+        String authorFirstName,
+        String authorLastName,
+        String authorAvatar
 ) {
     public static PostAdoptionReportDto fromProjection(PostAdoptionReportProjection projection) {
         return new PostAdoptionReportDto(
@@ -28,7 +32,11 @@ public record PostAdoptionReportDto(
                 projection.getSubmittedDate(),
                 projection.getReportText(),
                 projection.getVolunteerFeedback(),
-                projection.getStatus() != null ? ReportStatus.valueOf(projection.getStatus()) : ReportStatus.pending
+                projection.getStatus() != null ? ReportStatus.valueOf(projection.getStatus()) : ReportStatus.pending,
+                projection.getAuthorId(),
+                projection.getAuthorFirstName(),
+                projection.getAuthorLastName(),
+                projection.getAuthorAvatar()
         );
     }
 }

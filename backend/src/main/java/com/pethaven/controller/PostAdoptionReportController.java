@@ -75,13 +75,17 @@ public class PostAdoptionReportController {
     }
 
     @PutMapping("/{id}")
-    public PostAdoptionReportEntity update(@PathVariable Long id, @Valid @RequestBody PostAdoptionReportRequest request) {
+    public PostAdoptionReportEntity update(@PathVariable Long id, @Valid @RequestBody PostAdoptionReportRequest request,
+                                           Authentication authentication) {
         PostAdoptionReportEntity entity = reportRepository.findById(id).orElseThrow();
         entity.setDueDate(request.dueDate());
         entity.setReportText(request.reportText());
         entity.setVolunteerFeedback(request.volunteerFeedback());
         entity.setSubmittedDate(request.submittedDate());
         entity.setStatus(request.status() != null ? request.status() : ReportStatus.submitted);
+        if (authentication != null && authentication.getPrincipal() instanceof Long uid && request.volunteerFeedback() != null) {
+            entity.setCommentAuthorId(uid);
+        }
         return reportRepository.save(entity);
     }
 

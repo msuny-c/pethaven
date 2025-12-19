@@ -45,4 +45,7 @@ public class PostAdoptionReportEntity {
 
     @Column(name = "last_reminded_at")
     private java.time.OffsetDateTime lastRemindedAt;
+
+    @Column(name = "comment_author_id")
+    private Long commentAuthorId;
 }

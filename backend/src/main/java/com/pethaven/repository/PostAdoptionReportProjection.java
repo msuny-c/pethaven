@@ -16,4 +16,8 @@ public interface PostAdoptionReportProjection {
     Long getAnimalId();
     Long getApplicationId();
     String getAnimalName();
+    Long getAuthorId();
+    String getAuthorFirstName();
+    String getAuthorLastName();
+    String getAuthorAvatar();
 }

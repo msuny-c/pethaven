@@ -39,7 +39,7 @@ export function CoordinatorReportDetail() {
       }
       try {
         const mediaList = await getReportMedia(current.id);
-        setMedia(mediaList);
+        setMedia(mediaList.map((m) => ({ ...m, url: m.url || (m as any).fileUrl })));
       } catch {
         setMedia([]);
       }
@@ -172,6 +172,37 @@ export function CoordinatorReportDetail() {
                 {saving ? 'Сохраняем...' : 'Сохранить'}
               </button>
             </div>
+            {(report.status === 'pending' || report.status === 'overdue') && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={async () => {
+                    if (!report) return;
+                    setSaving(true);
+                    try {
+                      const submittedDate = new Date().toISOString().slice(0, 10);
+                      await updatePostAdoptionReport(report.id, {
+                        agreementId: report.agreementId,
+                        dueDate: report.dueDate,
+                        submittedDate,
+                        reportText: report.reportText,
+                        volunteerFeedback: recommendation,
+                        status: 'submitted'
+                      });
+                      setReport({ ...report, status: 'submitted', submittedDate });
+                    } catch (e: any) {
+                      const msg = e?.response?.data?.message || 'Не удалось обновить статус';
+                      alert(msg);
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 disabled:opacity-50"
+                >
+                  Пометить как получено
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

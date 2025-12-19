@@ -40,13 +40,18 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
                    r.report_text  AS reportText,
                    r.volunteer_feedback AS volunteerFeedback,
                    r.status       AS status,
-                   aa.animal_id   AS animalId,
-                   ag.application_id AS applicationId,
-                   an.name        AS animalName
+                    aa.animal_id   AS animalId,
+                    ag.application_id AS applicationId,
+                    an.name        AS animalName,
+                    r.comment_author_id AS authorId,
+                    p.first_name   AS authorFirstName,
+                    p.last_name    AS authorLastName,
+                    COALESCE(p.avatar_url, CASE WHEN p.avatar_key IS NOT NULL THEN '/api/v1/media/avatars/' || p.person_id END) AS authorAvatar
             FROM post_adoption_report r
                      JOIN agreement ag ON ag.agreement_id = r.agreement_id
                      JOIN adoption_application aa ON aa.application_id = ag.application_id
                      LEFT JOIN animal an ON an.animal_id = aa.animal_id
+                     LEFT JOIN person p ON p.person_id = r.comment_author_id
             WHERE aa.candidate_id = :candidateId
             ORDER BY r.due_date
             """, nativeQuery = true)

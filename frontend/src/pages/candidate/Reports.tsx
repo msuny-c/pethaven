@@ -152,8 +152,8 @@ export function CandidateReports() {
               История отчётов
             </h3>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            {myReports.length > 0 ? <div className="divide-y divide-gray-100">
-                {myReports.map(report => {
+            {myReports.filter(r => r.status !== 'pending' && r.status !== 'overdue').length > 0 ? <div className="divide-y divide-gray-100">
+                {myReports.filter(r => r.status !== 'pending' && r.status !== 'overdue').map(report => {
               const animal = resolveAnimal(report) || Object.values(animalMap)[0];
               return <div key={report.id} className="p-4 flex items-center justify-between">
                       <div className="flex flex-col gap-2 w-full">

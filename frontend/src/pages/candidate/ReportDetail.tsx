@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { getAgreement, getAnimals, getApplications, getPostAdoptionReports, getReportMedia, getUsers } from '../../services/api';
-import { Agreement, Animal, Application, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
-import { ArrowLeft, Calendar, PawPrint, FileText } from 'lucide-react';
+import { getAnimals, getPostAdoptionReports, getReportMedia, getUsers } from '../../services/api';
+import { Animal, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
+import { ArrowLeft, Calendar, PawPrint, FileText, User } from 'lucide-react';
 
 export function CandidateReportDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [report, setReport] = useState<PostAdoptionReport | null>(null);
   const [animal, setAnimal] = useState<Animal | null>(null);
-  const [candidate, setCandidate] = useState<UserProfile | null>(null);
+  const [coordinator, setCoordinator] = useState<UserProfile | null>(null);
   const [media, setMedia] = useState<ReportMedia[]>([]);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -21,20 +21,16 @@ export function CandidateReportDetail() {
       const current = reports.find((r) => r.id === Number(id)) || null;
       setReport(current || null);
       if (!current) return;
-      const [apps, animalsList, users] = await Promise.all([getApplications(), getAnimals(), getUsers()]);
-      if (current.agreementId) {
-        const agr = await getAgreement(current.agreementId).catch(() => null);
-        if (agr) {
-          const app = apps.find((a) => a.id === agr.applicationId) || null;
-          if (app) {
-            setAnimal(animalsList.find((a) => a.id === app.animalId) || null);
-            setCandidate(users.find((u) => u.id === app.candidateId) || null);
-          }
-        }
+      const [animalsList, users] = await Promise.all([getAnimals(), getUsers()]);
+      if (current.animalId) {
+        setAnimal(animalsList.find((a) => a.id === current.animalId) || null);
+      }
+      if (current.authorId) {
+        setCoordinator(users.find((u) => u.id === current.authorId) || null);
       }
       try {
         const mediaList = await getReportMedia(current.id);
-        setMedia(mediaList);
+        setMedia(mediaList.map((m) => ({ ...m, url: m.url || (m as any).fileUrl })));
       } catch {
         setMedia([]);
       }
@@ -143,22 +139,23 @@ export function CandidateReportDetail() {
             )}
           </div>
 
-          <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center mb-3">
-              <FileText className="w-4 h-4 text-amber-500 mr-2" />
-              <div className="font-semibold text-gray-900">Кандидат</div>
-            </div>
-            {candidate ? (
-              <div className="space-y-2">
-                <div className="font-bold text-gray-900">
-                  {candidate.firstName} {candidate.lastName}
-                </div>
-                <div className="text-sm text-gray-600">{candidate.email}</div>
+          {coordinator && report.volunteerFeedback && (
+            <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center mb-3">
+                <User className="w-4 h-4 text-amber-500 mr-2" />
+                <div className="font-semibold text-gray-900">Комментарий координатора</div>
               </div>
-            ) : (
-              <div className="text-sm text-gray-500">Данные профиля не найдены</div>
-            )}
-          </div>
+              <div className="flex items-center gap-3 mb-2">
+                <img src={coordinator.avatarUrl || 'https://i.pravatar.cc/80'} className="w-10 h-10 rounded-full object-cover" />
+                <div className="text-sm text-gray-700 font-medium">
+                  {coordinator.firstName} {coordinator.lastName}
+                </div>
+              </div>
+              <p className="text-sm text-gray-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                {report.volunteerFeedback}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
