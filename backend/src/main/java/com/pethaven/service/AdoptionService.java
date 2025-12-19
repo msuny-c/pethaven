@@ -372,10 +372,12 @@ public class AdoptionService {
         if (agreementId == null) {
             return;
         }
-        int interval = settingService.getInt(SettingService.REPORT_INTERVAL_DAYS, 30);
+        int offsetDays = settingService.getReportOffsetDays();
+        int fillDays = settingService.getReportFillDays();
+        int total = Math.max(1, offsetDays + fillDays);
         PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
         entity.setAgreementId(agreementId);
-        entity.setDueDate(signedDate.plusDays(interval));
+        entity.setDueDate(signedDate.plusDays(total));
         entity.setStatus(com.pethaven.model.enums.ReportStatus.pending);
         reportRepository.save(entity);
     }

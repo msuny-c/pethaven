@@ -6,7 +6,8 @@ export function AdminSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
-    reportInterval: '30',
+    reportOffset: '30',
+    reportWindow: '7',
     vaccInterval: '365'
   });
 
@@ -14,12 +15,14 @@ export function AdminSettings() {
     const load = async () => {
       setLoading(true);
       try {
-        const [reportInterval, vaccInterval] = await Promise.all([
-          getSetting('report_interval_days').catch(() => ''),
+        const [reportOffset, reportWindow, vaccInterval] = await Promise.all([
+          getSetting('report_offset_days').catch(() => getSetting('report_interval_days').catch(() => '')),
+          getSetting('report_fill_days').catch(() => ''),
           getSetting('vaccination_interval_days').catch(() => '')
         ]);
         setSettings({
-          reportInterval: reportInterval || '30',
+          reportOffset: reportOffset || '30',
+          reportWindow: reportWindow || '7',
           vaccInterval: vaccInterval || '365'
         });
       } finally {
@@ -33,7 +36,8 @@ export function AdminSettings() {
     setSaving(true);
     try {
       await Promise.all([
-        setSetting('report_interval_days', settings.reportInterval || '30'),
+        setSetting('report_offset_days', settings.reportOffset || '30'),
+        setSetting('report_fill_days', settings.reportWindow || '7'),
         setSetting('vaccination_interval_days', settings.vaccInterval || '365')
       ]);
       alert('Настройки сохранены');
@@ -50,26 +54,36 @@ export function AdminSettings() {
       <div className="space-y-6">
         {loading && <div className="text-sm text-gray-500">Загружаем параметры...</div>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase text-gray-500">Постсопровождение</div>
                 <div className="font-semibold text-gray-900">Отчёты новых владельцев</div>
               </div>
-              <span className="text-xs text-gray-500">интервалы</span>
+              <span className="text-xs text-gray-500">график</span>
             </div>
             <label className="block text-sm text-gray-700">
-              Период отчётов (дней)
+              Через сколько дней после отправки запросить следующий отчёт
               <input
                 type="number"
                 min={1}
                 className="mt-2 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
-                value={settings.reportInterval}
-                onChange={(e) => setSettings((s) => ({ ...s, reportInterval: e.target.value }))}
+                value={settings.reportOffset}
+                onChange={(e) => setSettings((s) => ({ ...s, reportOffset: e.target.value }))}
               />
             </label>
-            <p className="text-xs text-gray-500 mt-2">
-              Используется для авто-планирования следующих отчётов после отправки текущего.
+            <label className="block text-sm text-gray-700">
+              Время на заполнение (дней)
+              <input
+                type="number"
+                min={1}
+                className="mt-2 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                value={settings.reportWindow}
+                onChange={(e) => setSettings((s) => ({ ...s, reportWindow: e.target.value }))}
+              />
+            </label>
+            <p className="text-xs text-gray-500">
+              Новый отчёт создаётся через указанную паузу после отправки предыдущего, крайний срок = пауза + время на заполнение.
             </p>
           </div>
 
