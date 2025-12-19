@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { Users, PawPrint, FileText, AlertCircle } from 'lucide-react';
-import { getAnimals, getUsers, getApplications, getNotifications, getSetting, setSetting } from '../../services/api';
+import { getAnimals, getUsers, getApplications, getNotifications } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Notification } from '../../types';
 import { Link } from 'react-router-dom';
@@ -31,11 +31,6 @@ export function AdminDashboard() {
   }]);
 
   const [activity, setActivity] = useState<Notification[]>([]);
-  const [settings, setSettings] = useState<{ reportInterval: string; vaccInterval: string }>({
-    reportInterval: '',
-    vaccInterval: ''
-  });
-  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     Promise.all([getUsers(), getAnimals(), getApplications()]).then(([usersData, animalsData, apps]) => {
@@ -53,12 +48,6 @@ export function AdminDashboard() {
   useEffect(() => {
     if (!user) return;
     getNotifications().then(setActivity).catch(() => setActivity([]));
-    Promise.all([
-      getSetting('report_interval_days').catch(() => ''),
-      getSetting('vaccination_interval_days').catch(() => '')
-    ]).then(([reportInterval, vaccInterval]) => {
-      setSettings({ reportInterval: reportInterval || '30', vaccInterval: vaccInterval || '365' });
-    });
   }, [user]);
   return <DashboardLayout title="Панель администратора">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -120,52 +109,6 @@ export function AdminDashboard() {
             <Link to="/admin/volunteers" className="px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600">
               Открыть
             </Link>
-          </div>
-          <div className="mt-6">
-            <h4 className="font-semibold text-gray-900 mb-2">Настройки периодов</h4>
-            <div className="grid grid-cols-1 gap-3">
-              <label className="text-sm text-gray-700">
-                Период отчётов (дней)
-                <input
-                  type="number"
-                  min={1}
-                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
-                  value={settings.reportInterval}
-                  onChange={(e) => setSettings((s) => ({ ...s, reportInterval: e.target.value }))}
-                />
-              </label>
-              <label className="text-sm text-gray-700">
-                Период вакцинации (дней)
-                <input
-                  type="number"
-                  min={1}
-                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
-                  value={settings.vaccInterval}
-                  onChange={(e) => setSettings((s) => ({ ...s, vaccInterval: e.target.value }))}
-                />
-              </label>
-              <button
-                onClick={async () => {
-                  setSavingSettings(true);
-                  try {
-                    await Promise.all([
-                      setSetting('report_interval_days', settings.reportInterval || '30'),
-                      setSetting('vaccination_interval_days', settings.vaccInterval || '365')
-                    ]);
-                    alert('Настройки сохранены');
-                  } catch (e: any) {
-                    const msg = e?.response?.data?.message || 'Не удалось сохранить настройки';
-                    alert(msg);
-                  } finally {
-                    setSavingSettings(false);
-                  }
-                }}
-                className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
-                disabled={savingSettings}
-              >
-                {savingSettings ? 'Сохраняем...' : 'Сохранить'}
-              </button>
-            </div>
           </div>
         </div>
       </div>

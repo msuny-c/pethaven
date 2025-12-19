@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Users, PawPrint, FileText, Calendar, ClipboardList, Activity, LogOut, Home, Settings, FileCheck } from 'lucide-react';
+import { LayoutDashboard, Users, PawPrint, FileText, Calendar, ClipboardList, Activity, LogOut, Home, Settings, FileCheck, User } from 'lucide-react';
 export function Sidebar() {
   const { user, primaryRole, logout } = useAuth();
   const location = useLocation();
@@ -35,9 +35,13 @@ export function Sidebar() {
           label: 'Отчеты',
           icon: FileText
         }, {
+          path: '/admin/settings',
+          label: 'Настройки',
+          icon: Settings
+        }, {
           path: '/profile',
           label: 'Профиль',
-          icon: Settings
+          icon: User
         }];
       case 'coordinator':
         return [{

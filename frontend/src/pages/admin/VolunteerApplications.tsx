@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Check, X, Clock } from 'lucide-react';
-import { VolunteerApplication } from '../../types';
-import { decideVolunteerApplication, getVolunteerApplications } from '../../services/api';
+import { VolunteerApplication, UserProfile } from '../../types';
+import { decideVolunteerApplication, getVolunteerApplications, getUsers } from '../../services/api';
 
 export function AdminVolunteerApplications() {
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [comment, setComment] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState<Record<number, boolean>>({});
+  const [users, setUsers] = useState<Record<number, UserProfile>>({});
 
   useEffect(() => {
     refresh();
@@ -17,8 +18,13 @@ export function AdminVolunteerApplications() {
   const refresh = async () => {
     setLoading(true);
     try {
-      const data = await getVolunteerApplications();
-      setApplications(data);
+      const [apps, usersList] = await Promise.all([getVolunteerApplications(), getUsers()]);
+      const map: Record<number, UserProfile> = {};
+      usersList.forEach((u) => {
+        map[u.id] = u;
+      });
+      setApplications(apps);
+      setUsers(map);
     } finally {
       setLoading(false);
     }
@@ -63,7 +69,7 @@ export function AdminVolunteerApplications() {
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
-              <th className="px-6 py-3">Кандидат</th>
+              <th className="px-6 py-3">Волонтёр</th>
               <th className="px-6 py-3">Мотивация</th>
               <th className="px-6 py-3">Статус</th>
               <th className="px-6 py-3">Комментарий</th>
@@ -73,11 +79,26 @@ export function AdminVolunteerApplications() {
           <tbody className="divide-y divide-gray-100">
             {applications.map((app) => {
               const chip = statusChip(app.status);
+              const person = users[app.personId];
+              const isFinal = app.status === 'approved' || app.status === 'rejected';
               return (
                 <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">Кандидат #{app.personId}</div>
-                    <div className="text-xs text-gray-500">{app.availability || 'Доступность не указана'}</div>
+                    <div className="font-medium text-gray-900">
+                      {person ? `${person.firstName} ${person.lastName}` : `Волонтёр #${app.personId}`}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Email: {person?.email || '—'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Телефон: {person?.phoneNumber || '—'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Доступность: {app.availability || 'не указана'}
+                    </div>
+                    {app.createdAt && (
+                      <div className="text-xs text-gray-400">Создано: {new Date(app.createdAt).toLocaleString()}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">{app.motivation}</td>
                   <td className="px-6 py-4">
@@ -88,35 +109,42 @@ export function AdminVolunteerApplications() {
                   <td className="px-6 py-4">
                     <input
                       type="text"
-                      placeholder="Комментарий"
+                      placeholder="Комментарий решения"
                       value={comment[app.id] || app.decisionComment || ''}
                       onChange={(e) => setComment((prev) => ({ ...prev, [app.id]: e.target.value }))}
-                      className="w-full rounded-lg border-gray-200 px-3 py-2 text-sm focus:ring-amber-500 focus:border-amber-500"
+                      disabled={isFinal}
+                      className="w-full rounded-lg border-gray-200 px-3 py-2 text-sm focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
                     />
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    <button
-                      onClick={() => decide(app.id, 'approved')}
-                      disabled={!!busy[app.id]}
-                      className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 disabled:opacity-50"
-                    >
-                      <Check className="w-4 h-4 mr-1" /> Одобрить
-                    </button>
-                    <button
-                      onClick={() => decide(app.id, 'rejected')}
-                      disabled={!!busy[app.id]}
-                      className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
-                    >
-                      <X className="w-4 h-4 mr-1" /> Отклонить
-                    </button>
-                    {app.status === 'submitted' && (
-                      <button
-                        onClick={() => decide(app.id, 'under_review')}
-                        disabled={!!busy[app.id]}
-                        className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 disabled:opacity-50"
-                      >
-                        <Clock className="w-4 h-4 mr-1" /> В работу
-                      </button>
+                    {!isFinal ? (
+                      <>
+                        <button
+                          onClick={() => decide(app.id, 'approved')}
+                          disabled={!!busy[app.id]}
+                          className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4 mr-1" /> Одобрить
+                        </button>
+                        <button
+                          onClick={() => decide(app.id, 'rejected')}
+                          disabled={!!busy[app.id]}
+                          className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
+                        >
+                          <X className="w-4 h-4 mr-1" /> Отклонить
+                        </button>
+                        {app.status === 'submitted' && (
+                          <button
+                            onClick={() => decide(app.id, 'under_review')}
+                            disabled={!!busy[app.id]}
+                            className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 disabled:opacity-50"
+                          >
+                            <Clock className="w-4 h-4 mr-1" /> В работу
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-500">Решение зафиксировано</span>
                     )}
                   </td>
                 </tr>

@@ -89,11 +89,17 @@ export function CandidateReports() {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget as HTMLFormElement);
                         const text = formData.get('text') as string;
+                        const submittedDate = new Date().toISOString().slice(0, 10);
                         await submitReport(report.id, {
                           reportText: text,
                           status: 'submitted',
-                          submittedDate: new Date().toISOString().slice(0, 10)
+                          submittedDate
                         });
+                        setMyReports((prev) =>
+                          prev.map((r) =>
+                            r.id === report.id ? { ...r, reportText: text, status: 'submitted', submittedDate } : r
+                          )
+                        );
                         alert('Отчёт отправлен');
                         await loadData();
                       }}

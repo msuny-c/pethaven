@@ -19,6 +19,7 @@ import { AdminAnimals } from './pages/admin/Animals';
 import { AdminUsers } from './pages/admin/Users';
 import { AdminReports } from './pages/admin/Reports';
 import { AdminVolunteerApplications } from './pages/admin/VolunteerApplications';
+import { AdminSettings } from './pages/admin/Settings';
 // Coordinator Pages
 import { CoordinatorDashboard } from './pages/coordinator/Dashboard';
 import { CoordinatorApplications } from './pages/coordinator/Applications';
@@ -94,6 +95,7 @@ export function App() {
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/volunteers" element={<AdminVolunteerApplications />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
             </Route>
 
             {/* Coordinator Routes */}

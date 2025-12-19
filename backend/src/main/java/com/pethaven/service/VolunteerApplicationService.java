@@ -48,6 +48,11 @@ public class VolunteerApplicationService {
 
     @Transactional
     public void decide(VolunteerDecisionRequest request) {
+        VolunteerApplicationEntity application = applicationRepository.findById(request.applicationId())
+                .orElseThrow(() -> new IllegalArgumentException("Заявка волонтёра не найдена"));
+        if (application.getStatus() == VolunteerApplicationStatus.approved || application.getStatus() == VolunteerApplicationStatus.rejected) {
+            throw new IllegalStateException("Решение по этой заявке уже зафиксировано");
+        }
         applicationRepository.decide(request.applicationId(), request.status().name(), request.decisionComment());
     }
 }
