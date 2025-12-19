@@ -24,7 +24,7 @@ public interface VolunteerApplicationRepository extends JpaRepository<VolunteerA
                 @Param("availability") String availability);
 
     @Modifying
-    @Query(value = "CALL decide_volunteer_application(:applicationId, CAST(:status AS volunteer_application_status), :comment)", nativeQuery = true)
+    @Query(value = "CALL decide_volunteer_application(CAST(:applicationId AS integer), CAST(:status AS volunteer_application_status), :comment)", nativeQuery = true)
     void decide(@Param("applicationId") Long applicationId,
                 @Param("status") String status,
                 @Param("comment") String comment);
