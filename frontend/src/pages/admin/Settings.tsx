@@ -60,7 +60,6 @@ export function AdminSettings() {
                 <div className="text-xs uppercase text-gray-500">Постсопровождение</div>
                 <div className="font-semibold text-gray-900">Отчёты новых владельцев</div>
               </div>
-              <span className="text-xs text-gray-500">график</span>
             </div>
             <label className="block text-sm text-gray-700">
               Через сколько дней после отправки запросить следующий отчёт
@@ -82,9 +81,6 @@ export function AdminSettings() {
                 onChange={(e) => setSettings((s) => ({ ...s, reportWindow: e.target.value }))}
               />
             </label>
-            <p className="text-xs text-gray-500">
-              Новый отчёт создаётся через указанную паузу после отправки предыдущего, крайний срок = пауза + время на заполнение.
-            </p>
           </div>
 
           <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
@@ -93,7 +89,6 @@ export function AdminSettings() {
                 <div className="text-xs uppercase text-gray-500">Медицина</div>
                 <div className="font-semibold text-gray-900">Вакцинации</div>
               </div>
-              <span className="text-xs text-gray-500">интервалы</span>
             </div>
             <label className="block text-sm text-gray-700">
               Период вакцинации (дней)

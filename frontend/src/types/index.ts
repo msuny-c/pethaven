@@ -8,7 +8,6 @@ export interface AuthUser {
   phoneNumber?: string;
   roles: Role[];
   accessToken: string;
-  refreshToken: string;
   avatarUrl?: string;
 }
 

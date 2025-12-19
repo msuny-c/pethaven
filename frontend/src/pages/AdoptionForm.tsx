@@ -25,8 +25,7 @@ export function AdoptionForm() {
     password: '',
     reason: '',
     experience: '',
-    housing: 'Квартира',
-    housingOwnership: 'Собственное'
+    housing: 'Квартира'
   });
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -51,7 +50,7 @@ export function AdoptionForm() {
       await submitApplication(Number(id), {
         reason: form.reason,
         experience: form.experience,
-        housing: `${form.housing} (${form.housingOwnership})`
+        housing: form.housing
       });
       setSubmitted(true);
       window.scrollTo(0, 0);
@@ -187,19 +186,8 @@ export function AdoptionForm() {
                   }))}>
                     <option value="Квартира">Квартира</option>
                     <option value="Частный дом">Частный дом</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Собственность
-                  </label>
-                  <select className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={form.housingOwnership} onChange={e => setForm(prev => ({
-                    ...prev,
-                    housingOwnership: e.target.value
-                  }))}>
-                    <option value="Собственное жилье">Собственное жилье</option>
-                    <option value="Аренда">Аренда</option>
-                    <option value="Живу с родителями">Живу с родителями</option>
+                    <option value="Комната">Комната</option>
+                    <option value="Другое">Другое</option>
                   </select>
                 </div>
               </div>
@@ -212,9 +200,9 @@ export function AdoptionForm() {
               </h3>
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Есть ли другие животные?
+                    Опыт с животными
                   </label>
-                  <textarea rows={2} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" placeholder="Если да, опишите их (вид, возраст, характер)" value={form.experience} onChange={e => setForm(prev => ({
+                  <textarea rows={2} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" placeholder="Если да, опишите опыт, наличие других питомцев" value={form.experience} onChange={e => setForm(prev => ({
                 ...prev,
                 experience: e.target.value
               }))}></textarea>

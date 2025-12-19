@@ -3,7 +3,6 @@ package com.pethaven.controller;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.AuthResponse;
 import com.pethaven.dto.LoginRequest;
-import com.pethaven.dto.RefreshRequest;
 import com.pethaven.dto.RegisterRequest;
 import com.pethaven.service.AuthService;
 import jakarta.validation.Valid;
@@ -42,10 +41,4 @@ public class AuthController {
                 .orElseGet(() -> ResponseEntity.status(401).body(ApiMessage.of("Неверные учетные данные")));
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshRequest request) {
-        return authService.refresh(request.refreshToken())
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(401).body(ApiMessage.of("Refresh токен недействителен")));
-    }
 }

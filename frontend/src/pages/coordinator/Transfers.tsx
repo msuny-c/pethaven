@@ -145,7 +145,6 @@ export function CoordinatorTransfers() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-bold text-gray-900">Завершённые передачи</h3>
-            <span className="text-xs text-gray-500">По данным agreements</span>
           </div>
           <div className="divide-y divide-gray-100">
             {completedTransfers.map((transfer) => {

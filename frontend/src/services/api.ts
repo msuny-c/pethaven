@@ -13,12 +13,7 @@ export async function registerCandidate(data: { email: string; password: string;
 }
 
 export async function refreshSession(refreshToken: string): Promise<AuthUser> {
-  const client = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE || '/api/v1',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const { data } = await client.post<AuthUser>('/auth/refresh', { refreshToken });
-  return data;
+  throw new Error('Refresh token flow disabled');
 }
 
 export async function getAnimals(): Promise<Animal[]> {

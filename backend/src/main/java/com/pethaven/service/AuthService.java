@@ -7,7 +7,6 @@ import com.pethaven.entity.PersonEntity;
 import com.pethaven.entity.RoleEntity;
 import com.pethaven.repository.PersonRepository;
 import com.pethaven.repository.RoleRepository;
-import com.pethaven.repository.RefreshTokenRepository;
 import com.pethaven.security.JwtService;
 import com.pethaven.model.enums.SystemRole;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,19 +24,16 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
-    private final RefreshTokenRepository refreshTokenRepository;
 
     public AuthService(PersonRepository personRepository,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       TokenService tokenService,
-                       RefreshTokenRepository refreshTokenRepository) {
+                       TokenService tokenService) {
         this.personRepository = personRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
-        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     public AuthResponse registerCandidate(RegisterRequest request) {
@@ -67,7 +63,7 @@ public class AuthService {
         Set<SystemRole> roles = Set.of(targetRole);
         TokenService.TokenPair pair = tokenService.issueTokens(saved.getId(), saved.getEmail(), roles);
         return new AuthResponse(saved.getId(), saved.getEmail(), saved.getFirstName(), saved.getLastName(), saved.getPhoneNumber(),
-                roles, pair.accessToken(), pair.refreshToken(), saved.getAvatarUrl());
+                roles, pair.accessToken(), null, saved.getAvatarUrl());
     }
 
     public Optional<AuthResponse> login(LoginRequest request) {
@@ -98,22 +94,8 @@ public class AuthService {
                 person.getPhoneNumber(),
                 roles,
                 pair.accessToken(),
-                pair.refreshToken(),
+                null,
                 person.getAvatarUrl()
         ));
-    }
-
-    public Optional<AuthResponse> refresh(String refreshToken) {
-        return refreshTokenRepository.findByToken(refreshToken)
-                .flatMap(rt -> personRepository.findById(rt.getPersonId()))
-                .map(person -> {
-                    Set<SystemRole> roles = person.getRoles().stream()
-                            .map(RoleEntity::getName)
-                            .map(SystemRole::valueOf)
-                            .collect(Collectors.toSet());
-                    TokenService.TokenPair pair = tokenService.refresh(refreshToken, person.getEmail(), roles, person.getId());
-                    return new AuthResponse(person.getId(), person.getEmail(), person.getFirstName(), person.getLastName(), person.getPhoneNumber(),
-                            roles, pair.accessToken(), pair.refreshToken(), person.getAvatarUrl());
-                });
     }
 }

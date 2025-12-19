@@ -19,8 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {
       ...parsed,
       id: parsed.id || parsed.userId || 0,
-      accessToken: parsed.accessToken || parsed.token || '',
-      refreshToken: parsed.refreshToken || ''
+      accessToken: parsed.accessToken || parsed.token || ''
     };
   });
   const primaryRole = user?.roles?.[0];
