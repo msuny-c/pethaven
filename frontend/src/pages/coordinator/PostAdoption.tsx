@@ -188,12 +188,12 @@ export function CoordinatorPostAdoption() {
               </td>
               <td className="px-6 py-4 text-right">
                 <div className="space-y-2">
-                  <button
+                  <Link
+                    to={`/coordinator/reports/${report.id}`}
                     className="text-sm text-blue-600 font-medium hover:underline"
-                    onClick={() => setSelected(report)}
                   >
                     Подробнее
-                  </button>
+                  </Link>
                   {report.status === 'pending' && (
                     <button
                       className="text-sm text-emerald-600 font-medium hover:underline"

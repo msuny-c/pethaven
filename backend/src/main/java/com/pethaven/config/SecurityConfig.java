@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/animals/**").permitAll()
+                        .requestMatchers("/api/v1/settings/**").hasRole(SystemRole.admin.name().toUpperCase())
                         // Кандидаты подают заявки
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/applications").hasRole(SystemRole.candidate.name().toUpperCase())
                         // Координатор управляет заявками/интервью/договором, кандидаты могут смотреть свои заявки

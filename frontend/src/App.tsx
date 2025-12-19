@@ -25,6 +25,7 @@ import { CoordinatorApplications } from './pages/coordinator/Applications';
 import { CoordinatorInterviews } from './pages/coordinator/Interviews';
 import { CoordinatorTransfers } from './pages/coordinator/Transfers';
 import { CoordinatorPostAdoption } from './pages/coordinator/PostAdoption';
+import { CoordinatorReportDetail } from './pages/coordinator/ReportDetail';
 import { CoordinatorShiftManagement } from './pages/coordinator/ShiftManagement';
 import { CoordinatorAnimals } from './pages/coordinator/Animals';
 import { CandidateProfile } from './pages/coordinator/CandidateProfile';
@@ -102,6 +103,7 @@ export function App() {
               <Route path="/coordinator/interviews" element={<CoordinatorInterviews />} />
               <Route path="/coordinator/transfers" element={<CoordinatorTransfers />} />
               <Route path="/coordinator/post-adoption" element={<CoordinatorPostAdoption />} />
+              <Route path="/coordinator/reports/:id" element={<CoordinatorReportDetail />} />
               <Route path="/coordinator/animals" element={<CoordinatorAnimals />} />
               <Route path="/coordinator/animals/:id" element={<AnimalProfile />} />
               <Route path="/coordinator/shift-management" element={<CoordinatorShiftManagement />} />

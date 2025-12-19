@@ -51,4 +51,12 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
             ORDER BY r.due_date
             """, nativeQuery = true)
     List<PostAdoptionReportProjection> findDetailedByCandidate(Long candidateId);
+
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM post_adoption_report
+                WHERE agreement_id = :agreementId AND status = CAST(:status AS report_status)
+            )
+            """, nativeQuery = true)
+    boolean existsByAgreementIdAndStatus(Long agreementId, String status);
 }

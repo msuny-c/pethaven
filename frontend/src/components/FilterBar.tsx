@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FilterState } from '../types';
 import { Filter } from 'lucide-react';
+import { getAnimals } from '../services/api';
 interface FilterBarProps {
   filters: FilterState;
   setFilters: (filters: FilterState) => void;
@@ -9,6 +10,15 @@ export function FilterBar({
   filters,
   setFilters
 }: FilterBarProps) {
+  const [speciesOptions, setSpeciesOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    getAnimals().then((animals) => {
+      const unique = Array.from(new Set(animals.filter((a) => a.status === 'available').map((a) => a.species)));
+      setSpeciesOptions(unique);
+    }).catch(() => setSpeciesOptions([]));
+  }, []);
+
   return <div className="sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 py-4 mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -19,14 +29,18 @@ export function FilterBar({
 
           <div className="flex flex-wrap gap-4">
             {/* Species Filter */}
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              {(['all', 'cat', 'dog'] as const).map(type => <button key={type} onClick={() => setFilters({
-              ...filters,
-              species: type
-            })} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filters.species === type ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                  {type === 'all' ? 'Все' : type === 'cat' ? 'Кошки' : 'Собаки'}
-                </button>)}
-            </div>
+            <select
+              value={filters.species}
+              onChange={(e) => setFilters({ ...filters, species: e.target.value })}
+              className="bg-gray-100 border-none text-gray-700 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 px-4 cursor-pointer hover:bg-gray-200 transition-colors"
+            >
+              <option value="all">Все животные</option>
+              {speciesOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'cat' ? 'Кошки' : s === 'dog' ? 'Собаки' : s}
+                </option>
+              ))}
+            </select>
 
             {/* Age Filter */}
             <select value={filters.age} onChange={e => setFilters({

@@ -26,6 +26,10 @@ public class AnimalService {
         return animalRepository.findCatalog(species, status == null ? null : status.name());
     }
 
+    public List<String> getAvailableSpecies() {
+        return animalRepository.findAvailableSpecies();
+    }
+
     public Optional<AnimalEntity> getById(Long id) {
         return animalRepository.findById(id);
     }

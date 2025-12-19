@@ -201,6 +201,15 @@ export async function submitReport(id: number, payload: { reportText?: string; s
   return data;
 }
 
+export async function getSetting(key: string): Promise<string> {
+  const { data } = await api.get<{ key: string; value: string }>(`/settings/${key}`);
+  return data.value;
+}
+
+export async function setSetting(key: string, value: string) {
+  await api.post(`/settings/${key}`, { value });
+}
+
 export async function getReportMedia(reportId: number): Promise<import('../types').ReportMedia[]> {
   const { data } = await api.get(`/reports/${reportId}/media`);
   return data;

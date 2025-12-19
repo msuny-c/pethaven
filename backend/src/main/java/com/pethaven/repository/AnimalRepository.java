@@ -19,4 +19,7 @@ public interface AnimalRepository extends JpaRepository<AnimalEntity, Long> {
             ORDER BY status, animal_id
             """, nativeQuery = true)
     List<AnimalEntity> findCatalog(@Param("species") String species, @Param("status") String status);
+
+    @Query(value = "SELECT DISTINCT species FROM animal WHERE status = 'available'", nativeQuery = true)
+    List<String> findAvailableSpecies();
 }

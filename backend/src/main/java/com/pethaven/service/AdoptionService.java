@@ -44,6 +44,7 @@ public class AdoptionService {
     private final NotificationService notificationService;
     private final PersonRepository personRepository;
     private final PostAdoptionReportRepository reportRepository;
+    private final SettingService settingService;
 
     public AdoptionService(AdoptionApplicationRepository adoptionRepository,
                            InterviewRepository interviewRepository,
@@ -53,7 +54,8 @@ public class AdoptionService {
                            MedicalRecordRepository medicalRecordRepository,
                            NotificationService notificationService,
                            PersonRepository personRepository,
-                           PostAdoptionReportRepository reportRepository) {
+                           PostAdoptionReportRepository reportRepository,
+                           SettingService settingService) {
         this.adoptionRepository = adoptionRepository;
         this.interviewRepository = interviewRepository;
         this.agreementRepository = agreementRepository;
@@ -63,6 +65,7 @@ public class AdoptionService {
         this.notificationService = notificationService;
         this.personRepository = personRepository;
         this.reportRepository = reportRepository;
+        this.settingService = settingService;
     }
 
     @Transactional
@@ -369,16 +372,11 @@ public class AdoptionService {
         if (agreementId == null) {
             return;
         }
-        java.util.List<java.time.LocalDate> checkpoints = java.util.List.of(
-                signedDate.plusDays(30),
-                signedDate.plusDays(90)
-        );
-        checkpoints.forEach(due -> {
-            PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
-            entity.setAgreementId(agreementId);
-            entity.setDueDate(due);
-            entity.setStatus(com.pethaven.model.enums.ReportStatus.pending);
-            reportRepository.save(entity);
-        });
+        int interval = settingService.getInt(SettingService.REPORT_INTERVAL_DAYS, 30);
+        PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
+        entity.setAgreementId(agreementId);
+        entity.setDueDate(signedDate.plusDays(interval));
+        entity.setStatus(com.pethaven.model.enums.ReportStatus.pending);
+        reportRepository.save(entity);
     }
 }

@@ -34,6 +34,11 @@ public class AnimalController {
         return animalService.getCatalog(species, status);
     }
 
+    @GetMapping("/species")
+    public List<String> species() {
+        return animalService.getAvailableSpecies();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<AnimalEntity> byId(@PathVariable Long id) {
         return animalService.getById(id)

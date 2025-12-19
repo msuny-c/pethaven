@@ -8,6 +8,7 @@ import com.pethaven.entity.ReportMediaEntity;
 import com.pethaven.repository.PostAdoptionReportRepository;
 import com.pethaven.repository.ReportMediaRepository;
 import com.pethaven.service.ObjectStorageService;
+import com.pethaven.service.SettingService;
 import com.pethaven.dto.ApiMessage;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,13 +32,16 @@ public class PostAdoptionReportController {
     private final PostAdoptionReportRepository reportRepository;
     private final ReportMediaRepository reportMediaRepository;
     private final ObjectStorageService storageService;
+    private final SettingService settingService;
 
     public PostAdoptionReportController(PostAdoptionReportRepository reportRepository,
                                         ReportMediaRepository reportMediaRepository,
-                                        ObjectStorageService storageService) {
+                                        ObjectStorageService storageService,
+                                        SettingService settingService) {
         this.reportRepository = reportRepository;
         this.reportMediaRepository = reportMediaRepository;
         this.storageService = storageService;
+        this.settingService = settingService;
     }
 
     @GetMapping
@@ -100,6 +104,7 @@ public class PostAdoptionReportController {
                     report.setSubmittedDate(request.submittedDate() != null ? request.submittedDate() : java.time.LocalDate.now());
                     report.setStatus(request.status() != null ? request.status() : ReportStatus.submitted);
                     reportRepository.save(report);
+                    scheduleNext(report);
                     return ResponseEntity.ok(ApiMessage.of("Отчёт отправлен"));
                 })
                 .orElseGet(() -> ResponseEntity.status(403).body(ApiMessage.of("Отчёт не найден или не принадлежит кандидату")));
@@ -147,5 +152,22 @@ public class PostAdoptionReportController {
         }
         // coordinators/volunteers/admin can view (secured in SecurityConfig)
         return true;
+    }
+
+    private void scheduleNext(PostAdoptionReportEntity submittedReport) {
+        if (submittedReport.getAgreementId() == null) {
+            return;
+        }
+        boolean hasPending = reportRepository.existsByAgreementIdAndStatus(submittedReport.getAgreementId(), ReportStatus.pending.name());
+        if (hasPending) {
+            return;
+        }
+        int interval = settingService.getInt(SettingService.REPORT_INTERVAL_DAYS, 30);
+        PostAdoptionReportEntity next = new PostAdoptionReportEntity();
+        next.setAgreementId(submittedReport.getAgreementId());
+        java.time.LocalDate baseDate = submittedReport.getSubmittedDate() != null ? submittedReport.getSubmittedDate() : java.time.LocalDate.now();
+        next.setDueDate(baseDate.plusDays(interval));
+        next.setStatus(ReportStatus.pending);
+        reportRepository.save(next);
     }
 }

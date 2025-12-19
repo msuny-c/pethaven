@@ -155,6 +155,11 @@ export interface PostAdoptionReport {
   status: 'pending' | 'submitted' | 'overdue' | 'reviewed';
 }
 
+export interface SystemSetting {
+  key: string;
+  value: string;
+}
+
 export interface Notification {
   id: number;
   personId: number;
@@ -205,6 +210,6 @@ export interface MentorAssignment {
 }
 
 export type FilterState = {
-  species: 'all' | 'cat' | 'dog';
+  species: 'all' | string;
   age: 'all' | 'baby' | 'young' | 'adult' | 'senior';
 };

@@ -16,9 +16,12 @@ public class MedicalService {
     private final MedicalRecordRepository medicalRepository;
     private final AnimalRepository animalRepository;
 
-    public MedicalService(MedicalRecordRepository medicalRepository, AnimalRepository animalRepository) {
+    private final SettingService settingService;
+
+    public MedicalService(MedicalRecordRepository medicalRepository, AnimalRepository animalRepository, SettingService settingService) {
         this.medicalRepository = medicalRepository;
         this.animalRepository = animalRepository;
+        this.settingService = settingService;
     }
 
     public List<MedicalRecordEntity> getByAnimal(Long animalId) {
@@ -63,7 +66,7 @@ public class MedicalService {
             administeredDate = LocalDate.now();
         }
         return switch (procedure) {
-            case vaccination -> administeredDate.plusMonths(12);
+            case vaccination -> administeredDate.plusDays(settingService.getInt(SettingService.VACCINATION_INTERVAL_DAYS, 365));
             case sterilization -> null;
             case microchip -> null;
             default -> null;
