@@ -139,21 +139,30 @@ export function CandidateReportDetail() {
             )}
           </div>
 
-          {coordinator && report.volunteerFeedback && (
+          {report.volunteerFeedback && (
             <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
               <div className="flex items-center mb-3">
                 <User className="w-4 h-4 text-amber-500 mr-2" />
                 <div className="font-semibold text-gray-900">Комментарий координатора</div>
               </div>
-              <div className="flex items-center gap-3 mb-2">
-                <img src={coordinator.avatarUrl || 'https://i.pravatar.cc/80'} className="w-10 h-10 rounded-full object-cover" />
-                <div className="text-sm text-gray-700 font-medium">
-                  {coordinator.firstName} {coordinator.lastName}
+              <div className="flex items-start gap-3">
+                <img
+                  src={
+                    report.authorAvatar ||
+                    coordinator?.avatarUrl ||
+                    'https://i.pravatar.cc/80'
+                  }
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <div className="text-sm text-gray-700 font-medium mb-1">
+                    {(report.authorFirstName || coordinator?.firstName || '') + ' ' + (report.authorLastName || coordinator?.lastName || '')}
+                  </div>
+                  <div className="inline-block bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 text-sm text-emerald-900">
+                    {report.volunteerFeedback}
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-800 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                {report.volunteerFeedback}
-              </p>
             </div>
           )}
         </div>
