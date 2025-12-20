@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, Clock, Plus } from 'lucide-react';
-import { assignTaskToShift, createShift, getMentorAssignments, assignOrientation, approveOrientation, getShifts, getTasks, getUsers } from '../../services/api';
-import { MentorAssignment, Shift, Task, UserProfile } from '../../types';
+import { assignTaskToShift, createShift, getShifts, getTasks } from '../../services/api';
+import { Shift, Task } from '../../types';
 
 const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
   morning: 'Утро',
@@ -23,22 +23,12 @@ export function CoordinatorShiftManagement() {
     taskId: '',
     notes: ''
   });
-  const [mentorAssignments, setMentorAssignments] = useState<MentorAssignment[]>([]);
-  const [volunteers, setVolunteers] = useState<UserProfile[]>([]);
-  const [orientationForm, setOrientationForm] = useState<{ volunteerId: string; mentorId: string; orientationDate: string; feedback: string }>({
-    volunteerId: '',
-    mentorId: '',
-    orientationDate: '',
-    feedback: ''
-  });
 
   useEffect(() => {
     const load = async () => {
-      const [shiftsData, tasksData, users] = await Promise.all([getShifts(), getTasks(), getUsers()]);
+      const [shiftsData, tasksData] = await Promise.all([getShifts(), getTasks()]);
       setShifts(shiftsData);
       setTasks(tasksData);
-      setVolunteers(users.filter((u) => u.roles.includes('volunteer')));
-      getMentorAssignments().then(setMentorAssignments);
     };
     load();
   }, []);
@@ -67,111 +57,6 @@ export function CoordinatorShiftManagement() {
 
   return (
     <DashboardLayout title="Управление сменами">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex items-center mb-3">
-          <Plus className="w-4 h-4 text-amber-500 mr-2" />
-          <h3 className="font-bold text-gray-900">Стажировка и допуск волонтёров</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-          <select className="rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={orientationForm.volunteerId} onChange={(e) => setOrientationForm((prev) => ({ ...prev, volunteerId: e.target.value }))}>
-            <option value="">Волонтёр</option>
-            {volunteers.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.firstName} {v.lastName} (#{v.id})
-              </option>
-            ))}
-          </select>
-          <select className="rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={orientationForm.mentorId} onChange={(e) => setOrientationForm((prev) => ({ ...prev, mentorId: e.target.value }))}>
-            <option value="">Наставник</option>
-            {volunteers.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.firstName} {v.lastName}
-              </option>
-            ))}
-          </select>
-          <input type="date" className="rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={orientationForm.orientationDate} onChange={(e) => setOrientationForm((prev) => ({ ...prev, orientationDate: e.target.value }))} />
-          <input type="text" placeholder="Комментарий наставника" className="rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={orientationForm.feedback} onChange={(e) => setOrientationForm((prev) => ({ ...prev, feedback: e.target.value }))} />
-          <button className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors" onClick={async () => {
-            if (!orientationForm.volunteerId || !orientationForm.mentorId) return;
-            await assignOrientation({
-              volunteerId: Number(orientationForm.volunteerId),
-              mentorId: Number(orientationForm.mentorId),
-              orientationDate: orientationForm.orientationDate || undefined,
-              mentorFeedback: orientationForm.feedback || undefined
-            });
-            setOrientationForm({ volunteerId: '', mentorId: '', orientationDate: '', feedback: '' });
-            const refreshed = await getMentorAssignments();
-            setMentorAssignments(refreshed);
-          }}>
-            Назначить ориентацию
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="px-3 py-2">Волонтёр</th>
-                <th className="px-3 py-2">Наставник</th>
-                <th className="px-3 py-2">Ориентация</th>
-                <th className="px-3 py-2">Доступ</th>
-                <th className="px-3 py-2 text-right">Действия</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {volunteers.map((vol) => {
-                const assignment = mentorAssignments.find((m) => m.volunteerId === vol.id);
-                const mentorName = assignment ? volunteers.find((m) => m.id === assignment.mentorId) : undefined;
-                return (
-                  <tr key={vol.id}>
-                    <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900">
-                        {vol.firstName} {vol.lastName}
-                      </div>
-                      <div className="text-xs text-gray-500">#{vol.id}</div>
-                    </td>
-                    <td className="px-3 py-2 text-gray-700">
-                      {mentorName ? `${mentorName.firstName} ${mentorName.lastName}` : 'Не назначен'}
-                    </td>
-                    <td className="px-3 py-2 text-gray-700">
-                      {assignment?.orientationDate
-                        ? new Date(assignment.orientationDate).toLocaleDateString()
-                        : '—'}
-                      {assignment?.mentorFeedback && (
-                        <div className="text-xs text-gray-500">{assignment.mentorFeedback}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          assignment?.allowSelfShifts
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        {assignment?.allowSelfShifts ? 'Допущен' : 'Требует допуска'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {!assignment?.allowSelfShifts && assignment && (
-                        <button
-                          className="text-sm text-blue-600 font-medium"
-                          onClick={async () => {
-                            await approveOrientation({ volunteerId: vol.id, allowSelfShifts: true });
-                            const refreshed = await getMentorAssignments();
-                            setMentorAssignments(refreshed);
-                          }}
-                        >
-                          Допустить к сменам
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex items-center mb-3">
           <Plus className="w-4 h-4 text-amber-500 mr-2" />

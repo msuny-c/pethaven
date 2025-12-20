@@ -24,6 +24,7 @@ import { AdminSettings } from './pages/admin/Settings';
 import { CoordinatorDashboard } from './pages/coordinator/Dashboard';
 import { CoordinatorApplications } from './pages/coordinator/Applications';
 import { CoordinatorInterviews } from './pages/coordinator/Interviews';
+import { CoordinatorInterviewDetail } from './pages/coordinator/InterviewDetail';
 import { CoordinatorTransfers } from './pages/coordinator/Transfers';
 import { CoordinatorPostAdoption } from './pages/coordinator/PostAdoption';
 import { CoordinatorReportDetail } from './pages/coordinator/ReportDetail';
@@ -42,6 +43,7 @@ import { VolunteerTasks } from './pages/volunteer/Tasks';
 import { VolunteerPostAdoptionReview } from './pages/volunteer/PostAdoptionReview';
 import { VolunteerReports } from './pages/volunteer/Reports';
 import { VolunteerPending } from './pages/volunteer/Pending';
+import { VolunteerAnimals } from './pages/volunteer/Animals';
 // Candidate Pages
 import { CandidateDashboard } from './pages/candidate/Dashboard';
 import { CandidateApplications } from './pages/candidate/MyApplications';
@@ -104,6 +106,7 @@ export function App() {
               <Route path="/coordinator/applications" element={<CoordinatorApplications />} />
               <Route path="/coordinator/applications/:id" element={<CoordinatorApplicationDetail />} />
               <Route path="/coordinator/interviews" element={<CoordinatorInterviews />} />
+              <Route path="/coordinator/interviews/:id" element={<CoordinatorInterviewDetail />} />
               <Route path="/coordinator/transfers" element={<CoordinatorTransfers />} />
               <Route path="/coordinator/post-adoption" element={<CoordinatorPostAdoption />} />
               <Route path="/coordinator/reports/:id" element={<CoordinatorReportDetail />} />
@@ -127,6 +130,8 @@ export function App() {
               <Route path="/volunteer/tasks" element={<VolunteerTasks />} />
               <Route path="/volunteer/post-adoption" element={<VolunteerPostAdoptionReview />} />
               <Route path="/volunteer/reports" element={<VolunteerReports />} />
+              <Route path="/volunteer/animals" element={<VolunteerAnimals />} />
+              <Route path="/volunteer/animals/:id" element={<AnimalProfile />} />
             </Route>
             <Route element={<ProtectedRoute allowedRoles={['volunteer']} allowVolunteerPending={true} />}>
               <Route path="/volunteer/pending" element={<VolunteerPending />} />

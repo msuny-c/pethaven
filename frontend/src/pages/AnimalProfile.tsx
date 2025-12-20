@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Check, ArrowLeft, Heart, Share2, AlertCircle, Edit2, Save, XCircle, Plus, MinusCircle, ChevronDown, ChevronLeft, ChevronRight, X as Close } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getAnimal, updateAnimal, getAnimalMedia, uploadAnimalMedia } from '../services/api';
+import { getAnimal, updateAnimal, getAnimalMedia, uploadAnimalMedia, addAnimalNote, updateAnimalMedical } from '../services/api';
 import { Animal, AnimalMedia } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
@@ -33,9 +33,17 @@ export function AnimalProfile() {
   const [uploading, setUploading] = useState(false);
   const [fileInput, setFileInput] = useState<File | null>(null);
   const [photoDescription, setPhotoDescription] = useState('');
+  const [noteText, setNoteText] = useState('');
+  const [medicalForm, setMedicalForm] = useState<{ vaccinated?: boolean; sterilized?: boolean; microchipped?: boolean; medicalSummary?: string }>({});
   const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const canEdit = !!user && (user.roles.includes('admin') || user.roles.includes('coordinator'));
+  const isVolunteer = !!user && user.roles.includes('volunteer');
+  const isVet = !!user && user.roles.includes('veterinar');
+  const canManageMedia = canEdit || isVolunteer;
+  const canAddNotes = canManageMedia;
+  const canEditMedical = isVet || canEdit;
   const statusOptions: Array<{ value: Animal['status']; label: string }> = [
+    { value: 'pending_review', label: 'На проверке' },
     { value: 'quarantine', label: 'Карантин' },
     { value: 'available', label: 'Доступен' },
     { value: 'reserved', label: 'Зарезервирован' },
@@ -57,6 +65,12 @@ export function AnimalProfile() {
             features: parsedFeatures,
             gender: data.gender,
             species: data.species
+          });
+          setMedicalForm({
+            vaccinated: data.vaccinated,
+            sterilized: data.sterilized,
+            microchipped: data.microchipped,
+            medicalSummary: data.medicalSummary
           });
         }
         setLoading(false);
@@ -100,6 +114,8 @@ export function AnimalProfile() {
   const currentStatus = form.status || animal?.status || 'available';
   const statusBadge = (status: Animal['status']) => {
     switch (status) {
+      case 'pending_review':
+        return 'bg-amber-100 text-amber-700';
       case 'available':
         return 'bg-green-100 text-green-700';
       case 'reserved':
@@ -170,7 +186,7 @@ export function AnimalProfile() {
               ))}
               {photoList.length === 0 && [...Array(3)].map((_, i) => <div key={i} className="aspect-square rounded-xl bg-gray-100 overflow-hidden opacity-50" />)}
             </div>
-            {canEdit && (
+            {canManageMedia && (
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <h4 className="font-semibold text-gray-900 mb-2">Фото питомца</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -301,6 +317,42 @@ export function AnimalProfile() {
               {editing ? <textarea className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Описание питомца" /> : <p>{animal.description || animal.behaviorNotes || animal.behavior?.notes || 'Описание уточняется.'}</p>}
             </div>
 
+            {canAddNotes && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">
+                <h3 className="text-lg font-semibold text-gray-900">Полевая заметка</h3>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="Что произошло на смене: поведение, аппетит, состояние..."
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                />
+                <div className="flex justify-end">
+                  <button
+                    disabled={!noteText.trim()}
+                    onClick={async () => {
+                      if (!noteText.trim()) return;
+                      try {
+                        await addAnimalNote(animal.id, noteText.trim());
+                        setAnimal((prev) =>
+                          prev
+                            ? { ...prev, behaviorNotes: ((prev.behaviorNotes || '') + '\n' + noteText.trim()).trim() }
+                            : prev
+                        );
+                        setNoteText('');
+                      } catch (err: any) {
+                        const msg = err?.response?.data?.message || 'Не удалось сохранить заметку';
+                        alert(msg);
+                      }
+                    }}
+                    className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    Сохранить заметку
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Characteristics */}
             <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
               <h3 className="font-bold text-gray-900 mb-4">
@@ -332,22 +384,72 @@ export function AnimalProfile() {
             </div>
 
             {/* Medical Info */}
-            <div className="mb-10">
-              <h3 className="font-bold text-gray-900 mb-4">
-                Медицинская карта
+            <div className="mb-10 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
+                <span>Медицинская карта</span>
+                {canEditMedical && <Link to={`/veterinar/medical-records/${animal.id}`} className="text-sm text-blue-600 hover:underline">История процедур</Link>}
               </h3>
-              <div className="flex flex-wrap gap-3">
-                {animal.medical?.vaccinated && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium">
+              <div className="flex flex-wrap gap-3 mb-4">
+                {(animal.vaccinated || animal.medical?.vaccinated) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium">
                     <Check className="w-3 h-3 mr-1.5" /> Вакцинирован
                   </span>}
-                {animal.medical?.sterilized && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium">
+                {(animal.sterilized || animal.medical?.sterilized) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium">
                     <Check className="w-3 h-3 mr-1.5" /> Стерилизован
                   </span>}
-                {animal.medical?.microchipped && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm font-medium">
+                {(animal.microchipped || animal.medical?.microchipped) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm font-medium">
                     <Check className="w-3 h-3 mr-1.5" /> Чипирован
                   </span>}
-                {!animal.medical && <span className="text-sm text-gray-500">Нет данных</span>}
+                {!(animal.vaccinated || animal.sterilized || animal.microchipped) && (
+                  <span className="text-sm text-gray-500">Медицинские отметки не заполнены</span>
+                )}
               </div>
+              {canEditMedical && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input type="checkbox" checked={!!medicalForm.vaccinated} onChange={(e) => setMedicalForm((prev) => ({ ...prev, vaccinated: e.target.checked }))} />
+                      <span>Вакцинирован</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input type="checkbox" checked={!!medicalForm.sterilized} onChange={(e) => setMedicalForm((prev) => ({ ...prev, sterilized: e.target.checked }))} />
+                      <span>Стерилизован</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input type="checkbox" checked={!!medicalForm.microchipped} onChange={(e) => setMedicalForm((prev) => ({ ...prev, microchipped: e.target.checked }))} />
+                      <span>Чипирован</span>
+                    </label>
+                  </div>
+                  <textarea
+                    rows={3}
+                    className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="Краткие мед. заметки"
+                    value={medicalForm.medicalSummary || ''}
+                    onChange={(e) => setMedicalForm((prev) => ({ ...prev, medicalSummary: e.target.value }))}
+                  />
+                  <div className="flex justify-end pt-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const updated = await updateAnimalMedical(animal.id, medicalForm);
+                          setAnimal(updated);
+                          alert('Медицинский статус обновлён');
+                        } catch (err: any) {
+                          const msg = err?.response?.data?.message || 'Не удалось обновить';
+                          alert(msg);
+                        }
+                      }}
+                      className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600"
+                    >
+                      Сохранить мед. данные
+                    </button>
+                  </div>
+                </>
+              )}
+              {!canEditMedical && animal.medicalSummary && (
+                <p className="text-sm text-gray-600 mt-3">
+                  {animal.medicalSummary}
+                </p>
+              )}
             </div>
 
             {/* Actions */}

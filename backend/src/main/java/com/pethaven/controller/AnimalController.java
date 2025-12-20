@@ -4,6 +4,7 @@ import com.pethaven.entity.AnimalEntity;
 import com.pethaven.entity.AnimalMediaEntity;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.model.enums.AnimalStatus;
+import com.pethaven.model.enums.SystemRole;
 import com.pethaven.service.AnimalService;
 import com.pethaven.service.ObjectStorageService;
 import jakarta.validation.Valid;
@@ -47,14 +48,18 @@ public class AnimalController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody AnimalEntity animal) {
-        Long id = animalService.createAnimal(animal);
+    public ResponseEntity<Void> create(@Valid @RequestBody AnimalEntity animal, Authentication authentication) {
+        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        Long id = animalService.createAnimal(animal, isCoordinator);
         return ResponseEntity.created(URI.create("/api/v1/animals/" + id)).build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AnimalEntity> update(@PathVariable Long id, @RequestBody AnimalEntity payload) {
-        return ResponseEntity.ok(animalService.updateAnimal(id, payload));
+    public ResponseEntity<AnimalEntity> update(@PathVariable Long id, @RequestBody AnimalEntity payload, Authentication authentication) {
+        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        return ResponseEntity.ok(animalService.updateAnimal(id, payload, isCoordinator));
     }
 
     @PatchMapping("/{id}/status")
@@ -63,8 +68,13 @@ public class AnimalController {
                                                    Authentication authentication) {
         boolean isVet = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VETERINAR"));
+        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
         if (isVet && status != AnimalStatus.quarantine && status != AnimalStatus.available) {
             return ResponseEntity.status(403).body(ApiMessage.of("Ветеринар может менять статус только между карантином и доступен"));
+        }
+        if (isCoordinator && (status == AnimalStatus.available || status == AnimalStatus.reserved)) {
+            status = AnimalStatus.pending_review;
         }
         try {
             animalService.updateStatus(id, status);
@@ -96,6 +106,27 @@ public class AnimalController {
     public ResponseEntity<AnimalMediaEntity> addMedia(@PathVariable Long id, @RequestBody AnimalMediaEntity media) {
         AnimalMediaEntity saved = animalService.addMedia(id, media);
         return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/{id}/notes")
+    public ResponseEntity<ApiMessage> addBehaviorNote(@PathVariable Long id,
+                                                      @RequestParam String note,
+                                                      Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long authorId)) {
+            return ResponseEntity.status(401).body(ApiMessage.of("Требуется авторизация"));
+        }
+        try {
+            animalService.addBehaviorNote(id, note, authorId);
+            return ResponseEntity.ok(ApiMessage.of("Заметка добавлена"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/medical")
+    public ResponseEntity<AnimalEntity> updateMedical(@PathVariable Long id, @RequestBody AnimalEntity payload) {
+        AnimalEntity updated = animalService.updateMedical(id, payload);
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/{id}/media")

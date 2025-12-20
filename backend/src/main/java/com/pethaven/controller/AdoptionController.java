@@ -3,6 +3,7 @@ package com.pethaven.controller;
 import com.pethaven.dto.AdoptionDecisionRequest;
 import com.pethaven.dto.AgreementRequest;
 import com.pethaven.dto.ApiMessage;
+import com.pethaven.dto.ApplicationCancelRequest;
 import com.pethaven.dto.ApplicationRequest;
 import com.pethaven.dto.InterviewScheduleRequest;
 import com.pethaven.dto.InterviewUpdateRequest;
@@ -44,6 +45,20 @@ public class AdoptionController {
         Long id = adoptionService.submitApplication(request, candidateId);
         return ResponseEntity.created(URI.create("/api/v1/adoptions/applications/" + id))
                 .body(ApiMessage.of("Заявка отправлена"));
+    }
+
+    @PostMapping("/applications/cancel")
+    public ResponseEntity<ApiMessage> cancel(@Valid @RequestBody ApplicationCancelRequest request,
+                                             Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long candidateId)) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            adoptionService.cancelByCandidate(request.applicationId(), candidateId, request.reason());
+            return ResponseEntity.ok(ApiMessage.of("Заявка отменена"));
+        } catch (IllegalArgumentException | org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
+        }
     }
 
     @GetMapping("/applications")

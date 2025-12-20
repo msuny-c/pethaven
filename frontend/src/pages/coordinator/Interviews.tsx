@@ -3,9 +3,9 @@ import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, Clock, User, PawPrint } from 'lucide-react';
 import { InterviewCompleteModal } from '../../components/modals/InterviewCompleteModal';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
-import { InterviewDetailModal } from '../../components/modals/InterviewDetailModal';
 import { getAllInterviews, getApplications, getAnimals, getUsers, updateInterview } from '../../services/api';
 import { Application, Animal, Interview, UserProfile } from '../../types';
+import { useNavigate } from 'react-router-dom';
 export function CoordinatorInterviews() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -14,7 +14,7 @@ export function CoordinatorInterviews() {
   const [selectedInterview, setSelectedInterview] = useState<number | null>(null);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([getAllInterviews(), getApplications(), getAnimals(), getUsers()]).then(([interviewsData, apps, animalsData, usersData]) => {
@@ -51,10 +51,6 @@ export function CoordinatorInterviews() {
       alert('Интервью отменено.');
     });
   };
-  const selectedInterviewData = interviews.find(i => i.id === selectedInterview);
-  const selectedApplication = selectedInterviewData ? applications.find(a => a.id === selectedInterviewData.applicationId) : null;
-  const selectedAnimal = selectedApplication ? animals.find(a => a.id === selectedApplication.animalId) : null;
-  const selectedCandidate = selectedApplication ? users.find(u => u.id === selectedApplication.candidateId) : null;
 
   return <DashboardLayout title="Управление интервью">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -126,8 +122,7 @@ export function CoordinatorInterviews() {
                     </div>
 
                     <button onClick={() => {
-                  setSelectedInterview(interview.id);
-                  setIsDetailModalOpen(true);
+                  navigate(`/coordinator/interviews/${interview.id}`);
                 }} className="text-sm text-amber-600 hover:text-amber-700 font-medium">
                       Подробнее →
                     </button>
@@ -156,13 +151,5 @@ export function CoordinatorInterviews() {
       <InterviewCompleteModal isOpen={isCompleteModalOpen} onClose={() => setIsCompleteModalOpen(false)} onConfirm={onCompleteConfirm} />
 
       <ConfirmModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={onCancelConfirm} title="Отмена интервью" message="Вы уверены, что хотите отменить это интервью? Это действие нельзя отменить." confirmLabel="Да, отменить" isDanger={true} />
-
-      {selectedInterviewData && selectedApplication && selectedAnimal && selectedCandidate && <InterviewDetailModal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} interview={selectedInterviewData} application={selectedApplication} animal={selectedAnimal} candidate={selectedCandidate} onComplete={() => {
-      setIsCompleteModalOpen(true);
-      setIsDetailModalOpen(false);
-    }} onCancel={() => {
-      setIsCancelModalOpen(true);
-      setIsDetailModalOpen(false);
-    }} />}
     </DashboardLayout>;
 }

@@ -7,7 +7,6 @@ import com.pethaven.entity.PersonEntity;
 import com.pethaven.entity.RoleEntity;
 import com.pethaven.repository.PersonRepository;
 import com.pethaven.repository.RoleRepository;
-import com.pethaven.security.JwtService;
 import com.pethaven.model.enums.SystemRole;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,6 @@ public class AuthService {
     public AuthService(PersonRepository personRepository,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService,
                        TokenService tokenService) {
         this.personRepository = personRepository;
         this.roleRepository = roleRepository;
@@ -63,7 +61,7 @@ public class AuthService {
         Set<SystemRole> roles = Set.of(targetRole);
         TokenService.TokenPair pair = tokenService.issueTokens(saved.getId(), saved.getEmail(), roles);
         return new AuthResponse(saved.getId(), saved.getEmail(), saved.getFirstName(), saved.getLastName(), saved.getPhoneNumber(),
-                roles, pair.accessToken(), null, saved.getAvatarUrl());
+                roles, pair.accessToken(), saved.getAvatarUrl());
     }
 
     public Optional<AuthResponse> login(LoginRequest request) {
@@ -94,7 +92,6 @@ public class AuthService {
                 person.getPhoneNumber(),
                 roles,
                 pair.accessToken(),
-                null,
                 person.getAvatarUrl()
         ));
     }

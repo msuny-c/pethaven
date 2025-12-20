@@ -12,7 +12,6 @@ public record AuthResponse(
         String phoneNumber,
         Set<SystemRole> roles,
         String accessToken,
-        String refreshToken,
         String avatarUrl
 ) {
 }

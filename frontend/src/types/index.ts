@@ -42,7 +42,7 @@ export interface Animal {
   age?: number;
   ageMonths?: number;
   gender?: 'male' | 'female';
-  status: 'quarantine' | 'available' | 'reserved' | 'adopted' | 'not_available';
+  status: 'quarantine' | 'pending_review' | 'available' | 'reserved' | 'adopted' | 'not_available';
   description?: string;
   behaviorNotes?: string;
   medicalSummary?: string;
@@ -201,15 +201,6 @@ export interface VolunteerApplication {
   decisionComment?: string;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export interface MentorAssignment {
-  volunteerId: number;
-  mentorId?: number;
-  orientationDate?: string;
-  mentorFeedback?: string;
-  allowSelfShifts?: boolean;
-  approvedAt?: string;
 }
 
 export type FilterState = {

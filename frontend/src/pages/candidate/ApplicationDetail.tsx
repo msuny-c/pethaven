@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Calendar, PawPrint, ArrowLeft, Info, CheckCircle } from 'lucide-react';
+import { Calendar, PawPrint, ArrowLeft, Info, CheckCircle, XCircle } from 'lucide-react';
 import { Application, Animal, Interview } from '../../types';
-import { getAnimal, getApplicationById, getInterviews, confirmInterview } from '../../services/api';
+import { getAnimal, getApplicationById, getInterviews, confirmInterview, cancelAdoptionApplication } from '../../services/api';
 
 export function CandidateApplicationDetail() {
   const { id } = useParams();
@@ -13,6 +13,7 @@ export function CandidateApplicationDetail() {
   const [error, setError] = useState<string | null>(null);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +76,21 @@ export function CandidateApplicationDetail() {
       alert('Не удалось подтвердить интервью');
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!application) return;
+    const reason = prompt('Почему отменяете заявку?');
+    setCancelling(true);
+    try {
+      await cancelAdoptionApplication(application.id, reason || undefined);
+      setApplication({ ...application, status: 'rejected', decisionComment: reason || 'Отменено кандидатом' });
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Не удалось отменить заявку';
+      alert(msg);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -148,6 +164,26 @@ export function CandidateApplicationDetail() {
                   </div>
                   <p className="text-sm text-gray-700">{application.decisionComment || 'Комментариев нет'}</p>
                 </div>
+                {(application.status === 'submitted' || application.status === 'under_review' || application.status === 'approved') && (
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-gray-900 font-medium">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                        Отменить заявку
+                      </div>
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600 disabled:opacity-50"
+                      >
+                        {cancelling ? 'Отменяем...' : 'Отменить'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      При отмене статус заявки сменится на отклонена, а резерв питомца будет снят.
+                    </p>
+                  </div>
+                )}
                 {upcomingInterview && (
                   <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-900 font-medium mb-2">

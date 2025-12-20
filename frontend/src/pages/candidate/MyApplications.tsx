@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, PawPrint } from 'lucide-react';
 import { Application, Animal, Agreement } from '../../types';
-import { getApplications, getAnimals, getAgreements } from '../../services/api';
+import { getApplications, getAnimals, getAgreements, cancelAdoptionApplication } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 export function CandidateApplications() {
   const { user } = useAuth();
@@ -68,6 +68,25 @@ export function CandidateApplications() {
                       <Link to={`/candidate/applications/${app.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                         Открыть страницу
                       </Link>
+                      {(app.status === 'submitted' || app.status === 'under_review' || app.status === 'approved') && (
+                        <button
+                          className="text-xs text-red-600 hover:underline"
+                          onClick={async () => {
+                            const reason = prompt('Почему отменяете заявку?');
+                            try {
+                              await cancelAdoptionApplication(app.id, reason || undefined);
+                              setMyApps((prev) =>
+                                prev.map((a) => (a.id === app.id ? { ...a, status: 'rejected', decisionComment: reason } : a))
+                              );
+                            } catch (err: any) {
+                              const msg = err?.response?.data?.message || 'Не удалось отменить заявку';
+                              alert(msg);
+                            }
+                          }}
+                        >
+                          Отменить заявку
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>;

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { Shift, MentorAssignment } from '../../types';
-import { getShifts, signupShift, getShiftTasks, getMentorAssignments } from '../../services/api';
+import { Shift } from '../../types';
+import { getShifts, signupShift, getShiftTasks } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function VolunteerShifts() {
@@ -10,31 +10,14 @@ export function VolunteerShifts() {
   const [expandedShift, setExpandedShift] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [signedShifts, setSignedShifts] = useState<number[]>([]);
-  const [assignment, setAssignment] = useState<MentorAssignment | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     getShifts().then(setShifts);
-    if (user) {
-      getMentorAssignments()
-        .then((list) => {
-          const mine = list.find((a) => a.volunteerId === user.id);
-          if (mine) {
-            setAssignment(mine);
-          }
-        })
-        .catch(() => {
-          setAssignment(null);
-        });
-    }
   }, [user]);
 
   const handleSignup = async (shiftId: number) => {
     if (!user) return;
-    if (assignment && assignment.allowSelfShifts === false) {
-      alert('Нужно завершить стажировку с наставником, чтобы записываться на смены.');
-      return;
-    }
     setBusy(true);
     try {
       await signupShift(shiftId);
@@ -54,18 +37,6 @@ export function VolunteerShifts() {
 
   return (
     <DashboardLayout title="Календарь смен">
-      {assignment && assignment.allowSelfShifts === false && (
-        <div className="mb-4 bg-amber-50 border border-amber-100 text-amber-800 p-4 rounded-lg">
-          <div className="font-semibold">Нужен допуск наставника</div>
-          <div className="text-sm">
-            Ориентация запланирована на{' '}
-            {assignment.orientationDate
-              ? new Date(assignment.orientationDate).toLocaleDateString()
-              : 'уточните у координатора'}
-            . После подтверждения наставником появится возможность записываться на смены.
-          </div>
-        </div>
-      )}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="divide-y divide-gray-100">
           {shifts.map((shift) => (
@@ -99,7 +70,7 @@ export function VolunteerShifts() {
                   {user && (
                     <button
                       onClick={() => handleSignup(shift.id)}
-                      disabled={busy || signedShifts.includes(shift.id) || (assignment && assignment.allowSelfShifts === false)}
+                      disabled={busy || signedShifts.includes(shift.id)}
                       className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-60"
                     >
                       {signedShifts.includes(shift.id) ? 'Уже записаны' : 'Записаться'}

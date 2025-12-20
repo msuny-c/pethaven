@@ -1,55 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { StatCard } from '../../components/dashboard/StatCard';
-import { Calendar, Clock, CheckSquare, ShieldCheck } from 'lucide-react';
-import { getShifts, getTasks, getMentorAssignments } from '../../services/api';
-import { MentorAssignment, Shift, Task } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { Calendar, Clock, CheckSquare } from 'lucide-react';
+import { getShifts, getTasks } from '../../services/api';
+import { Shift, Task } from '../../types';
 export function VolunteerDashboard() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [orientation, setOrientation] = useState<MentorAssignment | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
     getShifts().then(setShifts);
     getTasks().then(setTasks);
-    getMentorAssignments()
-      .then((list) => {
-        const uid = user?.id;
-        if (!uid) return;
-        const entry = list.find((a) => a.volunteerId === uid);
-        if (entry) {
-          setOrientation(entry);
-        }
-      })
-      .catch(() => setOrientation(null));
-  }, [user]);
+  }, []);
   return <DashboardLayout title="Кабинет волонтёра">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard title="Мои смены" value={shifts.length} icon={Calendar} color="bg-amber-500" />
         <StatCard title="Активные задачи" value={tasks.filter(t => t.status !== 'completed').length} icon={Clock} color="bg-blue-500" />
         <StatCard title="Задач выполнено" value={tasks.filter(t => t.status === 'completed').length} icon={CheckSquare} color="bg-green-500" />
       </div>
-      {orientation && (
-        <div className="mb-6 bg-white border border-gray-100 rounded-xl p-4 flex items-start space-x-3">
-          <ShieldCheck className="w-5 h-5 text-amber-500 mt-1" />
-          <div>
-            <div className="font-semibold text-gray-900">
-              {orientation.allowSelfShifts
-                ? 'Стажировка подтверждена — можно записываться на смены'
-                : 'Ожидается подтверждение наставника'}
-            </div>
-            <div className="text-sm text-gray-600">
-              Наставник: {orientation.mentorId ? `#${orientation.mentorId}` : 'не назначен'}.{' '}
-              {orientation.orientationDate
-                ? `Ориентация: ${new Date(orientation.orientationDate).toLocaleDateString()}`
-                : 'Дата ориентации уточняется.'}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           Мои предстоящие смены

@@ -1,6 +1,5 @@
 import { api } from './http';
-import { Animal, AnimalMedia, Application, ApplicationStatus, AuthUser, MedicalRecord, Notification, Shift, UserProfile, Task, PostAdoptionReport, Interview, Agreement, ShiftVolunteer, TaskShift, VolunteerApplication, MentorAssignment } from '../types';
-import axios from 'axios';
+import { Animal, AnimalMedia, Application, ApplicationStatus, AuthUser, MedicalRecord, Notification, Shift, UserProfile, Task, PostAdoptionReport, Interview, Agreement, ShiftVolunteer, TaskShift, VolunteerApplication } from '../types';
 
 export async function login(email: string, password: string): Promise<AuthUser> {
   const { data } = await api.post<AuthUser>('/auth/login', { email, password });
@@ -10,10 +9,6 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 export async function registerCandidate(data: { email: string; password: string; firstName: string; lastName: string; phone?: string; role?: 'candidate' | 'volunteer'; }): Promise<AuthUser> {
   const { data: resp } = await api.post<AuthUser>('/auth/register', data);
   return resp;
-}
-
-export async function refreshSession(refreshToken: string): Promise<AuthUser> {
-  throw new Error('Refresh token flow disabled');
 }
 
 export async function getAnimals(): Promise<Animal[]> {
@@ -60,6 +55,15 @@ export async function uploadAnimalMedia(id: number, file: File, description?: st
 
 export async function updateAnimalStatus(id: number, status: Animal['status']) {
   await api.patch(`/animals/${id}/status`, null, { params: { status } });
+}
+
+export async function addAnimalNote(id: number, note: string) {
+  await api.post(`/animals/${id}/notes`, null, { params: { note } });
+}
+
+export async function updateAnimalMedical(id: number, payload: { vaccinated?: boolean; sterilized?: boolean; microchipped?: boolean; medicalSummary?: string }) {
+  const { data } = await api.patch<Animal>(`/animals/${id}/medical`, payload);
+  return data;
 }
 
 export async function submitApplication(animalId: number, details?: { reason?: string; experience?: string; housing?: string; }): Promise<boolean> {
@@ -285,6 +289,10 @@ export async function decideVolunteerApplication(applicationId: number, status: 
   await api.patch('/volunteers/applications/decision', { applicationId, status, decisionComment });
 }
 
+export async function cancelAdoptionApplication(applicationId: number, reason?: string) {
+  await api.post('/adoptions/applications/cancel', { applicationId, reason });
+}
+
 export async function cancelInterviewSlot(slotId: number, applicationId: number) {
   await api.post('/adoptions/slots/cancel', { slotId, applicationId });
 }
@@ -323,19 +331,6 @@ export async function updateMyProfile(payload: { firstName?: string; lastName?: 
 
 export async function deactivateSelf(password: string) {
   await api.delete('/users/me', { data: { password } });
-}
-
-export async function getMentorAssignments(): Promise<MentorAssignment[]> {
-  const { data } = await api.get<MentorAssignment[]>('/volunteers/orientation');
-  return data;
-}
-
-export async function assignOrientation(payload: { volunteerId: number; mentorId: number; orientationDate?: string; mentorFeedback?: string; }) {
-  await api.post('/volunteers/orientation', payload);
-}
-
-export async function approveOrientation(payload: { volunteerId: number; mentorFeedback?: string; allowSelfShifts?: boolean }) {
-  await api.patch('/volunteers/orientation/approve', payload);
 }
 
 export async function getAnimalMedia(id: number): Promise<AnimalMedia[]> {

@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/applications").hasRole(SystemRole.candidate.name().toUpperCase())
                         // Координатор управляет заявками/интервью/договором, кандидаты могут смотреть свои заявки
                         .requestMatchers(HttpMethod.GET, "/api/v1/adoptions/applications/**").hasAnyRole(SystemRole.coordinator.name().toUpperCase(), SystemRole.admin.name().toUpperCase(), SystemRole.candidate.name().toUpperCase())
+                        .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/applications/cancel").hasRole(SystemRole.candidate.name().toUpperCase())
                         // Слоты интервью: создание/отмена координатор/админ, просмотр кандидаты, бронь кандидат
                         .requestMatchers(HttpMethod.GET, "/api/v1/adoptions/slots/**").hasAnyRole(SystemRole.coordinator.name().toUpperCase(), SystemRole.admin.name().toUpperCase(), SystemRole.candidate.name().toUpperCase())
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/slots/book").hasRole(SystemRole.candidate.name().toUpperCase())
@@ -47,9 +48,12 @@ public class SecurityConfig {
                         // Ветеринар управляет медкартами и может обновлять животных
                         .requestMatchers("/api/v1/medical/**").hasAnyRole(SystemRole.veterinar.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         // Животные: создание/редактирование/удаление доступно админу и координатору, просмотр всем
+                        .requestMatchers(HttpMethod.POST, "/api/v1/animals/*/media").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase(), SystemRole.volunteer.name().toUpperCase())
+                        .requestMatchers(HttpMethod.POST, "/api/v1/animals/*/notes").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase(), SystemRole.volunteer.name().toUpperCase())
                         .requestMatchers(HttpMethod.POST, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/*/status").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase(), SystemRole.veterinar.name().toUpperCase())
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/*/medical").hasAnyRole(SystemRole.veterinar.name().toUpperCase(), SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         // Смены: волонтеры могут просматривать/писаться, координатор создавать/назначать задачи

@@ -121,8 +121,8 @@ export function AdminAnimals() {
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {animal.status}
+                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : animal.status === 'pending_review' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
+                    {animal.status === 'pending_review' ? 'На проверке' : animal.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">

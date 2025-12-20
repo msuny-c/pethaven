@@ -149,6 +149,24 @@ public class AdoptionService {
     }
 
     @Transactional
+    public void cancelByCandidate(Long applicationId, Long candidateId, String reason) {
+        AdoptionApplicationEntity app = adoptionRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+        if (!candidateId.equals(app.getCandidateId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Нельзя отменить чужую заявку");
+        }
+        app.setStatus(ApplicationStatus.rejected);
+        app.setDecisionComment((reason == null || reason.isBlank()) ? "Отменено кандидатом" : "Отменено кандидатом: " + reason);
+        adoptionRepository.save(app);
+        animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
+            if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {
+                animal.setStatus(com.pethaven.model.enums.AnimalStatus.available);
+                animalRepository.save(animal);
+            }
+        });
+    }
+
+    @Transactional
     public void scheduleInterview(Long applicationId, Long interviewerId, java.time.OffsetDateTime scheduledAt) {
         if (scheduledAt == null || !scheduledAt.isAfter(java.time.OffsetDateTime.now())) {
             throw new IllegalArgumentException("Время интервью должно быть в будущем");

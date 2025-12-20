@@ -1,14 +1,10 @@
 package com.pethaven.controller;
 
 import com.pethaven.dto.ApiMessage;
-import com.pethaven.dto.OrientationRequest;
-import com.pethaven.dto.OrientationApprovalRequest;
 import com.pethaven.dto.VolunteerApplicationRequest;
 import com.pethaven.dto.VolunteerDecisionRequest;
-import com.pethaven.entity.VolunteerMentorEntity;
 import com.pethaven.entity.VolunteerApplicationEntity;
 import com.pethaven.model.enums.VolunteerApplicationStatus;
-import com.pethaven.service.VolunteerService;
 import com.pethaven.service.VolunteerApplicationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,29 +22,10 @@ import java.util.List;
 @RequestMapping("/api/v1/volunteers")
 public class VolunteerController {
 
-    private final VolunteerService volunteerService;
     private final VolunteerApplicationService applicationService;
 
-    public VolunteerController(VolunteerService volunteerService, VolunteerApplicationService applicationService) {
-        this.volunteerService = volunteerService;
+    public VolunteerController(VolunteerApplicationService applicationService) {
         this.applicationService = applicationService;
-    }
-
-    @GetMapping("/orientation")
-    public List<VolunteerMentorEntity> listAssignments() {
-        return volunteerService.getAssignments();
-    }
-
-    @PostMapping("/orientation")
-    public ResponseEntity<ApiMessage> assignOrientation(@Valid @RequestBody OrientationRequest request) {
-        volunteerService.assignOrientation(request);
-        return ResponseEntity.ok(ApiMessage.of("Ориентация назначена"));
-    }
-
-    @PatchMapping("/orientation/approve")
-    public ResponseEntity<ApiMessage> approveOrientation(@Valid @RequestBody OrientationApprovalRequest request) {
-        volunteerService.approveOrientation(request);
-        return ResponseEntity.ok(ApiMessage.of("Наставник подтвердил стажировку"));
     }
 
     @PostMapping("/applications")

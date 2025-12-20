@@ -68,9 +68,6 @@ public class ShiftService {
         if (normalized.contains("Only volunteers can sign up for shifts")) {
             return "Записаться на смену может только волонтёр";
         }
-        if (normalized.contains("mentor approval required")) {
-            return "Нужно завершить стажировку с наставником, чтобы записываться на смены самостоятельно";
-        }
         if (normalized.contains("violates foreign key constraint") && normalized.contains("shift")) {
             return "Смена не найдена";
         }

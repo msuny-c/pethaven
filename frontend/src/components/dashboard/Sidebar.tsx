@@ -97,6 +97,10 @@ export function Sidebar() {
           label: 'Обзор',
           icon: LayoutDashboard
         }, {
+          path: '/volunteer/animals',
+          label: 'Питомцы',
+          icon: PawPrint
+        }, {
           path: '/volunteer/shifts',
           label: 'Смены',
           icon: Calendar

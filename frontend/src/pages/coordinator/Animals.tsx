@@ -7,6 +7,7 @@ import { Animal } from '../../types';
 import { createAnimal, getAnimals, updateAnimalStatus } from '../../services/api';
 
 const STATUS_OPTIONS: Array<{ value: Animal['status']; label: string }> = [
+  { value: 'pending_review', label: 'На проверке' },
   { value: 'quarantine', label: 'Карантин' },
   { value: 'available', label: 'Доступен' },
   { value: 'reserved', label: 'Зарезервирован' },
@@ -46,7 +47,7 @@ export function CoordinatorAnimals() {
       ageMonths:
         animalData.ageMonths ??
         (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
-      status: (animalData.status as Animal['status']) || 'quarantine',
+      status: (animalData.status as Animal['status']) || 'pending_review',
       behaviorNotes: animalData.behavior?.notes,
       medicalSummary: animalData.medical
         ? [
