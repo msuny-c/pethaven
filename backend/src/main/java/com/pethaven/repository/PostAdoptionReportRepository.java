@@ -75,11 +75,13 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
                      LEFT JOIN animal an ON an.animal_id = aa.animal_id
                      LEFT JOIN person p ON p.person_id = r.comment_author_id
             WHERE aa.candidate_id = :candidateId
-              AND r.status IN ('pending', 'overdue')
-              AND r.due_date <= CURRENT_DATE
+              AND (
+                r.status IN ('submitted', 'reviewed', 'overdue')
+                OR (r.status = 'pending' AND r.due_date <= CURRENT_DATE)
+              )
             ORDER BY r.due_date
             """, nativeQuery = true)
-    List<PostAdoptionReportProjection> findDueDetailedByCandidate(Long candidateId);
+    List<PostAdoptionReportProjection> findVisibleDetailedByCandidate(Long candidateId);
 
     @Query(value = """
             SELECT EXISTS (
