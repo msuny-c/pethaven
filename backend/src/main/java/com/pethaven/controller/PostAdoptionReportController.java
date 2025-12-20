@@ -57,7 +57,7 @@ public class PostAdoptionReportController {
         if (authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDATE"))) {
             if (authentication.getPrincipal() instanceof Long uid) {
-                List<PostAdoptionReportDto> own = reportRepository.findDetailedByCandidate(uid)
+                List<PostAdoptionReportDto> own = reportRepository.findDueDetailedByCandidate(uid)
                         .stream()
                         .map(PostAdoptionReportDto::fromProjection)
                         .toList();
