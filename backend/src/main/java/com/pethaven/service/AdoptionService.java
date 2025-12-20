@@ -137,6 +137,7 @@ public class AdoptionService {
                         animalRepository.save(animal);
                     }
                 });
+                cancelInterviews(entity.getId());
             }
             notificationService.push(entity.getCandidateId(),
                     com.pethaven.model.enums.NotificationType.new_application,
@@ -161,6 +162,7 @@ public class AdoptionService {
                 animalRepository.save(animal);
             }
         });
+        cancelInterviews(app.getId());
     }
 
     @Transactional
@@ -281,6 +283,20 @@ public class AdoptionService {
             interview.setStatus(InterviewStatus.cancelled);
         }
         interviewRepository.saveAll(interviews);
+    }
+
+    private void cancelInterviews(Long applicationId) {
+        List<InterviewEntity> interviews = interviewRepository.findByApplicationIdOrderByScheduledDatetimeDesc(applicationId);
+        boolean changed = false;
+        for (InterviewEntity interview : interviews) {
+            if (interview.getStatus() != InterviewStatus.cancelled) {
+                interview.setStatus(InterviewStatus.cancelled);
+                changed = true;
+            }
+        }
+        if (changed) {
+            interviewRepository.saveAll(interviews);
+        }
     }
 
     @Transactional
