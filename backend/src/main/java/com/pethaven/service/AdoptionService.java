@@ -100,9 +100,9 @@ public class AdoptionService {
     public List<AdoptionApplicationEntity> getApplications(ApplicationStatus status, Long candidateId) {
         if (candidateId != null) {
             if (status != null) {
-                return adoptionRepository.findByCandidateIdAndStatus(candidateId, status);
+                return adoptionRepository.findActiveByCandidateIdAndStatus(candidateId, status);
             }
-            return adoptionRepository.findByCandidateId(candidateId);
+            return adoptionRepository.findActiveByCandidateId(candidateId);
         }
         if (status != null) {
             return adoptionRepository.findByStatus(status);

@@ -20,6 +20,28 @@ public interface AdoptionApplicationRepository extends JpaRepository<AdoptionApp
     List<AdoptionApplicationEntity> findByCandidateIdAndStatus(Long candidateId, ApplicationStatus status);
     boolean existsByCandidateIdAndAnimalIdAndStatusIn(Long candidateId, Long animalId, List<ApplicationStatus> statuses);
 
+    @Query("""
+            SELECT a
+            FROM AdoptionApplicationEntity a
+            WHERE a.candidateId = :candidateId
+              AND NOT EXISTS (
+                SELECT 1 FROM AgreementEntity ag WHERE ag.applicationId = a.id
+              )
+            """)
+    List<AdoptionApplicationEntity> findActiveByCandidateId(@Param("candidateId") Long candidateId);
+
+    @Query("""
+            SELECT a
+            FROM AdoptionApplicationEntity a
+            WHERE a.candidateId = :candidateId
+              AND a.status = :status
+              AND NOT EXISTS (
+                SELECT 1 FROM AgreementEntity ag WHERE ag.applicationId = a.id
+              )
+            """)
+    List<AdoptionApplicationEntity> findActiveByCandidateIdAndStatus(@Param("candidateId") Long candidateId,
+                                                                     @Param("status") ApplicationStatus status);
+
     @Query(value = "SELECT submit_adoption_application(CAST(:animalId AS integer), CAST(:candidateId AS integer))", nativeQuery = true)
     Long submit(@Param("animalId") Long animalId, @Param("candidateId") Long candidateId);
 

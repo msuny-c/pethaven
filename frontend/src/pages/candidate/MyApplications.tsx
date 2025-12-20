@@ -13,17 +13,37 @@ export function CandidateApplications() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([getApplications(), getAnimals(), getAgreements()]).then(([apps, animals, agrs]) => {
-      setMyApps(apps.filter(a => a.candidateId === user.id));
-      const map: Record<number, Animal> = {};
-      animals.forEach(a => map[a.id] = a);
-      setAnimalMap(map);
-      const agrMap: Record<number, Agreement> = {};
-      agrs.forEach((a) => {
-        agrMap[a.applicationId] = a;
-      });
-      setAgreements(agrMap);
-    });
+    (async () => {
+      const [appsRes, animalsRes, agreementsRes] = await Promise.allSettled([
+        getApplications(),
+        getAnimals(),
+        getAgreements()
+      ]);
+
+      if (appsRes.status === 'fulfilled') {
+        setMyApps(appsRes.value.filter((a) => a.candidateId === user.id));
+      } else {
+        console.error('Failed to load applications', appsRes.reason);
+      }
+
+      if (animalsRes.status === 'fulfilled') {
+        const map: Record<number, Animal> = {};
+        animalsRes.value.forEach((a) => (map[a.id] = a));
+        setAnimalMap(map);
+      } else {
+        console.error('Failed to load animals', animalsRes.reason);
+      }
+
+      if (agreementsRes.status === 'fulfilled') {
+        const agrMap: Record<number, Agreement> = {};
+        agreementsRes.value.forEach((a) => {
+          agrMap[a.applicationId] = a;
+        });
+        setAgreements(agrMap);
+      } else {
+        console.warn('Agreements not available for this user', agreementsRes.reason);
+      }
+    })();
   }, [user]);
 
   return <DashboardLayout title="Мои заявки">
