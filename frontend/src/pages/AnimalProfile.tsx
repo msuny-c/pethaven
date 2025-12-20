@@ -299,7 +299,7 @@ export function AnimalProfile() {
                     </div>}
                 {animal.pendingAdminReview && (
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                    На проверке у администратора
+                    На проверке
                   </span>
                 )}
                 {canEdit && !editing && <button onClick={() => setEditing(true)} className="inline-flex items-center px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600">

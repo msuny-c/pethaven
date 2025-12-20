@@ -176,7 +176,6 @@ public class PostAdoptionReportController {
         if (isCandidate) {
             return reportRepository.findByIdAndCandidate(reportId, uid).isPresent();
         }
-        // coordinators/volunteers/admin can view (secured in SecurityConfig)
         return true;
     }
 

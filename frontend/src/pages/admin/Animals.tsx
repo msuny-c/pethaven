@@ -121,14 +121,15 @@ export function AdminAnimals() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="space-y-1">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {animal.status}
-                    </span>
-                    {animal.pendingAdminReview && (
+                    {animal.pendingAdminReview ? (
                       <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 inline-flex">
-                        На проверке у администратора
+                        На проверке
                       </div>
+                    ) : (
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {animal.status}
+                      </span>
                     )}
                   </div>
                 </td>

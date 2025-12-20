@@ -113,13 +113,7 @@ public class AnimalService {
                 throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
             }
             entity.setStatus(status);
-            if (allowPendingReview) {
-                entity.setPendingAdminReview(Boolean.TRUE);
-                AnimalEntity saved = animalRepository.save(entity);
-                notifyAdminsPendingReview(saved);
-            } else {
-                animalRepository.save(entity);
-            }
+            animalRepository.save(entity);
         });
     }
 

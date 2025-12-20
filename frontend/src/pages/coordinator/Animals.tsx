@@ -149,7 +149,7 @@ export function CoordinatorAnimals() {
                     </select>
                     {animal.pendingAdminReview && (
                       <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
-                        На проверке у администратора
+                        На проверке
                       </div>
                     )}
                   </div>

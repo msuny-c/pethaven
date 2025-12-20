@@ -87,15 +87,11 @@ public class AnimalController {
         if (isVet && status != AnimalStatus.quarantine && status != AnimalStatus.available) {
             return ResponseEntity.status(403).body(ApiMessage.of("Ветеринар может менять статус только между карантином и доступен"));
         }
-        boolean forcedPending = false;
-        if (isCoordinator && (status == AnimalStatus.available || status == AnimalStatus.reserved)) {
-            forcedPending = true;
-        }
-        if (status == AnimalStatus.pending_review && !forcedPending) {
+        if (status == AnimalStatus.pending_review) {
             return ResponseEntity.badRequest().body(ApiMessage.of("Статус 'на проверке' устанавливается автоматически"));
         }
         try {
-            animalService.updateStatus(id, status, forcedPending);
+            animalService.updateStatus(id, status, false);
             return ResponseEntity.status(204).<ApiMessage>build();
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiMessage.of(e.getMessage()));

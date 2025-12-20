@@ -38,6 +38,11 @@ export function CoordinatorApplications() {
     try {
       const isoWithOffset = toOffsetIso(scheduleDatetime);
       await scheduleInterview(scheduleFor, isoWithOffset);
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === scheduleFor ? { ...app, status: 'under_review' } : app
+        )
+      );
       setScheduleFor(null);
       setScheduleDatetime('');
     } catch (e: any) {
