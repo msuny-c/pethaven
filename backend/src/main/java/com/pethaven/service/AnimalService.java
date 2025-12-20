@@ -6,7 +6,6 @@ import com.pethaven.model.enums.AnimalStatus;
 import com.pethaven.repository.AnimalMediaRepository;
 import com.pethaven.repository.AnimalRepository;
 import com.pethaven.repository.PersonRepository;
-import com.pethaven.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

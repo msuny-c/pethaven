@@ -97,12 +97,6 @@ public class PostAdoptionReportController {
         return reportRepository.save(entity);
     }
 
-    @PostMapping("/process")
-    public ApiMessage processPending() {
-        Integer processed = reportRepository.processPendingReports();
-        return ApiMessage.of("Отправлено напоминаний: " + (processed == null ? 0 : processed));
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<?> byId(@PathVariable Long id, Authentication authentication) {
         boolean isCandidate = authentication != null && authentication.getAuthorities().stream()

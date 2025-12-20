@@ -10,9 +10,6 @@ import java.util.Optional;
 
 @Repository
 public interface PostAdoptionReportRepository extends JpaRepository<PostAdoptionReportEntity, Long> {
-    @Query(value = "SELECT process_post_adoption_reports()", nativeQuery = true)
-    Integer processPendingReports();
-
     @Query(value = """
             SELECT r.*
             FROM post_adoption_report r
@@ -64,4 +61,19 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
             )
             """, nativeQuery = true)
     boolean existsByAgreementIdAndStatus(Long agreementId, String status);
+
+    @Query(value = """
+            SELECT r.report_id        AS id,
+                   r.agreement_id     AS agreementId,
+                   r.due_date         AS dueDate,
+                   r.status           AS status,
+                   r.last_reminded_at AS lastRemindedAt,
+                   aa.candidate_id    AS candidateId
+            FROM post_adoption_report r
+                     JOIN agreement ag ON ag.agreement_id = r.agreement_id
+                     JOIN adoption_application aa ON aa.application_id = ag.application_id
+            WHERE r.submitted_date IS NULL
+              AND r.status IN ('pending', 'overdue')
+            """, nativeQuery = true)
+    List<PostAdoptionReportReminderProjection> findPendingForReminder();
 }
