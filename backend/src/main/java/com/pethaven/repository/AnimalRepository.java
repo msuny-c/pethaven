@@ -16,10 +16,11 @@ public interface AnimalRepository extends JpaRepository<AnimalEntity, Long> {
             FROM animal
             WHERE (:species IS NULL OR species = :species)
               AND (:status IS NULL OR status::text = :status)
+              AND (:includePending = true OR COALESCE(pending_admin_review, FALSE) = FALSE)
             ORDER BY status, animal_id
             """, nativeQuery = true)
-    List<AnimalEntity> findCatalog(@Param("species") String species, @Param("status") String status);
+    List<AnimalEntity> findCatalog(@Param("species") String species, @Param("status") String status, @Param("includePending") boolean includePending);
 
-    @Query(value = "SELECT DISTINCT species FROM animal WHERE status = 'available'", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT species FROM animal WHERE status = 'available' AND COALESCE(pending_admin_review, FALSE) = FALSE", nativeQuery = true)
     List<String> findAvailableSpecies();
 }

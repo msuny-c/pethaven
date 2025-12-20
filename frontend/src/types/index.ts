@@ -42,7 +42,8 @@ export interface Animal {
   age?: number;
   ageMonths?: number;
   gender?: 'male' | 'female';
-  status: 'quarantine' | 'pending_review' | 'available' | 'reserved' | 'adopted' | 'not_available';
+  status: 'quarantine' | 'available' | 'reserved' | 'adopted' | 'not_available';
+  pendingAdminReview?: boolean;
   description?: string;
   behaviorNotes?: string;
   medicalSummary?: string;

@@ -136,7 +136,6 @@ export function AnimalModal({
               ...formData,
               status: e.target.value as any
             })}>
-                  <option value="pending_review">На проверке</option>
                   <option value="quarantine">Карантин</option>
                   <option value="available">Доступен</option>
                   <option value="reserved">Забронирован</option>

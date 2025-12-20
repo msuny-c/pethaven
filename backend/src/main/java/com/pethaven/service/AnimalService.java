@@ -27,8 +27,8 @@ public class AnimalService {
         this.personRepository = personRepository;
     }
 
-    public List<AnimalEntity> getCatalog(String species, AnimalStatus status) {
-        return animalRepository.findCatalog(species, status == null ? null : status.name());
+    public List<AnimalEntity> getCatalog(String species, AnimalStatus status, boolean includePending) {
+        return animalRepository.findCatalog(species, status == null ? null : status.name(), includePending);
     }
 
     public List<String> getAvailableSpecies() {
@@ -40,16 +40,15 @@ public class AnimalService {
     }
 
     public Long createAnimal(AnimalEntity animal, boolean forcePendingReview) {
-        if (forcePendingReview) {
-            animal.setStatus(com.pethaven.model.enums.AnimalStatus.pending_review);
+        if (!forcePendingReview && animal.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
+            throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
         }
-        if (animal.getStatus() == null) {
+        animal.setPendingAdminReview(Boolean.TRUE);
+        if (animal.getStatus() == null || animal.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
             animal.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
         }
         AnimalEntity saved = animalRepository.save(animal);
-        if (saved.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
-            notifyAdminsPendingReview(saved);
-        }
+        notifyAdminsPendingReview(saved);
         return saved.getId();
     }
 
@@ -81,10 +80,12 @@ public class AnimalService {
             existing.setMedicalSummary(payload.getMedicalSummary());
         }
         if (payload.getStatus() != null) {
+            if (!forcePendingReview && payload.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
+                throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
+            }
+            existing.setStatus(payload.getStatus());
             if (forcePendingReview && (payload.getStatus() == com.pethaven.model.enums.AnimalStatus.available || payload.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved)) {
-                existing.setStatus(com.pethaven.model.enums.AnimalStatus.pending_review);
-            } else {
-                existing.setStatus(payload.getStatus());
+                existing.setPendingAdminReview(Boolean.TRUE);
             }
         }
         if (payload.getVaccinated() != null) {
@@ -97,19 +98,28 @@ public class AnimalService {
             existing.setMicrochipped(payload.getMicrochipped());
         }
         AnimalEntity saved = animalRepository.save(existing);
-        if (saved.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
+        if (Boolean.TRUE.equals(saved.getPendingAdminReview())) {
             notifyAdminsPendingReview(saved);
         }
         return saved;
     }
 
-    public void updateStatus(Long animalId, AnimalStatus status) {
+    public void updateStatus(Long animalId, AnimalStatus status, boolean allowPendingReview) {
         animalRepository.findById(animalId).ifPresent(entity -> {
             if (entity.getStatus() == AnimalStatus.adopted) {
                 throw new IllegalStateException("Статус переданного животного менять нельзя");
             }
+            if (!allowPendingReview && status == AnimalStatus.pending_review) {
+                throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
+            }
             entity.setStatus(status);
-            animalRepository.save(entity);
+            if (allowPendingReview) {
+                entity.setPendingAdminReview(Boolean.TRUE);
+                AnimalEntity saved = animalRepository.save(entity);
+                notifyAdminsPendingReview(saved);
+            } else {
+                animalRepository.save(entity);
+            }
         });
     }
 
@@ -162,6 +172,27 @@ public class AnimalService {
             existing.setMedicalSummary(payload.getMedicalSummary());
         }
         return animalRepository.save(existing);
+    }
+
+    public AnimalEntity reviewAnimal(Long id, boolean approved) {
+        AnimalEntity entity = animalRepository.findById(id).orElseThrow();
+        if (approved) {
+            entity.setPendingAdminReview(Boolean.FALSE);
+        } else {
+            entity.setPendingAdminReview(Boolean.TRUE);
+            entity.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
+        }
+        AnimalEntity saved = animalRepository.save(entity);
+        if (approved) {
+            personRepository.findActiveByRole(com.pethaven.model.enums.SystemRole.coordinator.name())
+                    .forEach(coord -> notificationService.push(
+                            coord.getId(),
+                            com.pethaven.model.enums.NotificationType.new_application,
+                            "Карточка подтверждена",
+                            "Администратор утвердил карточку питомца #" + saved.getId()
+                    ));
+        }
+        return saved;
     }
 
     private void notifyAdminsPendingReview(AnimalEntity animal) {

@@ -4,7 +4,7 @@ import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Animal } from '../../types';
-import { createAnimal, deleteAnimal, getAnimals, updateAnimal } from '../../services/api';
+import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal } from '../../services/api';
 export function AdminAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,21 +120,60 @@ export function AdminAnimals() {
                   {animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : '—'} лет
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : animal.status === 'pending_review' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {animal.status === 'pending_review' ? 'На проверке' : animal.status}
-                  </span>
+                  <div className="space-y-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {animal.status}
+                    </span>
+                    {animal.pendingAdminReview && (
+                      <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 inline-flex">
+                        На проверке у администратора
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => {
+                  <div className="flex items-center justify-end gap-2">
+                    {animal.pendingAdminReview && (
+                      <>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await reviewAnimal(animal.id, true);
+                              await refresh();
+                            } catch {
+                              setError('Не удалось утвердить карточку');
+                            }
+                          }}
+                          className="text-green-600 hover:underline text-sm"
+                        >
+                          Утвердить
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await reviewAnimal(animal.id, false);
+                              await refresh();
+                            } catch {
+                              setError('Не удалось отправить на доработку');
+                            }
+                          }}
+                          className="text-amber-600 hover:underline text-sm"
+                        >
+                          На доработку
+                        </button>
+                      </>
+                    )}
+                    <button onClick={() => {
                 setEditingAnimal(animal);
                 setIsModalOpen(true);
-              }} className="text-gray-400 hover:text-blue-600 mx-2">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setDeleteId(animal.id)} className="text-gray-400 hover:text-red-600 mx-2">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+              }} className="text-gray-400 hover:text-blue-600">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setDeleteId(animal.id)} className="text-gray-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>)}
           </tbody>

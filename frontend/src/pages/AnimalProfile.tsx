@@ -41,9 +41,8 @@ export function AnimalProfile() {
   const isVet = !!user && user.roles.includes('veterinar');
   const canManageMedia = canEdit || isVolunteer;
   const canAddNotes = canManageMedia;
-  const canEditMedical = isVet || canEdit;
+  const canEditMedical = isVet || (!!user && user.roles.includes('admin'));
   const statusOptions: Array<{ value: Animal['status']; label: string }> = [
-    { value: 'pending_review', label: 'На проверке' },
     { value: 'quarantine', label: 'Карантин' },
     { value: 'available', label: 'Доступен' },
     { value: 'reserved', label: 'Зарезервирован' },
@@ -60,7 +59,7 @@ export function AnimalProfile() {
             name: data.name,
             breed: data.breed,
             ageMonths: data.ageMonths,
-            description: data.description || data.behaviorNotes || data.behavior?.notes || '',
+            description: data.description || '',
             status: data.status,
             features: parsedFeatures,
             gender: data.gender,
@@ -114,8 +113,6 @@ export function AnimalProfile() {
   const currentStatus = form.status || animal?.status || 'available';
   const statusBadge = (status: Animal['status']) => {
     switch (status) {
-      case 'pending_review':
-        return 'bg-amber-100 text-amber-700';
       case 'available':
         return 'bg-green-100 text-green-700';
       case 'reserved':
@@ -154,6 +151,7 @@ export function AnimalProfile() {
     }
   };
 
+  const behaviorNotesList = (animal?.behaviorNotes || '').split('\n').map(n => n.trim()).filter(Boolean);
   const content = <>
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Breadcrumb / Back */}
@@ -281,7 +279,7 @@ export function AnimalProfile() {
                 <div className="text-sm text-gray-500 mt-2">
                   Вид: {form.species ? (form.species === 'cat' ? 'Кошка' : 'Собака') : animal.species === 'cat' ? 'Кошка' : 'Собака'} • Пол: {(form.gender || animal.gender) === 'male' ? 'Мальчик' : (form.gender || animal.gender) === 'female' ? 'Девочка' : 'Не указан'}
                 </div>
-              </div>
+                </div>
             <div className="flex items-center gap-2 flex-wrap">
               {editing ? <div className="relative">
                     <button type="button" onClick={() => setStatusOpen((v) => !v)} className="px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-2">
@@ -299,6 +297,11 @@ export function AnimalProfile() {
                     </div> : <div className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide ${statusBadge(currentStatus)}`}>
                       {statusOptions.find((s) => s.value === currentStatus)?.label || 'Статус'}
                     </div>}
+                {animal.pendingAdminReview && (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                    На проверке у администратора
+                  </span>
+                )}
                 {canEdit && !editing && <button onClick={() => setEditing(true)} className="inline-flex items-center px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600">
                     <Edit2 className="w-4 h-4 mr-2" /> Редактировать
                   </button>}
@@ -314,8 +317,19 @@ export function AnimalProfile() {
             </div>
 
             <div className="prose prose-lg text-gray-600 mb-8">
-              {editing ? <textarea className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Описание питомца" /> : <p>{animal.description || animal.behaviorNotes || animal.behavior?.notes || 'Описание уточняется.'}</p>}
+              {editing ? <textarea className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Описание питомца" /> : <p>{animal.description || 'Описание уточняется.'}</p>}
             </div>
+
+            {behaviorNotesList.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">
+                <h3 className="text-lg font-semibold text-gray-900">Полевые заметки</h3>
+                <ul className="space-y-2 list-disc list-inside text-sm text-gray-700">
+                  {behaviorNotesList.map((note, idx) => (
+                    <li key={idx}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {canAddNotes && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">

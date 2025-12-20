@@ -53,7 +53,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/*/status").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase(), SystemRole.veterinar.name().toUpperCase())
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/*/medical").hasAnyRole(SystemRole.veterinar.name().toUpperCase(), SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/*/medical").hasAnyRole(SystemRole.veterinar.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/animals/**").hasAnyRole(SystemRole.admin.name().toUpperCase(), SystemRole.coordinator.name().toUpperCase())
                         // Смены: волонтеры могут просматривать/писаться, координатор создавать/назначать задачи

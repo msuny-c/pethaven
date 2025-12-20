@@ -16,6 +16,10 @@ export async function getAnimals(): Promise<Animal[]> {
   return data;
 }
 
+export async function reviewAnimal(id: number, approved: boolean) {
+  await api.patch(`/animals/${id}/review`, null, { params: { approved } });
+}
+
 export async function getAnimalSpecies(): Promise<string[]> {
   const { data } = await api.get<string[]>('/animals/species');
   return data;

@@ -31,8 +31,14 @@ public class AnimalController {
 
     @GetMapping
     public List<AnimalEntity> catalog(@RequestParam(required = false) String species,
-                                      @RequestParam(required = false) AnimalStatus status) {
-        return animalService.getCatalog(species, status);
+                                      @RequestParam(required = false) AnimalStatus status,
+                                      Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        boolean includePending = isAdmin || isCoordinator;
+        return animalService.getCatalog(species, status, includePending);
     }
 
     @GetMapping("/species")
@@ -51,15 +57,23 @@ public class AnimalController {
     public ResponseEntity<Void> create(@Valid @RequestBody AnimalEntity animal, Authentication authentication) {
         boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
-        Long id = animalService.createAnimal(animal, isCoordinator);
-        return ResponseEntity.created(URI.create("/api/v1/animals/" + id)).build();
+        try {
+            Long id = animalService.createAnimal(animal, isCoordinator);
+            return ResponseEntity.created(URI.create("/api/v1/animals/" + id)).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<AnimalEntity> update(@PathVariable Long id, @RequestBody AnimalEntity payload, Authentication authentication) {
         boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
-        return ResponseEntity.ok(animalService.updateAnimal(id, payload, isCoordinator));
+        try {
+            return ResponseEntity.ok(animalService.updateAnimal(id, payload, isCoordinator));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PatchMapping("/{id}/status")
@@ -73,14 +87,37 @@ public class AnimalController {
         if (isVet && status != AnimalStatus.quarantine && status != AnimalStatus.available) {
             return ResponseEntity.status(403).body(ApiMessage.of("Ветеринар может менять статус только между карантином и доступен"));
         }
+        boolean forcedPending = false;
         if (isCoordinator && (status == AnimalStatus.available || status == AnimalStatus.reserved)) {
-            status = AnimalStatus.pending_review;
+            forcedPending = true;
+        }
+        if (status == AnimalStatus.pending_review && !forcedPending) {
+            return ResponseEntity.badRequest().body(ApiMessage.of("Статус 'на проверке' устанавливается автоматически"));
         }
         try {
-            animalService.updateStatus(id, status);
+            animalService.updateStatus(id, status, forcedPending);
             return ResponseEntity.status(204).<ApiMessage>build();
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/review")
+    public ResponseEntity<ApiMessage> review(@PathVariable Long id,
+                                             @RequestParam boolean approved,
+                                             Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Только администратор может утверждать карточки"));
+        }
+        try {
+            animalService.reviewAnimal(id, approved);
+            return ResponseEntity.ok(ApiMessage.of(approved ? "Карточка утверждена" : "Карточка отправлена на доработку, статус переключен в карантин"));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 

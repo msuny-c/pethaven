@@ -57,6 +57,9 @@ public class AnimalEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private AnimalStatus status = AnimalStatus.quarantine;
 
+    @Column(name = "pending_admin_review")
+    private Boolean pendingAdminReview = Boolean.FALSE;
+
     @OneToMany(mappedBy = "animal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<AnimalMediaEntity> media = new ArrayList<>();

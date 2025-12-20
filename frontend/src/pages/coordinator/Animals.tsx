@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Plus, Search, ChevronDown } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { Animal } from '../../types';
 import { createAnimal, getAnimals, updateAnimalStatus } from '../../services/api';
 
 const STATUS_OPTIONS: Array<{ value: Animal['status']; label: string }> = [
-  { value: 'pending_review', label: 'На проверке' },
   { value: 'quarantine', label: 'Карантин' },
   { value: 'available', label: 'Доступен' },
   { value: 'reserved', label: 'Зарезервирован' },
@@ -47,7 +46,7 @@ export function CoordinatorAnimals() {
       ageMonths:
         animalData.ageMonths ??
         (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
-      status: (animalData.status as Animal['status']) || 'pending_review',
+      status: (animalData.status as Animal['status']) || 'quarantine',
       behaviorNotes: animalData.behavior?.notes,
       medicalSummary: animalData.medical
         ? [
@@ -136,26 +135,21 @@ export function CoordinatorAnimals() {
                   ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
                 </td>
                 <td className="px-6 py-4">
-                  <div className="relative inline-block">
-                    <button
-                      type="button"
-                      onClick={() => setOpenStatusId((prev) => (prev === animal.id ? null : animal.id))}
-                      className="px-3 py-1.5 rounded-lg border border-amber-200 bg-white text-sm text-gray-700 flex items-center gap-2"
+                  <div className="space-y-2">
+                    <select
+                      className="rounded-lg border border-amber-200 bg-white text-sm text-gray-700 px-3 py-1.5"
+                      value={animal.status}
+                      onChange={(e) => handleStatusChange(animal.id, e.target.value as Animal['status'])}
                     >
-                      {STATUS_OPTIONS.find((s) => s.value === animal.status)?.label || 'Статус'}
-                      <ChevronDown className="w-4 h-4 text-amber-500" />
-                    </button>
-                    {openStatusId === animal.id && (
-                      <div className="absolute z-10 mt-2 w-40 bg-white border border-amber-100 rounded-xl shadow-lg">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.value}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-amber-50 ${opt.value === animal.status ? 'font-semibold text-amber-700' : 'text-gray-700'}`}
-                            onClick={() => handleStatusChange(animal.id, opt.value)}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
+                      {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {animal.pendingAdminReview && (
+                      <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
+                        На проверке у администратора
                       </div>
                     )}
                   </div>

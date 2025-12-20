@@ -90,7 +90,9 @@ public class PostAdoptionReportController {
         entity.setReportText(request.reportText());
         entity.setVolunteerFeedback(request.volunteerFeedback());
         entity.setSubmittedDate(request.submittedDate());
-        entity.setStatus(request.status() != null ? request.status() : ReportStatus.submitted);
+        if (request.status() != null) {
+            entity.setStatus(request.status());
+        }
         if (authentication != null && authentication.getPrincipal() instanceof Long uid && request.volunteerFeedback() != null) {
             entity.setCommentAuthorId(uid);
         }
