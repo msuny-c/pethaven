@@ -4,7 +4,6 @@ import com.pethaven.entity.AnimalEntity;
 import com.pethaven.entity.AnimalMediaEntity;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.model.enums.AnimalStatus;
-import com.pethaven.model.enums.SystemRole;
 import com.pethaven.service.AnimalService;
 import com.pethaven.service.ObjectStorageService;
 import jakarta.validation.Valid;
@@ -132,12 +131,6 @@ public class AnimalController {
         }
         String storageKey = storageService.uploadAnimalMedia(id, file);
         AnimalMediaEntity saved = animalService.addMedia(id, storageKey, description);
-        return ResponseEntity.ok(saved);
-    }
-
-    @PostMapping(value = "/{id}/media", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AnimalMediaEntity> addMedia(@PathVariable Long id, @RequestBody AnimalMediaEntity media) {
-        AnimalMediaEntity saved = animalService.addMedia(id, media);
         return ResponseEntity.ok(saved);
     }
 

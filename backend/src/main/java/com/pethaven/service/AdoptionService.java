@@ -4,18 +4,15 @@ import com.pethaven.dto.AdoptionDecisionRequest;
 import com.pethaven.dto.ApplicationRequest;
 import com.pethaven.dto.AgreementRequest;
 import com.pethaven.dto.InterviewUpdateRequest;
-import com.pethaven.dto.InterviewSlotRequest;
 import com.pethaven.dto.InterviewSlotBookRequest;
 import com.pethaven.dto.InterviewSlotCancelRequest;
 import com.pethaven.dto.InterviewRescheduleRequest;
 import com.pethaven.entity.AdoptionApplicationEntity;
 import com.pethaven.entity.AgreementEntity;
 import com.pethaven.entity.InterviewEntity;
-import com.pethaven.entity.InterviewSlotEntity;
 import com.pethaven.entity.AnimalEntity;
 import com.pethaven.model.enums.ApplicationStatus;
 import com.pethaven.model.enums.InterviewStatus;
-import com.pethaven.model.enums.InterviewSlotStatus;
 import com.pethaven.model.enums.SystemRole;
 import com.pethaven.repository.AdoptionApplicationRepository;
 import com.pethaven.repository.AgreementRepository;
@@ -189,30 +186,6 @@ public class AdoptionService {
 
     public List<InterviewEntity> getAllInterviews() {
         return interviewRepository.findAll();
-    }
-
-    public List<InterviewSlotEntity> getSlots(InterviewSlotStatus status, Long interviewerId) {
-        if (interviewerId != null) {
-            return interviewSlotRepository.findByInterviewerId(interviewerId);
-        }
-        if (status != null) {
-            return interviewSlotRepository.findByStatusOrderByScheduledDatetimeAsc(status);
-        }
-        return interviewSlotRepository.findAll();
-    }
-
-    public InterviewSlotEntity createSlot(InterviewSlotRequest request) {
-        InterviewSlotEntity entity = new InterviewSlotEntity();
-        entity.setInterviewerId(request.interviewerId());
-        entity.setScheduledDatetime(request.scheduledAt());
-        if (request.status() != null) {
-            entity.setStatus(request.status());
-        }
-        return interviewSlotRepository.save(entity);
-    }
-
-    public void cancelSlot(Long slotId) {
-        interviewSlotRepository.cancel(slotId);
     }
 
     @Transactional

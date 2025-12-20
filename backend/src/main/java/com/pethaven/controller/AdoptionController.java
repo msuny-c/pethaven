@@ -7,16 +7,13 @@ import com.pethaven.dto.ApplicationCancelRequest;
 import com.pethaven.dto.ApplicationRequest;
 import com.pethaven.dto.InterviewScheduleRequest;
 import com.pethaven.dto.InterviewUpdateRequest;
-import com.pethaven.dto.InterviewSlotRequest;
 import com.pethaven.dto.InterviewSlotBookRequest;
 import com.pethaven.dto.InterviewSlotCancelRequest;
 import com.pethaven.dto.InterviewRescheduleRequest;
 import com.pethaven.entity.AdoptionApplicationEntity;
 import com.pethaven.entity.AgreementEntity;
 import com.pethaven.entity.InterviewEntity;
-import com.pethaven.entity.InterviewSlotEntity;
 import com.pethaven.model.enums.ApplicationStatus;
-import com.pethaven.model.enums.InterviewSlotStatus;
 import com.pethaven.service.AdoptionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -140,23 +137,6 @@ public class AdoptionController {
     @GetMapping("/interviews")
     public List<InterviewEntity> allInterviews() {
         return adoptionService.getAllInterviews();
-    }
-
-    @GetMapping("/slots")
-    public List<InterviewSlotEntity> slots(@RequestParam(required = false) InterviewSlotStatus status,
-                                           @RequestParam(required = false) Long interviewerId) {
-        return adoptionService.getSlots(status, interviewerId);
-    }
-
-    @PostMapping("/slots")
-    public InterviewSlotEntity createSlot(@Valid @RequestBody InterviewSlotRequest request) {
-        return adoptionService.createSlot(request);
-    }
-
-    @DeleteMapping("/slots/{id}")
-    public ResponseEntity<Void> cancelSlot(@PathVariable Long id) {
-        adoptionService.cancelSlot(id);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/slots/book")

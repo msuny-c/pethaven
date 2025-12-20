@@ -130,15 +130,6 @@ public class AnimalService {
         return animalMediaRepository.save(entity);
     }
 
-    public AnimalMediaEntity addMedia(Long animalId, AnimalMediaEntity media) {
-        AnimalEntity animal = animalRepository.findById(animalId).orElseThrow();
-        media.setAnimal(animal);
-        if (media.getStorageKey() == null) {
-            throw new IllegalArgumentException("storageKey is required for media");
-        }
-        return animalMediaRepository.save(media);
-    }
-
     public void addBehaviorNote(Long animalId, String note, Long authorId) {
         if (note == null || note.isBlank()) {
             throw new IllegalArgumentException("Заметка не может быть пустой");
