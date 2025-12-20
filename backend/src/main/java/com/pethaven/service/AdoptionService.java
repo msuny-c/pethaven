@@ -229,6 +229,36 @@ public class AdoptionService {
     }
 
     @Transactional
+    public void declineInterview(Long interviewId, Long candidateId) {
+        InterviewEntity interview = interviewRepository.findById(interviewId).orElseThrow();
+        AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
+        if (candidateId == null || !candidateId.equals(app.getCandidateId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Нельзя отклонить чужое интервью");
+        }
+        if (interview.getStatus() == InterviewStatus.completed) {
+            throw new IllegalStateException("Нельзя отклонить проведенное интервью");
+        }
+        interview.setStatus(InterviewStatus.cancelled);
+        interviewRepository.save(interview);
+
+        app.setStatus(ApplicationStatus.rejected);
+        app.setDecisionComment("Кандидат отклонил интервью");
+        adoptionRepository.save(app);
+
+        animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
+            if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {
+                animal.setStatus(com.pethaven.model.enums.AnimalStatus.available);
+                animalRepository.save(animal);
+            }
+        });
+
+        notificationService.push(interview.getInterviewerId(),
+                com.pethaven.model.enums.NotificationType.interview_scheduled,
+                "Кандидат отказался",
+                "Кандидат отказался от интервью по заявке №" + app.getId());
+    }
+
+    @Transactional
     public void reschedule(InterviewRescheduleRequest request, Long candidateId, boolean isAdmin) {
         AdoptionApplicationEntity app = adoptionRepository.findById(request.applicationId())
                 .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
@@ -259,6 +289,9 @@ public class AdoptionService {
                 .orElseThrow();
         if (!isAdmin && actorId != null && !actorId.equals(interview.getInterviewerId())) {
             throw new org.springframework.security.access.AccessDeniedException("Можно редактировать только свои интервью");
+        }
+        if (request.status() == InterviewStatus.completed && interview.getStatus() != InterviewStatus.confirmed) {
+            throw new IllegalStateException("Интервью должно быть подтверждено кандидатом");
         }
         interview.setStatus(request.status());
         interview.setCoordinatorNotes(request.notes());

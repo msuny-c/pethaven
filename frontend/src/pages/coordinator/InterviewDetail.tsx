@@ -206,13 +206,15 @@ export function CoordinatorInterviewDetail() {
               <XCircle className="w-4 h-4 mr-2" />
               Отменить интервью
             </button>
-            <button
-              onClick={() => setIsCompleteModalOpen(true)}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Завершить интервью
-            </button>
+            {interview.status === 'confirmed' && (
+              <button
+                onClick={() => setIsCompleteModalOpen(true)}
+                className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Завершить интервью
+              </button>
+            )}
           </div>
         ) : null}
       </div>

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, PawPrint, ArrowLeft, Info, CheckCircle, XCircle } from 'lucide-react';
 import { Application, Animal, Interview } from '../../types';
-import { getAnimal, getApplicationById, getInterviews, confirmInterview, cancelAdoptionApplication } from '../../services/api';
+import { getAnimal, getApplicationById, getInterviews, confirmInterview, cancelAdoptionApplication, declineInterview } from '../../services/api';
 
 export function CandidateApplicationDetail() {
   const { id } = useParams();
@@ -14,6 +14,7 @@ export function CandidateApplicationDetail() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [declining, setDeclining] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -91,6 +92,20 @@ export function CandidateApplicationDetail() {
       alert(msg);
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!upcomingInterview || !application) return;
+    setDeclining(true);
+    try {
+      await declineInterview(upcomingInterview.id);
+      setInterviews((list) => list.map((i) => (i.id === upcomingInterview.id ? { ...i, status: 'cancelled' } : i)));
+      setApplication({ ...application, status: 'rejected', decisionComment: 'Кандидат отклонил интервью' });
+    } catch (e) {
+      alert('Не удалось отказаться от интервью');
+    } finally {
+      setDeclining(false);
     }
   };
 
@@ -205,6 +220,13 @@ export function CandidateApplicationDetail() {
                           className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-60"
                         >
                           {confirming ? 'Подтверждаем...' : 'Подтвердить участие'}
+                        </button>
+                        <button
+                          disabled={declining}
+                          onClick={handleDecline}
+                          className="ml-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-300 disabled:opacity-60"
+                        >
+                          {declining ? 'Отказываемся...' : 'Отказаться'}
                         </button>
                       </div>
                     )}

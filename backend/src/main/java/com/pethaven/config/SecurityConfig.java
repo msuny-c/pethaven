@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/slots/cancel").hasAnyRole(SystemRole.candidate.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/slots/reschedule").hasAnyRole(SystemRole.candidate.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/interviews/*/confirm").hasRole(SystemRole.candidate.name().toUpperCase())
+                        .requestMatchers(HttpMethod.POST, "/api/v1/adoptions/interviews/*/decline").hasRole(SystemRole.candidate.name().toUpperCase())
                         .requestMatchers("/api/v1/adoptions/slots/**").hasAnyRole(SystemRole.coordinator.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         .requestMatchers("/api/v1/adoptions/**").hasAnyRole(SystemRole.coordinator.name().toUpperCase(), SystemRole.admin.name().toUpperCase())
                         // Ветеринар управляет медкартами и может обновлять животных

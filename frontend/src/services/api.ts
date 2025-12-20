@@ -275,6 +275,10 @@ export async function confirmInterview(interviewId: number) {
   await api.post(`/adoptions/interviews/${interviewId}/confirm`);
 }
 
+export async function declineInterview(interviewId: number) {
+  await api.post(`/adoptions/interviews/${interviewId}/decline`);
+}
+
 export async function bookInterviewSlot(slotId: number, applicationId: number) {
   await api.post('/adoptions/slots/book', { slotId, applicationId });
 }

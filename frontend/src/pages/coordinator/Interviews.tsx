@@ -129,12 +129,12 @@ export function CoordinatorInterviews() {
                   </div>
 
                   {(interview.status === 'scheduled' || interview.status === 'confirmed') && <div className="flex space-x-2 ml-4">
-                      <button onClick={() => {
+                      {interview.status === 'confirmed' && <button onClick={() => {
                   setSelectedInterview(interview.id);
                   setIsCompleteModalOpen(true);
                 }} className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors">
                         Завершить
-                      </button>
+                      </button>}
                       <button onClick={() => {
                   setSelectedInterview(interview.id);
                   setIsCancelModalOpen(true);

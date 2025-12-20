@@ -81,8 +81,6 @@ public class AnimalController {
                                                    Authentication authentication) {
         boolean isVet = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VETERINAR"));
-        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
         if (isVet && status != AnimalStatus.quarantine && status != AnimalStatus.available) {
             return ResponseEntity.status(403).body(ApiMessage.of("Ветеринар может менять статус только между карантином и доступен"));
         }

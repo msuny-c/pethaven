@@ -129,6 +129,21 @@ public class AdoptionController {
         }
     }
 
+    @PostMapping("/interviews/{id}/decline")
+    public ResponseEntity<ApiMessage> declineInterview(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long uid)) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            adoptionService.declineInterview(id, uid);
+            return ResponseEntity.ok(ApiMessage.of("Интервью отклонено кандидатом"));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
     @GetMapping("/applications/{id}/interviews")
     public List<InterviewEntity> byApplication(@PathVariable Long id) {
         return adoptionService.getInterviewsByApplication(id);
