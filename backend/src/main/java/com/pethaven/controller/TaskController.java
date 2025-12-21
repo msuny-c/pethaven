@@ -3,9 +3,13 @@ package com.pethaven.controller;
 import com.pethaven.dto.TaskCreateRequest;
 import com.pethaven.dto.TaskResponse;
 import com.pethaven.dto.TaskUpdateRequest;
+import com.pethaven.model.enums.TaskStatus;
+import com.pethaven.dto.ApiMessage;
 import com.pethaven.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +42,23 @@ public class TaskController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<TaskResponse> update(@PathVariable Long id, @Valid @RequestBody TaskUpdateRequest request) {
+    public ResponseEntity<?> update(@PathVariable Long id,
+                                    @Valid @RequestBody TaskUpdateRequest request,
+                                    Authentication authentication) {
+        if (request.status() == TaskStatus.completed && !canCloseTasks(authentication)) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Закрывать задачи может только волонтёр или администратор"));
+        }
         return ResponseEntity.ok(taskService.update(id, request));
+    }
+
+    private boolean canCloseTasks(Authentication authentication) {
+        if (authentication == null) return false;
+        for (GrantedAuthority authority : authentication.getAuthorities()) {
+            String auth = authority.getAuthority();
+            if ("ROLE_VOLUNTEER".equals(auth) || "ROLE_ADMIN".equals(auth)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

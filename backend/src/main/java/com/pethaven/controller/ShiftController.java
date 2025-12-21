@@ -4,6 +4,9 @@ import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.ShiftCreateRequest;
 import com.pethaven.dto.ShiftResponse;
 import com.pethaven.dto.ShiftSignupRequest;
+import com.pethaven.dto.ShiftAttendanceUpdateRequest;
+import com.pethaven.dto.ShiftSubmitRequest;
+import com.pethaven.dto.ShiftApprovalRequest;
 import com.pethaven.dto.TaskShiftAssignmentRequest;
 import com.pethaven.entity.ShiftVolunteerEntity;
 import com.pethaven.entity.TaskShiftEntity;
@@ -12,9 +15,11 @@ import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,5 +87,61 @@ public class ShiftController {
     public ResponseEntity<TaskShiftEntity> assignTask(@Valid @RequestBody TaskShiftAssignmentRequest request) {
         TaskShiftEntity saved = shiftService.assignTask(request);
         return ResponseEntity.ok(saved);
+    }
+
+    @PatchMapping("/{shiftId}/attendance")
+    public ResponseEntity<?> attendance(@PathVariable Long shiftId,
+                                        @Valid @RequestBody ShiftAttendanceUpdateRequest request) {
+        try {
+            ShiftVolunteerEntity updated = shiftService.markAttendance(shiftId, request.volunteerId(), request.status(), request.workedHours());
+            return ResponseEntity.ok(updated);
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{shiftId}/submit")
+    public ResponseEntity<?> submit(@PathVariable Long shiftId,
+                                    @Valid @RequestBody(required = false) ShiftSubmitRequest request,
+                                    Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long volunteerId)) {
+            return ResponseEntity.status(401).body(ApiMessage.of("Требуется авторизация волонтёра"));
+        }
+        Integer hours = request != null ? request.workedHours() : null;
+        try {
+            ShiftVolunteerEntity updated = shiftService.submitShift(shiftId, volunteerId, hours);
+            return ResponseEntity.ok(updated);
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{shiftId}/approve")
+    public ResponseEntity<?> approve(@PathVariable Long shiftId,
+                                     @Valid @RequestBody ShiftApprovalRequest request,
+                                     Authentication authentication) {
+        if (!hasRole(authentication, "ROLE_COORDINATOR") && !hasRole(authentication, "ROLE_ADMIN")) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Только координатор или администратор могут принять смену"));
+        }
+        try {
+            ShiftVolunteerEntity updated = shiftService.approveShift(shiftId, request.volunteerId(), request.workedHours());
+            return ResponseEntity.ok(updated);
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
+        if (authentication == null) {
+            return false;
+        }
+        for (GrantedAuthority auth : authentication.getAuthorities()) {
+            if (role.equals(auth.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

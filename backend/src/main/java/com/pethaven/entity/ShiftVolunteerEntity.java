@@ -7,12 +7,15 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "shift_volunteer")
@@ -30,10 +33,25 @@ public class ShiftVolunteerEntity {
     @Column(name = "attendance_status")
     private AttendanceStatus attendanceStatus = AttendanceStatus.signed_up;
 
+    @Column(name = "submitted_at")
+    private OffsetDateTime submittedAt;
+
+    @Column(name = "approved_at")
+    private OffsetDateTime approvedAt;
+
+    @Column(name = "worked_hours")
+    private Integer workedHours = 0;
+
+    @Column(name = "signed_up_at")
+    private OffsetDateTime signedUpAt;
+
     @PrePersist
     void onCreate() {
         if (attendanceStatus == null) {
             attendanceStatus = AttendanceStatus.signed_up;
+        }
+        if (workedHours == null) {
+            workedHours = 0;
         }
     }
 }

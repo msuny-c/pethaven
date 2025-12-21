@@ -257,7 +257,8 @@
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.environment.set('volunteerToken', json.accessToken);"
+                  "pm.environment.set('volunteerToken', json.accessToken);",
+                  "pm.environment.set('volunteerId', json.id);"
                 ]
               }
             }
@@ -1305,7 +1306,18 @@
                 "shifts"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.environment.set('shiftId', json.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Coordinator creates task",
@@ -1436,13 +1448,13 @@
           }
         },
         {
-          "name": "Coordinator marks task completed",
+          "name": "Volunteer completes task",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{coordinatorToken}}",
+                "value": "Bearer {{volunteerToken}}",
                 "type": "text"
               },
               {
@@ -1470,6 +1482,126 @@
                 "v1",
                 "tasks",
                 "{{taskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coordinator marks attendance",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coordinatorToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"volunteerId\": {{volunteerId}}, \"status\": \"attended\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shifts/{{shiftId}}/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "shifts",
+                "{{shiftId}}",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Volunteer submits shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shifts/{{shiftId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "shifts",
+                "{{shiftId}}",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coordinator approves shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coordinatorToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"volunteerId\": {{volunteerId}} }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shifts/{{shiftId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "shifts",
+                "{{shiftId}}",
+                "approve"
               ]
             }
           }

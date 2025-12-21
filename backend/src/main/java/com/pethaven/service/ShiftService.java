@@ -7,6 +7,9 @@ import com.pethaven.entity.ShiftEntity;
 import com.pethaven.entity.ShiftVolunteerEntity;
 import com.pethaven.entity.TaskShiftEntity;
 import com.pethaven.entity.TaskShiftId;
+import com.pethaven.entity.ShiftVolunteerId;
+import com.pethaven.model.enums.AttendanceStatus;
+import com.pethaven.model.enums.ShiftType;
 import com.pethaven.mapper.ShiftMapper;
 import com.pethaven.repository.ShiftRepository;
 import com.pethaven.repository.ShiftVolunteerRepository;
@@ -14,8 +17,11 @@ import com.pethaven.repository.TaskShiftRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class ShiftService {
@@ -98,5 +104,60 @@ public class ShiftService {
         entity.setId(new TaskShiftId(request.taskId(), request.shiftId()));
         entity.setProgressNotes(request.progressNotes());
         return taskShiftRepository.save(entity);
+    }
+
+    public ShiftVolunteerEntity markAttendance(Long shiftId, Long volunteerId, AttendanceStatus status, Integer workedHours) {
+        ShiftVolunteerEntity entity = shiftVolunteerRepository.findById(new ShiftVolunteerId(shiftId, volunteerId))
+                .orElseThrow(() -> new NoSuchElementException("Смена или волонтёр не найдены"));
+        entity.setAttendanceStatus(status);
+        if (workedHours != null) {
+            entity.setWorkedHours(workedHours);
+        }
+        return shiftVolunteerRepository.save(entity);
+    }
+
+    public ShiftVolunteerEntity submitShift(Long shiftId, Long volunteerId, Integer workedHours) {
+        ShiftVolunteerEntity entity = shiftVolunteerRepository.findById(new ShiftVolunteerId(shiftId, volunteerId))
+                .orElseThrow(() -> new NoSuchElementException("Смена или волонтёр не найдены"));
+        if (entity.getAttendanceStatus() == AttendanceStatus.absent) {
+            throw new IllegalStateException("Нельзя сдать смену со статусом 'отсутствовал'");
+        }
+        entity.setAttendanceStatus(AttendanceStatus.attended);
+        OffsetDateTime now = OffsetDateTime.now();
+        entity.setSubmittedAt(now);
+        entity.setWorkedHours(resolveHours(shiftId, workedHours, entity, now));
+        return shiftVolunteerRepository.save(entity);
+    }
+
+    public ShiftVolunteerEntity approveShift(Long shiftId, Long volunteerId, Integer workedHours) {
+        ShiftVolunteerEntity entity = shiftVolunteerRepository.findById(new ShiftVolunteerId(shiftId, volunteerId))
+                .orElseThrow(() -> new NoSuchElementException("Смена или волонтёр не найдены"));
+        entity.setAttendanceStatus(AttendanceStatus.attended);
+        OffsetDateTime now = OffsetDateTime.now();
+        entity.setApprovedAt(now);
+        entity.setWorkedHours(resolveHours(shiftId, workedHours, entity, now));
+        return shiftVolunteerRepository.save(entity);
+    }
+
+    private int resolveHours(Long shiftId, Integer requested, ShiftVolunteerEntity entity, OffsetDateTime endTime) {
+        if (requested != null) {
+            return requested;
+        }
+        if (entity.getWorkedHours() != null && entity.getWorkedHours() > 0) {
+            return entity.getWorkedHours();
+        }
+        OffsetDateTime start = entity.getSignedUpAt();
+        if (start != null && endTime != null && endTime.isAfter(start)) {
+            long minutes = Duration.between(start, endTime).toMinutes();
+            int hours = (int) Math.ceil(minutes / 60.0);
+            return Math.max(hours, 1);
+        }
+        ShiftType type = shiftRepository.findById(shiftId)
+                .map(ShiftEntity::getShiftType)
+                .orElse(ShiftType.full_day);
+        return switch (type) {
+            case full_day -> 8;
+            case morning, evening -> 4;
+        };
     }
 }
