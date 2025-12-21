@@ -4,7 +4,6 @@ import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.VolunteerApplicationRequest;
 import com.pethaven.dto.VolunteerDecisionRequest;
 import com.pethaven.entity.VolunteerApplicationEntity;
-import com.pethaven.model.enums.VolunteerApplicationStatus;
 import com.pethaven.service.VolunteerApplicationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +38,7 @@ public class VolunteerController {
     }
 
     @GetMapping("/applications")
-    public List<VolunteerApplicationEntity> listApplications(@org.springframework.web.bind.annotation.RequestParam(required = false) VolunteerApplicationStatus status,
-                                                             Authentication authentication) {
+    public List<VolunteerApplicationEntity> listApplications(Authentication authentication) {
         Long uid = null;
         if (authentication != null && authentication.getAuthorities().stream()
                 .noneMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"))) {
@@ -48,7 +46,7 @@ public class VolunteerController {
                 uid = authId;
             }
         }
-        return applicationService.list(status, uid);
+        return applicationService.list(uid);
     }
 
     @PatchMapping("/applications/decision")

@@ -44,16 +44,10 @@ export interface Animal {
   gender?: 'male' | 'female';
   status: 'quarantine' | 'available' | 'reserved' | 'adopted' | 'not_available';
   pendingAdminReview?: boolean;
+  readyForAdoption?: boolean;
   description?: string;
-  behaviorNotes?: string;
-  medicalSummary?: string;
-  vaccinated?: boolean;
-  sterilized?: boolean;
-  microchipped?: boolean;
   medical?: {
-    vaccinated?: boolean;
-    sterilized?: boolean;
-    microchipped?: boolean;
+    readyForAdoption?: boolean;
   };
   behavior?: {
     kids?: boolean;
@@ -112,7 +106,6 @@ export interface MedicalRecord {
   vetId: number;
   procedure: string;
   description: string;
-  administeredDate: string;
   nextDueDate?: string;
 }
 

@@ -46,17 +46,7 @@ export function CoordinatorAnimals() {
       ageMonths:
         animalData.ageMonths ??
         (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
-      status: (animalData.status as Animal['status']) || 'quarantine',
-      behaviorNotes: animalData.behavior?.notes,
-      medicalSummary: animalData.medical
-        ? [
-            animalData.medical.vaccinated ? 'вакцинирован' : null,
-            animalData.medical.sterilized ? 'стерилизован' : null,
-            animalData.medical.microchipped ? 'чипирован' : null
-          ]
-            .filter(Boolean)
-            .join(', ')
-        : undefined
+      status: (animalData.status as Animal['status']) || 'quarantine'
     };
     await createAnimal(payload);
     await loadAnimals();

@@ -19,7 +19,6 @@ import com.pethaven.repository.AgreementRepository;
 import com.pethaven.repository.InterviewRepository;
 import com.pethaven.repository.InterviewSlotRepository;
 import com.pethaven.repository.AnimalRepository;
-import com.pethaven.repository.MedicalRecordRepository;
 import com.pethaven.repository.PersonRepository;
 import com.pethaven.repository.PostAdoptionReportRepository;
 import com.pethaven.entity.PostAdoptionReportEntity;
@@ -37,7 +36,6 @@ public class AdoptionService {
     private final AgreementRepository agreementRepository;
     private final InterviewSlotRepository interviewSlotRepository;
     private final AnimalRepository animalRepository;
-    private final MedicalRecordRepository medicalRecordRepository;
     private final NotificationService notificationService;
     private final PersonRepository personRepository;
     private final PostAdoptionReportRepository reportRepository;
@@ -48,7 +46,6 @@ public class AdoptionService {
                            AgreementRepository agreementRepository,
                            InterviewSlotRepository interviewSlotRepository,
                            AnimalRepository animalRepository,
-                           MedicalRecordRepository medicalRecordRepository,
                            NotificationService notificationService,
                            PersonRepository personRepository,
                            PostAdoptionReportRepository reportRepository,
@@ -58,7 +55,6 @@ public class AdoptionService {
         this.agreementRepository = agreementRepository;
         this.interviewSlotRepository = interviewSlotRepository;
         this.animalRepository = animalRepository;
-        this.medicalRecordRepository = medicalRecordRepository;
         this.notificationService = notificationService;
         this.personRepository = personRepository;
         this.reportRepository = reportRepository;
@@ -382,14 +378,8 @@ public class AdoptionService {
                 || animal.getStatus() == com.pethaven.model.enums.AnimalStatus.not_available) {
             throw new IllegalStateException("Животное недоступно для передачи, требуется завершить мед. требования");
         }
-        var medRecords = medicalRecordRepository.findByAnimalIdOrderByAdministeredDateDesc(animal.getId());
-        if (medRecords.isEmpty()) {
-            throw new IllegalStateException("Отсутствует медицинская карта питомца");
-        }
-        boolean hasPendingMed = medRecords.stream()
-                .anyMatch(rec -> rec.getNextDueDate() != null && rec.getNextDueDate().isBefore(java.time.LocalDate.now()));
-        if (hasPendingMed && !(Boolean.TRUE.equals(animal.getVaccinated()) && Boolean.TRUE.equals(animal.getSterilized()) && Boolean.TRUE.equals(animal.getMicrochipped()))) {
-            throw new IllegalStateException("Есть незакрытые медицинские процедуры");
+        if (!Boolean.TRUE.equals(animal.getReadyForAdoption())) {
+            throw new IllegalStateException("Животное не готово к передаче, требуется подтверждение ветеринара");
         }
         Long agreementId = adoptionRepository.completeAdoption(request.applicationId(), request.signedDate(), request.postAdoptionPlan());
         createPostAdoptionPlan(agreementId, request.signedDate());

@@ -29,6 +29,8 @@ public class TaskEntity {
     private Long animalId;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
+    @Column(columnDefinition = "task_status")
     private TaskStatus status;
 
     @Column(name = "estimated_shifts")

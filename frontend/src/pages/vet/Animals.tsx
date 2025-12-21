@@ -44,7 +44,8 @@ export function VetAnimals() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {animals.map(animal => {
-            const needsAttention = !animal.medical?.vaccinated || !animal.medical?.sterilized;
+            const ready = animal.readyForAdoption || animal.medical?.readyForAdoption;
+            const needsAttention = !ready;
             return <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -70,9 +71,12 @@ export function VetAnimals() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      {animal.medical?.vaccinated ? <CheckCircle className="w-4 h-4 text-green-500" title="Вакцинирован" /> : <AlertTriangle className="w-4 h-4 text-red-500" title="Требуется вакцинация" />}
-                      {animal.medical?.sterilized ? <CheckCircle className="w-4 h-4 text-green-500" title="Стерилизован" /> : <AlertTriangle className="w-4 h-4 text-amber-500" title="Не стерилизован" />}
-                      {animal.medical?.microchipped && <CheckCircle className="w-4 h-4 text-blue-500" title="Чипирован" />}
+                      {ready ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" title="Готов к передаче" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-amber-500" title="Нет допуска к передаче" />
+                      )}
+                      <span className="text-xs text-gray-600">{ready ? 'Готов к передаче' : 'Требуется допуск'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">

@@ -58,14 +58,19 @@ export async function uploadAnimalMedia(id: number, file: File, description?: st
 }
 
 export async function updateAnimalStatus(id: number, status: Animal['status']) {
-  await api.patch(`/animals/${id}/status`, null, { params: { status } });
+  await api.patch(`/animals/${id}/status`, { status });
 }
 
 export async function addAnimalNote(id: number, note: string) {
   await api.post(`/animals/${id}/notes`, null, { params: { note } });
 }
 
-export async function updateAnimalMedical(id: number, payload: { vaccinated?: boolean; sterilized?: boolean; microchipped?: boolean; medicalSummary?: string }) {
+export async function getAnimalNotes(id: number) {
+  const { data } = await api.get(`/animals/${id}/notes`);
+  return data as { id: number; animalId: number; authorId: number; note: string; createdAt: string }[];
+}
+
+export async function updateAnimalMedical(id: number, payload: { readyForAdoption?: boolean }) {
   const { data } = await api.patch<Animal>(`/animals/${id}/medical`, payload);
   return data;
 }

@@ -1,18 +1,19 @@
 package com.pethaven.controller;
 
+import com.pethaven.dto.AdoptionApplicationResponse;
 import com.pethaven.dto.AdoptionDecisionRequest;
 import com.pethaven.dto.AgreementRequest;
+import com.pethaven.dto.AgreementResponse;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.ApplicationCancelRequest;
 import com.pethaven.dto.ApplicationRequest;
+import com.pethaven.dto.InterviewResponse;
 import com.pethaven.dto.InterviewScheduleRequest;
 import com.pethaven.dto.InterviewUpdateRequest;
 import com.pethaven.dto.InterviewSlotBookRequest;
 import com.pethaven.dto.InterviewSlotCancelRequest;
 import com.pethaven.dto.InterviewRescheduleRequest;
-import com.pethaven.entity.AdoptionApplicationEntity;
-import com.pethaven.entity.AgreementEntity;
-import com.pethaven.entity.InterviewEntity;
+import com.pethaven.mapper.AdoptionMapper;
 import com.pethaven.model.enums.ApplicationStatus;
 import com.pethaven.service.AdoptionService;
 import jakarta.validation.Valid;
@@ -28,9 +29,11 @@ import java.util.List;
 public class AdoptionController {
 
     private final AdoptionService adoptionService;
+    private final AdoptionMapper adoptionMapper;
 
-    public AdoptionController(AdoptionService adoptionService) {
+    public AdoptionController(AdoptionService adoptionService, AdoptionMapper adoptionMapper) {
         this.adoptionService = adoptionService;
+        this.adoptionMapper = adoptionMapper;
     }
 
     @PostMapping("/applications")
@@ -59,23 +62,22 @@ public class AdoptionController {
     }
 
     @GetMapping("/applications")
-    public List<AdoptionApplicationEntity> list(@RequestParam(required = false) ApplicationStatus status,
-                                                Authentication authentication) {
+    public List<AdoptionApplicationResponse> list(@RequestParam(required = false) ApplicationStatus status,
+                                                  Authentication authentication) {
         Long candidateId = null;
         if (authentication != null && authentication.getAuthorities().stream()
                 .noneMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"))) {
-            // для кандидатов показываем только их заявки
             if (authentication.getPrincipal() instanceof Long uid) {
                 candidateId = uid;
             }
         }
-        return adoptionService.getApplications(status, candidateId);
+        return adoptionMapper.toApplicationResponses(adoptionService.getApplications(status, candidateId));
     }
 
     @GetMapping("/applications/{id}")
-    public ResponseEntity<AdoptionApplicationEntity> getById(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<AdoptionApplicationResponse> getById(@PathVariable Long id, Authentication authentication) {
         if (authentication == null) {
-            return ResponseEntity.status(401).<AdoptionApplicationEntity>body(null);
+            return ResponseEntity.status(401).<AdoptionApplicationResponse>body(null);
         }
         boolean isCoordinatorOrAdmin = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
@@ -83,11 +85,11 @@ public class AdoptionController {
         return adoptionService.getApplication(id)
                 .map(app -> {
                     if (!isCoordinatorOrAdmin && (uid == null || !uid.equals(app.getCandidateId()))) {
-                        return ResponseEntity.status(403).<AdoptionApplicationEntity>body(null);
+                        return ResponseEntity.status(403).<AdoptionApplicationResponse>body(null);
                     }
-                    return ResponseEntity.ok(app);
+                    return ResponseEntity.ok(adoptionMapper.toApplicationResponse(app));
                 })
-                .orElseGet(() -> ResponseEntity.status(404).<AdoptionApplicationEntity>body(null));
+                .orElseGet(() -> ResponseEntity.status(404).<AdoptionApplicationResponse>body(null));
     }
 
     @PatchMapping("/applications/status")
@@ -145,13 +147,13 @@ public class AdoptionController {
     }
 
     @GetMapping("/applications/{id}/interviews")
-    public List<InterviewEntity> byApplication(@PathVariable Long id) {
-        return adoptionService.getInterviewsByApplication(id);
+    public List<InterviewResponse> byApplication(@PathVariable Long id) {
+        return adoptionMapper.toInterviewResponses(adoptionService.getInterviewsByApplication(id));
     }
 
     @GetMapping("/interviews")
-    public List<InterviewEntity> allInterviews() {
-        return adoptionService.getAllInterviews();
+    public List<InterviewResponse> allInterviews() {
+        return adoptionMapper.toInterviewResponses(adoptionService.getAllInterviews());
     }
 
     @PostMapping("/slots/book")
@@ -213,14 +215,15 @@ public class AdoptionController {
     }
 
     @GetMapping("/agreements/{id}")
-    public ResponseEntity<AgreementEntity> getAgreement(@PathVariable Long id) {
+    public ResponseEntity<AgreementResponse> getAgreement(@PathVariable Long id) {
         return adoptionService.getAgreement(id)
+                .map(adoptionMapper::toAgreementResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/agreements")
-    public List<AgreementEntity> listAgreements() {
-        return adoptionService.getAgreements();
+    public List<AgreementResponse> listAgreements() {
+        return adoptionMapper.toAgreementResponses(adoptionService.getAgreements());
     }
 }

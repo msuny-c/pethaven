@@ -1,7 +1,9 @@
 package com.pethaven.service;
 
+import com.pethaven.dto.MedicalRecordRequest;
+import com.pethaven.dto.MedicalRecordResponse;
 import com.pethaven.entity.MedicalRecordEntity;
-import com.pethaven.model.enums.MedicalProcedure;
+import com.pethaven.mapper.MedicalRecordMapper;
 import com.pethaven.repository.MedicalRecordRepository;
 import com.pethaven.repository.AnimalRepository;
 import org.springframework.stereotype.Service;
@@ -15,61 +17,36 @@ public class MedicalService {
 
     private final MedicalRecordRepository medicalRepository;
     private final AnimalRepository animalRepository;
+    private final MedicalRecordMapper medicalRecordMapper;
 
-    private final SettingService settingService;
-
-    public MedicalService(MedicalRecordRepository medicalRepository, AnimalRepository animalRepository, SettingService settingService) {
+    public MedicalService(MedicalRecordRepository medicalRepository,
+                          AnimalRepository animalRepository,
+                          MedicalRecordMapper medicalRecordMapper) {
         this.medicalRepository = medicalRepository;
         this.animalRepository = animalRepository;
-        this.settingService = settingService;
+        this.medicalRecordMapper = medicalRecordMapper;
     }
 
-    public List<MedicalRecordEntity> getByAnimal(Long animalId) {
-        return medicalRepository.findByAnimalIdOrderByAdministeredDateDesc(animalId);
+    public List<MedicalRecordResponse> getByAnimal(Long animalId) {
+        return medicalRecordMapper.toResponses(medicalRepository.findByAnimalIdOrderByIdDesc(animalId));
     }
 
     @Transactional
-    public Long addRecord(MedicalRecordEntity record) {
-        // Автозаполнение плановой даты по типу процедуры
-        if (record.getNextDueDate() == null) {
-            record.setNextDueDate(suggestNextDue(record.getProcedure(), record.getAdministeredDate()));
+    public Long addRecord(MedicalRecordRequest request, Long vetId) {
+        if (vetId == null) {
+            throw new IllegalArgumentException("Не указан ветеринар");
         }
-        // Жестко фиксируем описание по типу процедуры
-        if (record.getProcedure() != null) {
-            record.setDescription(record.getProcedure().defaultDescription());
+        if (!animalRepository.existsById(request.animalId())) {
+            throw new IllegalArgumentException("Животное не найдено");
         }
-        Long id = medicalRepository.save(record).getId();
-        updateAnimalFlags(record);
-        return id;
+        MedicalRecordEntity record = medicalRecordMapper.toEntity(request);
+        record.setVetId(vetId);
+        return medicalRepository.saveAndFlush(record).getId();
     }
 
-    public List<MedicalRecordEntity> getUpcoming(int days) {
+    public List<MedicalRecordResponse> getUpcoming(int days) {
         LocalDate toDate = LocalDate.now().plusDays(days);
-        return medicalRepository.findUpcoming(toDate);
+        return medicalRecordMapper.toResponses(medicalRepository.findUpcoming(toDate));
     }
 
-    private void updateAnimalFlags(MedicalRecordEntity record) {
-        animalRepository.findById(record.getAnimalId()).ifPresent(animal -> {
-            switch (record.getProcedure()) {
-                case vaccination -> animal.setVaccinated(true);
-                case sterilization -> animal.setSterilized(true);
-                case microchip -> animal.setMicrochipped(true);
-                default -> {
-                }
-            }
-            animalRepository.save(animal);
-        });
-    }
-
-    private LocalDate suggestNextDue(MedicalProcedure procedure, LocalDate administeredDate) {
-        if (administeredDate == null) {
-            administeredDate = LocalDate.now();
-        }
-        return switch (procedure) {
-            case vaccination -> administeredDate.plusDays(settingService.getInt(SettingService.VACCINATION_INTERVAL_DAYS, 365));
-            case sterilization -> null;
-            case microchip -> null;
-            default -> null;
-        };
-    }
 }

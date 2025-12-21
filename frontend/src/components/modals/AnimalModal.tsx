@@ -23,11 +23,6 @@ export function AnimalModal({
     gender: 'male',
     status: 'quarantine',
     description: '',
-    medical: {
-      vaccinated: false,
-      sterilized: false,
-      microchipped: false
-    },
     behavior: {
       kids: false,
       cats: false,
@@ -155,62 +150,8 @@ export function AnimalModal({
               </div>
             </div>}
 
-          {activeTab === 'medical' && <div className="space-y-6">
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.medical?.vaccinated} onChange={e => setFormData({
-                ...formData,
-                medical: {
-                  ...formData.medical!,
-                  vaccinated: e.target.checked
-                }
-              })} />
-                  <div className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900">
-                      Вакцинирован
-                    </span>
-                    <span className="block text-xs text-gray-500">
-                      Есть все необходимые прививки
-                    </span>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.medical?.sterilized} onChange={e => setFormData({
-                ...formData,
-                medical: {
-                  ...formData.medical!,
-                  sterilized: e.target.checked
-                }
-              })} />
-                  <div className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900">
-                      Стерилизован
-                    </span>
-                    <span className="block text-xs text-gray-500">
-                      Проведена операция по стерилизации/кастрации
-                    </span>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.medical?.microchipped} onChange={e => setFormData({
-                ...formData,
-                medical: {
-                  ...formData.medical!,
-                  microchipped: e.target.checked
-                }
-              })} />
-                  <div className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900">
-                      Чипирован
-                    </span>
-                    <span className="block text-xs text-gray-500">
-                      Установлен микрочип
-                    </span>
-                  </div>
-                </label>
-              </div>
+          {activeTab === 'medical' && <div className="space-y-4 text-sm text-gray-600">
+              Медицинские отметки и допуск к передаче выставляются ветеринаром после создания карточки.
             </div>}
 
           {activeTab === 'behavior' && <div className="space-y-6">

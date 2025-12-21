@@ -17,7 +17,6 @@ public interface AdoptionApplicationRepository extends JpaRepository<AdoptionApp
 
     List<AdoptionApplicationEntity> findByStatus(ApplicationStatus status);
     List<AdoptionApplicationEntity> findByCandidateId(Long candidateId);
-    List<AdoptionApplicationEntity> findByCandidateIdAndStatus(Long candidateId, ApplicationStatus status);
     boolean existsByCandidateIdAndAnimalIdAndStatusIn(Long candidateId, Long animalId, List<ApplicationStatus> statuses);
 
     @Query("""

@@ -1,13 +1,16 @@
 package com.pethaven.service;
 
+import com.pethaven.dto.ShiftCreateRequest;
+import com.pethaven.dto.ShiftResponse;
+import com.pethaven.dto.TaskShiftAssignmentRequest;
 import com.pethaven.entity.ShiftEntity;
 import com.pethaven.entity.ShiftVolunteerEntity;
 import com.pethaven.entity.TaskShiftEntity;
 import com.pethaven.entity.TaskShiftId;
-import com.pethaven.repository.ShiftVolunteerRepository;
+import com.pethaven.mapper.ShiftMapper;
 import com.pethaven.repository.ShiftRepository;
+import com.pethaven.repository.ShiftVolunteerRepository;
 import com.pethaven.repository.TaskShiftRepository;
-import com.pethaven.dto.TaskShiftAssignmentRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,21 +23,25 @@ public class ShiftService {
     private final ShiftRepository shiftRepository;
     private final ShiftVolunteerRepository shiftVolunteerRepository;
     private final TaskShiftRepository taskShiftRepository;
+    private final ShiftMapper shiftMapper;
 
     public ShiftService(ShiftRepository shiftRepository,
                         ShiftVolunteerRepository shiftVolunteerRepository,
-                        TaskShiftRepository taskShiftRepository) {
+                        TaskShiftRepository taskShiftRepository,
+                        ShiftMapper shiftMapper) {
         this.shiftRepository = shiftRepository;
         this.shiftVolunteerRepository = shiftVolunteerRepository;
         this.taskShiftRepository = taskShiftRepository;
+        this.shiftMapper = shiftMapper;
     }
 
-    public List<ShiftEntity> getUpcoming(LocalDate from) {
-        return shiftRepository.findByShiftDateGreaterThanEqualOrderByShiftDateAsc(from);
+    public List<ShiftResponse> getUpcoming(LocalDate from) {
+        return shiftMapper.toResponses(shiftRepository.findByShiftDateGreaterThanEqualOrderByShiftDateAsc(from));
     }
 
-    public ShiftEntity createShift(ShiftEntity shift) {
-        return shiftRepository.save(shift);
+    public ShiftResponse createShift(ShiftCreateRequest request) {
+        ShiftEntity shift = shiftMapper.toEntity(request);
+        return shiftMapper.toResponse(shiftRepository.save(shift));
     }
 
     @Transactional

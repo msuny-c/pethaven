@@ -1,166 +1,151 @@
 package com.pethaven.service;
 
+import com.pethaven.dto.AnimalCreateRequest;
+import com.pethaven.dto.AnimalMediaResponse;
+import com.pethaven.dto.AnimalMedicalUpdateRequest;
+import com.pethaven.dto.AnimalNoteResponse;
+import com.pethaven.dto.AnimalResponse;
+import com.pethaven.dto.AnimalUpdateRequest;
 import com.pethaven.entity.AnimalEntity;
 import com.pethaven.entity.AnimalMediaEntity;
+import com.pethaven.entity.AnimalNoteEntity;
+import com.pethaven.mapper.AnimalMapper;
+import com.pethaven.mapper.AnimalNoteMapper;
 import com.pethaven.model.enums.AnimalStatus;
 import com.pethaven.repository.AnimalMediaRepository;
 import com.pethaven.repository.AnimalRepository;
+import com.pethaven.repository.AnimalNoteRepository;
 import com.pethaven.repository.PersonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.NoSuchElementException;
 
 @Service
 public class AnimalService {
 
     private final AnimalRepository animalRepository;
     private final AnimalMediaRepository animalMediaRepository;
+    private final AnimalNoteRepository animalNoteRepository;
     private final NotificationService notificationService;
     private final PersonRepository personRepository;
+    private final AnimalMapper animalMapper;
+    private final AnimalNoteMapper animalNoteMapper;
 
-    public AnimalService(AnimalRepository animalRepository, AnimalMediaRepository animalMediaRepository, NotificationService notificationService, PersonRepository personRepository) {
+    public AnimalService(AnimalRepository animalRepository,
+                         AnimalMediaRepository animalMediaRepository,
+                         AnimalNoteRepository animalNoteRepository,
+                         NotificationService notificationService,
+                         PersonRepository personRepository,
+                         AnimalMapper animalMapper,
+                         AnimalNoteMapper animalNoteMapper) {
         this.animalRepository = animalRepository;
         this.animalMediaRepository = animalMediaRepository;
+        this.animalNoteRepository = animalNoteRepository;
         this.notificationService = notificationService;
         this.personRepository = personRepository;
+        this.animalMapper = animalMapper;
+        this.animalNoteMapper = animalNoteMapper;
     }
 
-    public List<AnimalEntity> getCatalog(String species, AnimalStatus status, boolean includePending) {
-        return animalRepository.findCatalog(species, status == null ? null : status.name(), includePending);
+    public List<AnimalResponse> getCatalog(String species, AnimalStatus status, boolean includePending) {
+        List<AnimalEntity> animals = animalRepository.findCatalog(species, status == null ? null : status.name(), includePending);
+        return animalMapper.toResponses(animals);
     }
 
     public List<String> getAvailableSpecies() {
         return animalRepository.findAvailableSpecies();
     }
 
-    public Optional<AnimalEntity> getById(Long id) {
-        return animalRepository.findById(id);
+    public Optional<AnimalResponse> getById(Long id) {
+        return animalRepository.findById(id).map(animalMapper::toResponse);
     }
 
-    public Long createAnimal(AnimalEntity animal, boolean forcePendingReview) {
+    public Long createAnimal(AnimalCreateRequest request, boolean forcePendingReview) {
+        AnimalEntity animal = animalMapper.toEntity(request);
         if (!forcePendingReview && animal.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
             throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
         }
         animal.setPendingAdminReview(Boolean.TRUE);
-        if (animal.getStatus() == null || animal.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
-            animal.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
-        }
+        animal.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
         AnimalEntity saved = animalRepository.save(animal);
         notifyAdminsPendingReview(saved);
         return saved.getId();
     }
 
     @Transactional
-    public AnimalEntity updateAnimal(Long id, AnimalEntity payload, boolean forcePendingReview) {
-        AnimalEntity existing = animalRepository.findById(id).orElseThrow();
-        if (payload.getName() != null) {
-            existing.setName(payload.getName());
+    public AnimalResponse updateAnimal(Long id, AnimalUpdateRequest payload, boolean forcePendingReview) {
+        AnimalEntity existing = animalRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + id));
+        if (payload.status() != null && !forcePendingReview && payload.status() == com.pethaven.model.enums.AnimalStatus.pending_review) {
+            throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
         }
-        if (payload.getSpecies() != null) {
-            existing.setSpecies(payload.getSpecies());
+        if (payload.status() != null && forcePendingReview && (payload.status() == com.pethaven.model.enums.AnimalStatus.available
+                || payload.status() == com.pethaven.model.enums.AnimalStatus.reserved)) {
+            existing.setPendingAdminReview(Boolean.TRUE);
         }
-        if (payload.getBreed() != null) {
-            existing.setBreed(payload.getBreed());
-        }
-        if (payload.getAgeMonths() != null) {
-            existing.setAgeMonths(payload.getAgeMonths());
-        }
-        if (payload.getGender() != null) {
-            existing.setGender(payload.getGender());
-        }
-        if (payload.getDescription() != null) {
-            existing.setDescription(payload.getDescription());
-        }
-        if (payload.getBehaviorNotes() != null) {
-            existing.setBehaviorNotes(payload.getBehaviorNotes());
-        }
-        if (payload.getMedicalSummary() != null) {
-            existing.setMedicalSummary(payload.getMedicalSummary());
-        }
-        if (payload.getStatus() != null) {
-            if (!forcePendingReview && payload.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
-                throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
-            }
-            existing.setStatus(payload.getStatus());
-            if (forcePendingReview && (payload.getStatus() == com.pethaven.model.enums.AnimalStatus.available || payload.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved)) {
-                existing.setPendingAdminReview(Boolean.TRUE);
-            }
-        }
-        if (payload.getVaccinated() != null) {
-            existing.setVaccinated(payload.getVaccinated());
-        }
-        if (payload.getSterilized() != null) {
-            existing.setSterilized(payload.getSterilized());
-        }
-        if (payload.getMicrochipped() != null) {
-            existing.setMicrochipped(payload.getMicrochipped());
-        }
+        animalMapper.update(existing, payload);
         AnimalEntity saved = animalRepository.save(existing);
         if (Boolean.TRUE.equals(saved.getPendingAdminReview())) {
             notifyAdminsPendingReview(saved);
         }
-        return saved;
+        return animalMapper.toResponse(saved);
     }
 
     public void updateStatus(Long animalId, AnimalStatus status, boolean allowPendingReview) {
-        animalRepository.findById(animalId).ifPresent(entity -> {
-            if (entity.getStatus() == AnimalStatus.adopted) {
-                throw new IllegalStateException("Статус переданного животного менять нельзя");
-            }
-            if (!allowPendingReview && status == AnimalStatus.pending_review) {
-                throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
-            }
-            entity.setStatus(status);
-            animalRepository.save(entity);
-        });
+        AnimalEntity entity = animalRepository.findById(animalId)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + animalId));
+        if (entity.getStatus() == AnimalStatus.adopted) {
+            throw new IllegalStateException("Статус переданного животного менять нельзя");
+        }
+        if (!allowPendingReview && status == AnimalStatus.pending_review) {
+            throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
+        }
+        entity.setStatus(status);
+        animalRepository.save(entity);
     }
 
     public void delete(Long animalId) {
         animalRepository.deleteById(animalId);
     }
 
-    public AnimalMediaEntity addMedia(Long animalId, String storageKey, String description) {
-        AnimalEntity animal = animalRepository.findById(animalId).orElseThrow();
+    public AnimalMediaResponse addMedia(Long animalId, String storageKey, String description) {
+        AnimalEntity animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + animalId));
         AnimalMediaEntity entity = new AnimalMediaEntity();
         entity.setAnimal(animal);
         entity.setStorageKey(storageKey);
         entity.setDescription(description);
-        return animalMediaRepository.save(entity);
+        return animalMapper.toMediaResponse(animalMediaRepository.save(entity));
     }
 
-    public void addBehaviorNote(Long animalId, String note, Long authorId) {
+    public AnimalNoteResponse addBehaviorNote(Long animalId, String note, Long authorId) {
         if (note == null || note.isBlank()) {
             throw new IllegalArgumentException("Заметка не может быть пустой");
         }
-        AnimalEntity animal = animalRepository.findById(animalId).orElseThrow();
-        String authorTag = authorId != null ? ("#" + authorId) : "волонтёр";
-        String existing = animal.getBehaviorNotes() != null ? animal.getBehaviorNotes() + "\n" : "";
-        String entry = "[" + java.time.LocalDate.now() + "] " + authorTag + ": " + note.trim();
-        animal.setBehaviorNotes(existing + entry);
-        animalRepository.save(animal);
+        AnimalEntity animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + animalId));
+        AnimalNoteEntity entity = new AnimalNoteEntity();
+        entity.setAnimalId(animal.getId());
+        entity.setAuthorId(authorId);
+        entity.setNote(note.trim());
+        return animalNoteMapper.toResponse(animalNoteRepository.save(entity));
     }
 
-    public AnimalEntity updateMedical(Long id, AnimalEntity payload) {
-        AnimalEntity existing = animalRepository.findById(id).orElseThrow();
-        if (payload.getVaccinated() != null) {
-            existing.setVaccinated(payload.getVaccinated());
+    public AnimalResponse updateMedical(Long id, AnimalMedicalUpdateRequest payload) {
+        AnimalEntity existing = animalRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + id));
+        if (payload.readyForAdoption() != null) {
+            existing.setReadyForAdoption(payload.readyForAdoption());
         }
-        if (payload.getSterilized() != null) {
-            existing.setSterilized(payload.getSterilized());
-        }
-        if (payload.getMicrochipped() != null) {
-            existing.setMicrochipped(payload.getMicrochipped());
-        }
-        if (payload.getMedicalSummary() != null) {
-            existing.setMedicalSummary(payload.getMedicalSummary());
-        }
-        return animalRepository.save(existing);
+        return animalMapper.toResponse(animalRepository.save(existing));
     }
 
     public AnimalEntity reviewAnimal(Long id, boolean approved) {
-        AnimalEntity entity = animalRepository.findById(id).orElseThrow();
+        AnimalEntity entity = animalRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + id));
         if (approved) {
             entity.setPendingAdminReview(Boolean.FALSE);
         } else {
@@ -175,7 +160,7 @@ public class AnimalService {
                             com.pethaven.model.enums.NotificationType.new_application,
                             "Карточка подтверждена",
                             "Администратор утвердил карточку питомца #" + saved.getId()
-                    ));
+            ));
         }
         return saved;
     }
@@ -190,7 +175,11 @@ public class AnimalService {
                 ));
     }
 
-    public List<AnimalMediaEntity> getMedia(Long animalId) {
-        return animalMediaRepository.findByAnimalIdOrderByUploadedAtDesc(animalId);
+    public List<AnimalMediaResponse> getMedia(Long animalId) {
+        return animalMapper.toMediaResponses(animalMediaRepository.findByAnimalIdOrderByUploadedAtDesc(animalId));
+    }
+
+    public List<AnimalNoteResponse> getNotes(Long animalId) {
+        return animalNoteMapper.toResponses(animalNoteRepository.findByAnimalIdOrderByCreatedAtDesc(animalId));
     }
 }

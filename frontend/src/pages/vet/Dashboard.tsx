@@ -34,7 +34,9 @@ export function VetDashboard() {
   }, []);
 
   const quarantineCount = animals.filter(a => a.status === 'quarantine').length;
-  const proceduresToday = records.filter(r => r.administeredDate === new Date().toISOString().slice(0, 10)).length;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const proceduresDue = records.filter(r => r.nextDueDate && new Date(r.nextDueDate) <= now).length;
   const animalNames: Record<number, string> = {};
   animals.forEach((a) => {
     animalNames[a.id] = a.name;
@@ -53,7 +55,7 @@ export function VetDashboard() {
         </div>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="На карантине" value={quarantineCount} icon={AlertTriangle} color="bg-red-500" />
-        <StatCard title="Процедур сегодня" value={proceduresToday} icon={Syringe} color="bg-blue-500" />
+        <StatCard title="Требуют внимания" value={proceduresDue} icon={Syringe} color="bg-blue-500" />
         <StatCard title="Всего пациентов" value={animals.length} icon={Activity} color="bg-green-500" />
         <StatCard title="Записей в карте" value={records.length} icon={Clipboard} color="bg-purple-500" />
       </div>

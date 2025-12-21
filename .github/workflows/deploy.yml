@@ -1,40 +1,192 @@
-name: Deploy
+name: Build & Deploy pethaven
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+  workflow_dispatch: {}
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      jar_name: ${{ steps.vars.outputs.jar_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Copy frontend bundle into backend resources
+        run: |
+          rm -rf backend/src/main/resources/static
+          mkdir -p backend/src/main/resources/static
+          cp -r frontend/dist/* backend/src/main/resources/static/
+
+      - name: Build backend JAR
+        run: |
+          cd backend
+          mvn -B clean package -DskipTests
+
+      - name: Detect JAR name
+        id: vars
+        run: |
+          cd backend
+          JAR=$(ls -1 target/*-SNAPSHOT.jar target/*.jar 2>/dev/null | head -n1)
+          test -n "$JAR"
+          echo "jar_name=$(basename "$JAR")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar
+          path: backend/target/${{ steps.vars.outputs.jar_name }}
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     env:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      JAR_NAME: ${{ needs.build.outputs.jar_name }}
     steps:
-      - name: Checkout
+      - name: Checkout deploy scripts
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            infra/appctl.sh
 
-      - name: Install sshpass and rsync
-        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jar
+          path: artifact
 
-      - name: Push project to server
+      - name: Create app.env from secrets/vars
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+          ALL_VARS: ${{ toJSON(vars) }}
         run: |
-          tar czf /tmp/pethaven.tar.gz . 
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "mkdir -p /opt/pethaven"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no /tmp/pethaven.tar.gz ${SSH_USER}@${SSH_HOST}:/opt/pethaven/pethaven.tar.gz
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "cd /opt/pethaven && tar xzf pethaven.tar.gz --strip-components=1"
+          python << 'PYTHON'
+          import json
+          import os
 
-      - name: Deploy with docker-compose
+          secrets = json.loads(os.environ.get('ALL_SECRETS', '{}'))
+          vars = json.loads(os.environ.get('ALL_VARS', '{}'))
+
+          with open('app.env', 'w') as f:
+              for key, value in {**secrets, **vars}.items():
+                  if key not in ['SSH_KEY', 'SSH_HOST', 'SSH_PORT', 'SSH_USER', 'github_token']:
+                      f.write(f'{key}={value}\n')
+          PYTHON
+
+          echo "Created app.env with $(wc -l < app.env) variables"
+
+      - name: Prepare SSH
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} <<'EOF'
-            cd /opt/pethaven
-            if command -v docker compose >/dev/null 2>&1; then
-              docker compose pull || true
-              docker compose up -d --build
-            else
-              docker-compose pull || true
-              docker-compose up -d --build
-            fi
-          EOF
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_key
+          chmod 600 ~/.ssh/id_key
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload bundle to server
+        run: |
+          APP_DIR="$HOME/apps/pethaven"
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "mkdir -p ${APP_DIR}"
+
+          scp -P "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "artifact/${{ env.JAR_NAME }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${APP_DIR}/pethaven.jar"
+
+          scp -P "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            app.env \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${APP_DIR}/app.env"
+
+          scp -P "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            infra/appctl.sh \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${APP_DIR}/appctl.sh"
+
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "chmod +x ${APP_DIR}/appctl.sh"
+
+      - name: Ensure MinIO is running on server
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'bash -se' <<'SSH'
+          set -euo pipefail
+          APP_DIR="$HOME/apps/pethaven"
+          MINIO_DIR="$APP_DIR/minio"
+          mkdir -p "$APP_DIR" "$MINIO_DIR/bin" "$MINIO_DIR/data" "$MINIO_DIR/logs"
+          echo "Using MINIO_DIR=$MINIO_DIR"
+
+          MINIO_BIN=$(command -v minio)
+
+          ENV_FILE="$MINIO_DIR/minio.env"
+          if [ -f "$ENV_FILE" ]; then
+            . "$ENV_FILE"
+          fi
+
+          if [ -f "$APP_DIR/app.env" ]; then
+            set -a
+            . "$APP_DIR/app.env"
+            set +a
+          else
+            touch "$APP_DIR/app.env"
+          fi
+
+          MINIO_PORT="${MINIO_PORT:-9000}"
+          MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9001}"
+          echo "MINIO_PORT=$MINIO_PORT" > "$ENV_FILE"
+          echo "MINIO_CONSOLE_PORT=$MINIO_CONSOLE_PORT" >> "$ENV_FILE"
+
+          export MINIO_ROOT_USER="${MINIO_ACCESS_KEY:-minioadmin}"
+          export MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY:-minioadmin}"
+
+          if pgrep -f "$MINIO_BIN server" >/dev/null; then
+            echo "MinIO already running"
+          else
+            nohup "$MINIO_BIN" server "$MINIO_DIR/data" \
+              --address ":${MINIO_PORT}" \
+              --console-address ":${MINIO_CONSOLE_PORT}" \
+              > "$MINIO_DIR/logs/minio.log" 2>&1 &
+            echo "Started MinIO on ports ${MINIO_PORT} (api) / ${MINIO_CONSOLE_PORT} (console)"
+          fi
+
+          TMP="$APP_DIR/app.env.tmp"
+          if [ -f "$APP_DIR/app.env" ]; then
+            grep -v "^MINIO_URL=" "$APP_DIR/app.env" > "$TMP" || true
+          fi
+          echo "MINIO_URL=http://127.0.0.1:${MINIO_PORT}" >> "$TMP"
+          mv "$TMP" "$APP_DIR/app.env"
+          SSH
+
+      - name: Restart service on server
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd \$HOME/apps/pethaven && ./appctl.sh restart"
+
+      - name: Healthcheck
+        run: |
+          PORT="${{ vars.SERVER_PORT }}"
+          [ -z "$PORT" ] && PORT=8080
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "i=0; while [ \$i -lt 180 ]; do nc -z 127.0.0.1 ${PORT} && exit 0; sleep 1; i=\$((i+1)); done; echo 'Port ${PORT} not open'; exit 1"

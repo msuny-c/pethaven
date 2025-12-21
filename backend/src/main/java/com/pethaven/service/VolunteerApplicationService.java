@@ -31,19 +31,12 @@ public class VolunteerApplicationService {
         return applicationRepository.submit(personId, request.motivation(), request.availability());
     }
 
-    public List<VolunteerApplicationEntity> list(VolunteerApplicationStatus status, Long personId) {
-        List<VolunteerApplicationEntity> base = switch ((personId != null ? 1 : 0) + (status != null ? 2 : 0)) {
-            case 1 -> applicationRepository.findByPersonId(personId);
-            case 2 -> applicationRepository.findByStatus(status);
-            case 3 -> applicationRepository.findByPersonId(personId);
-            default -> applicationRepository.findAll();
-        };
-        if (status != null) {
-            return base.stream()
-                    .filter(a -> a.getStatus() == status)
-                    .toList();
+    public List<VolunteerApplicationEntity> list(Long personId) {
+        if (personId != null) {
+            return applicationRepository.findByPersonId(personId);
+        } else {
+            return applicationRepository.findAll();
         }
-        return base;
     }
 
     @Transactional

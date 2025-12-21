@@ -37,20 +37,8 @@ public class AnimalEntity {
 
     private String description;
 
-    @Column(name = "behavior_notes")
-    private String behaviorNotes;
-
-    @Column(name = "medical_summary")
-    private String medicalSummary;
-
-    @Column(name = "vaccinated")
-    private Boolean vaccinated;
-
-    @Column(name = "sterilized")
-    private Boolean sterilized;
-
-    @Column(name = "microchipped")
-    private Boolean microchipped;
+    @Column(name = "ready_for_adoption")
+    private Boolean readyForAdoption = Boolean.FALSE;
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "animal_status")

@@ -1,5 +1,5 @@
 -- Domain enums
-CREATE TYPE animal_status AS ENUM ('quarantine', 'available', 'reserved', 'adopted', 'not_available');
+CREATE TYPE animal_status AS ENUM ('quarantine', 'pending_review', 'available', 'reserved', 'adopted', 'not_available');
 CREATE TYPE application_status AS ENUM ('submitted', 'under_review', 'approved', 'rejected');
 CREATE TYPE interview_status AS ENUM ('scheduled', 'confirmed', 'completed', 'cancelled');
 CREATE TYPE report_status AS ENUM ('pending', 'submitted', 'overdue', 'reviewed');
@@ -19,6 +19,7 @@ CREATE TABLE person (
     last_name       TEXT NOT NULL,
     phone_number    TEXT,
     avatar_url      TEXT,
+    avatar_key      TEXT,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -39,7 +40,9 @@ CREATE TABLE volunteer_mentors (
     volunteer_id     INTEGER PRIMARY KEY REFERENCES person(person_id) ON DELETE CASCADE,
     mentor_id        INTEGER REFERENCES person(person_id),
     orientation_date TIMESTAMPTZ,
-    mentor_feedback  TEXT
+    mentor_feedback  TEXT,
+    allow_self_shifts BOOLEAN DEFAULT FALSE,
+    approved_at      TIMESTAMPTZ
 );
 
 CREATE TABLE animal (
@@ -48,32 +51,28 @@ CREATE TABLE animal (
     species         TEXT NOT NULL,
     breed           TEXT,
     age             INTEGER CHECK (age >= 0),
-    behavior_notes  TEXT,
-    medical_summary TEXT,
     description     TEXT,
     gender          TEXT,
-    vaccinated      BOOLEAN DEFAULT FALSE,
-    sterilized      BOOLEAN DEFAULT FALSE,
-    microchipped    BOOLEAN DEFAULT FALSE,
-    status          animal_status DEFAULT 'quarantine'
+    ready_for_adoption BOOLEAN NOT NULL DEFAULT FALSE,
+    status          animal_status DEFAULT 'quarantine',
+    pending_admin_review BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE animal_media (
     media_id    SERIAL PRIMARY KEY,
     animal_id   INTEGER NOT NULL REFERENCES animal(animal_id) ON DELETE CASCADE,
-    file_url    TEXT NOT NULL,
+    storage_key TEXT,
     description TEXT,
     uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE medical_record (
-    record_id        SERIAL PRIMARY KEY,
-    animal_id        INTEGER NOT NULL REFERENCES animal(animal_id) ON DELETE RESTRICT,
-    vet_id           INTEGER NOT NULL REFERENCES person(person_id) ON DELETE RESTRICT,
-    procedure        TEXT NOT NULL,
-    description      TEXT NOT NULL,
-    administered_date DATE NOT NULL,
-    next_due_date     DATE CHECK (next_due_date >= administered_date)
+    record_id     SERIAL PRIMARY KEY,
+    animal_id     INTEGER NOT NULL REFERENCES animal(animal_id) ON DELETE RESTRICT,
+    vet_id        INTEGER NOT NULL REFERENCES person(person_id) ON DELETE RESTRICT,
+    procedure     TEXT,
+    description   TEXT NOT NULL,
+    next_due_date DATE
 );
 
 CREATE TABLE adoption_application (
@@ -85,7 +84,8 @@ CREATE TABLE adoption_application (
     experience     TEXT,
     housing        TEXT,
     decision_comment TEXT,
-    created_at     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    processed_by   BIGINT REFERENCES person(person_id)
 );
 
 CREATE TABLE interview (
@@ -94,7 +94,8 @@ CREATE TABLE interview (
     interviewer_id     INTEGER NOT NULL REFERENCES person(person_id),
     scheduled_datetime TIMESTAMPTZ NOT NULL,
     status             interview_status DEFAULT 'scheduled',
-    coordinator_notes  TEXT
+    coordinator_notes  TEXT,
+    processed_by       BIGINT REFERENCES person(person_id)
 );
 
 CREATE TABLE agreement (
@@ -105,14 +106,15 @@ CREATE TABLE agreement (
 );
 
 CREATE TABLE post_adoption_report (
-    report_id        SERIAL PRIMARY KEY,
-    agreement_id     INTEGER NOT NULL REFERENCES agreement(agreement_id) ON DELETE RESTRICT,
-    due_date         DATE NOT NULL,
-    submitted_date   DATE CHECK (submitted_date <= CURRENT_DATE),
-    report_text      TEXT,
+    report_id         SERIAL PRIMARY KEY,
+    agreement_id      INTEGER NOT NULL REFERENCES agreement(agreement_id) ON DELETE RESTRICT,
+    due_date          DATE NOT NULL,
+    submitted_date    DATE CHECK (submitted_date <= CURRENT_DATE),
+    report_text       TEXT,
     volunteer_feedback TEXT,
-    status           report_status DEFAULT 'pending',
-    last_reminded_at TIMESTAMPTZ
+    status            report_status DEFAULT 'pending',
+    last_reminded_at  TIMESTAMPTZ,
+    comment_author_id INTEGER REFERENCES person(person_id)
 );
 
 CREATE TABLE shift (
@@ -150,8 +152,8 @@ CREATE TABLE shift_volunteer (
 );
 
 CREATE TABLE task_shift (
-    task_id       INTEGER NOT NULL REFERENCES task(task_id) ON DELETE CASCADE,
-    shift_id      INTEGER NOT NULL REFERENCES shift(shift_id) ON DELETE CASCADE,
+    task_id        INTEGER NOT NULL REFERENCES task(task_id) ON DELETE CASCADE,
+    shift_id       INTEGER NOT NULL REFERENCES shift(shift_id) ON DELETE CASCADE,
     progress_notes TEXT,
     PRIMARY KEY (task_id, shift_id)
 );
@@ -177,15 +179,36 @@ CREATE TABLE interview_slot (
 );
 
 CREATE TABLE refresh_token (
-    token_id     SERIAL PRIMARY KEY,
-    person_id    INTEGER NOT NULL REFERENCES person(person_id) ON DELETE CASCADE,
-    token        TEXT NOT NULL UNIQUE,
-    expires_at   TIMESTAMPTZ NOT NULL,
-    revoked      BOOLEAN DEFAULT FALSE,
-    created_at   TIMESTAMPTZ DEFAULT NOW()
+    token_id   SERIAL PRIMARY KEY,
+    person_id  INTEGER NOT NULL REFERENCES person(person_id) ON DELETE CASCADE,
+    token      TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked    BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Triggers
+CREATE TABLE report_media (
+    media_id    SERIAL PRIMARY KEY,
+    report_id   INTEGER NOT NULL REFERENCES post_adoption_report(report_id) ON DELETE CASCADE,
+    storage_key TEXT NOT NULL,
+    description TEXT,
+    uploaded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE system_setting (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
+
+CREATE TABLE animal_note (
+    note_id    SERIAL PRIMARY KEY,
+    animal_id  INTEGER NOT NULL REFERENCES animal(animal_id) ON DELETE CASCADE,
+    author_id  INTEGER REFERENCES person(person_id) ON DELETE SET NULL,
+    note       TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Triggers and functions
 CREATE OR REPLACE FUNCTION update_updated_at() RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -238,7 +261,6 @@ CREATE TRIGGER volunteer_shift_conflict_check
     FOR EACH ROW
     EXECUTE FUNCTION check_volunteer_availability();
 
--- Stored procedures/functions for critical flows
 CREATE OR REPLACE FUNCTION create_notification(
     p_person_id INTEGER,
     p_type notification_type,
@@ -312,7 +334,6 @@ DECLARE
     v_agreement_id INTEGER;
     v_animal_id INTEGER;
     v_candidate_id INTEGER;
-    v_adopter_role_id INTEGER;
 BEGIN
     SELECT animal_id, candidate_id
     INTO v_animal_id, v_candidate_id
@@ -328,14 +349,6 @@ BEGIN
     RETURNING agreement_id INTO v_agreement_id;
 
     UPDATE animal SET status = 'adopted' WHERE animal_id = v_animal_id;
-
-    SELECT role_id INTO v_adopter_role_id FROM role WHERE name = 'adopter';
-
-    IF v_adopter_role_id IS NOT NULL THEN
-        INSERT INTO person_roles (role_id, person_id)
-        VALUES (v_adopter_role_id, v_candidate_id)
-        ON CONFLICT (role_id, person_id) DO NOTHING;
-    END IF;
 
     RETURN v_agreement_id;
 END;
@@ -546,7 +559,12 @@ DECLARE
     rec RECORD;
     v_candidate_id INTEGER;
     v_notified INTEGER := 0;
+    v_fill_days INTEGER := COALESCE((SELECT value::INT FROM system_setting WHERE key = 'report_fill_days'), 7);
 BEGIN
+    IF v_fill_days < 1 THEN
+        v_fill_days := 1;
+    END IF;
+
     FOR rec IN (
         SELECT r.report_id, r.agreement_id, r.due_date, r.status, r.last_reminded_at
         FROM post_adoption_report r
@@ -557,23 +575,25 @@ BEGIN
             UPDATE post_adoption_report SET status = 'overdue' WHERE report_id = rec.report_id;
         END IF;
 
-        IF rec.last_reminded_at IS NULL OR rec.last_reminded_at::DATE < CURRENT_DATE THEN
-            SELECT aa.candidate_id INTO v_candidate_id
-            FROM agreement ag
-            JOIN adoption_application aa ON aa.application_id = ag.application_id
-            WHERE ag.agreement_id = rec.agreement_id;
+        IF CURRENT_DATE >= rec.due_date - v_fill_days THEN
+            IF rec.last_reminded_at IS NULL OR rec.last_reminded_at::DATE < CURRENT_DATE THEN
+                SELECT aa.candidate_id INTO v_candidate_id
+                FROM agreement ag
+                JOIN adoption_application aa ON aa.application_id = ag.application_id
+                WHERE ag.agreement_id = rec.agreement_id;
 
-            IF v_candidate_id IS NOT NULL THEN
-                PERFORM create_notification(
-                    v_candidate_id,
-                    'report_due',
-                    'Напоминание об отчете',
-                    format('Отчет по договору #%s. Срок: %s', rec.agreement_id, rec.due_date)
-                );
-                UPDATE post_adoption_report
-                SET last_reminded_at = NOW()
-                WHERE report_id = rec.report_id;
-                v_notified := v_notified + 1;
+                IF v_candidate_id IS NOT NULL THEN
+                    PERFORM create_notification(
+                        v_candidate_id,
+                        'report_due',
+                        'Напоминание об отчете',
+                        format('Отчет по договору #%s. Срок: %s', rec.agreement_id, rec.due_date)
+                    );
+                    UPDATE post_adoption_report
+                    SET last_reminded_at = NOW()
+                    WHERE report_id = rec.report_id;
+                    v_notified := v_notified + 1;
+                END IF;
             END IF;
         END IF;
     END LOOP;
@@ -588,8 +608,7 @@ INSERT INTO role (name, description) VALUES
 ('coordinator', 'Координатор адопций'),
 ('volunteer', 'Волонтер приюта'),
 ('candidate', 'Кандидат на усыновление'),
-('veterinar', 'Ветеринар'),
-('adopter', 'Новый владелец');
+('veterinar', 'Ветеринар');
 
 INSERT INTO person (email, password_hash, first_name, last_name, phone_number) VALUES
 ('admin@shelter.ru', '$2b$12$FCTdQXaLnII9BXQgXrNw4.C8iWxHAGF9wQU8SOG8wcPdOC0og.y6u', 'Анна', 'Иванова', '+79990000001'),
@@ -609,24 +628,29 @@ INSERT INTO person_roles (person_id, role_id) VALUES
 (6, (SELECT role_id FROM role WHERE name = 'candidate')),
 (7, (SELECT role_id FROM role WHERE name = 'candidate'));
 
-INSERT INTO animal (name, species, breed, age, behavior_notes, medical_summary, status) VALUES
-('Барсик', 'cat', 'Британский', 24, 'Ласковый, любит детей', 'Вакцинирован, стерилизован', 'available'),
-('Шарик', 'dog', 'Дворняжка', 12, 'Активный, нуждается в дрессировке', 'Обработан от паразитов', 'available'),
-('Мурка', 'cat', 'Сиамская', 18, 'Игривая, самостоятельная', 'Стерилизована, вакцинирована', 'reserved'),
-('Рекс', 'dog', 'Овчарка', 36, 'На карантине после поступления', 'Требуется вакцинация', 'quarantine'),
-('Васька', 'cat', 'Метис', 8, 'Игривый', 'Вакцинация в графике', 'available');
+INSERT INTO volunteer_mentors (volunteer_id, mentor_id, orientation_date, mentor_feedback, allow_self_shifts, approved_at)
+VALUES
+    (4, 2, CURRENT_DATE - INTERVAL '7 days', 'Стажировка завершена', TRUE, NOW()),
+    (5, 2, CURRENT_DATE - INTERVAL '5 days', 'Стажировка завершена', TRUE, NOW());
 
-INSERT INTO animal_media (animal_id, file_url, description) VALUES
-(1, '/photos/barsik1.jpg', 'Барсик'),
-(2, '/photos/sharik1.jpg', 'Шарик'),
-(3, '/photos/murka1.jpg', 'Мурка');
+INSERT INTO animal (name, species, breed, age, description, gender, ready_for_adoption, status, pending_admin_review) VALUES
+('Барсик', 'cat', 'Британский', 24, 'Ласковый, любит детей. Вакцинирован, стерилизован.', 'male', TRUE, 'available', FALSE),
+('Шарик', 'dog', 'Дворняжка', 12, 'Активный, нуждается в дрессировке. Обработан от паразитов.', 'male', TRUE, 'available', FALSE),
+('Мурка', 'cat', 'Сиамская', 18, 'Игривая, самостоятельная. Стерилизована, вакцинирована.', 'female', TRUE, 'reserved', FALSE),
+('Рекс', 'dog', 'Овчарка', 36, 'На карантине после поступления. Требуется вакцинация.', 'male', FALSE, 'quarantine', FALSE),
+('Васька', 'cat', 'Метис', 8, 'Игривый, вакцинация в графике.', 'male', TRUE, 'available', FALSE);
 
-INSERT INTO medical_record (animal_id, vet_id, procedure, description, administered_date, next_due_date) VALUES
-(1, 3, 'Комплексная вакцинация', 'Вакцина от бешенства и комплексных инфекций', '2024-01-15', '2025-01-15'),
-(2, 3, 'Вакцинация от бешенства', 'Ежегодная прививка от бешенства', '2024-01-10', '2025-01-10'),
-(3, 3, 'Стерилизация', 'Хирургическая стерилизация', '2024-02-01', NULL),
-(4, 3, 'Комплексная вакцинация', 'Вакцина от бешенства и комплексных инфекций', '2024-01-20', '2025-01-20'),
-(5, 3, 'Обработка от паразитов', 'Обработка от блох и глистов', '2024-02-15', '2024-05-15');
+INSERT INTO animal_media (animal_id, storage_key, description) VALUES
+(1, 'photos/barsik1.jpg', 'Барсик'),
+(2, 'photos/sharik1.jpg', 'Шарик'),
+(3, 'photos/murka1.jpg', 'Мурка');
+
+INSERT INTO medical_record (animal_id, vet_id, procedure, description, next_due_date) VALUES
+(1, 3, 'Комплексная вакцинация', 'Вакцина от бешенства и комплексных инфекций', '2025-01-15'),
+(2, 3, 'Вакцинация от бешенства', 'Ежегодная прививка от бешенства', '2025-01-10'),
+(3, 3, 'Стерилизация', 'Хирургическая стерилизация', NULL),
+(4, 3, 'Комплексная вакцинация', 'Вакцина от бешенства и комплексных инфекций', '2025-01-20'),
+(5, 3, 'Обработка от паразитов', 'Обработка от блох и глистов', '2024-05-15');
 
 INSERT INTO shift (shift_date, shift_type) VALUES
 (CURRENT_DATE + 1, 'morning'),
@@ -642,6 +666,22 @@ INSERT INTO task_shift (task_id, shift_id, progress_notes) VALUES
 (1, 1, 'Шарик хорошо погулял'),
 (2, 1, 'Барсик адаптируется');
 
+INSERT INTO system_setting(key, value)
+VALUES ('report_interval_days', '30')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO system_setting(key, value)
+VALUES ('vaccination_interval_days', '365')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO system_setting(key, value)
+VALUES ('report_offset_days', '30')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO system_setting(key, value)
+VALUES ('report_fill_days', '7')
+ON CONFLICT (key) DO NOTHING;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_person_roles_person ON person_roles(person_id);
 CREATE INDEX IF NOT EXISTS idx_volunteer_mentors_mentor_orientation ON volunteer_mentors(mentor_id, orientation_date DESC);
@@ -656,9 +696,9 @@ CREATE INDEX IF NOT EXISTS idx_application_status_id ON adoption_application(sta
 CREATE INDEX IF NOT EXISTS idx_interview_datetime ON interview(scheduled_datetime);
 CREATE INDEX IF NOT EXISTS idx_interview_application ON interview(application_id, status);
 CREATE INDEX IF NOT EXISTS idx_interview_interviewer_datetime ON interview(interviewer_id, scheduled_datetime);
-CREATE INDEX IF NOT EXISTS idx_medical_record_animal_date ON medical_record(animal_id, administered_date DESC);
 CREATE INDEX IF NOT EXISTS idx_medical_record_due_date ON medical_record(next_due_date) WHERE next_due_date IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_medical_record_vet_date ON medical_record(vet_id, administered_date DESC);
+CREATE INDEX IF NOT EXISTS idx_medical_record_animal_id ON medical_record(animal_id, record_id DESC);
+CREATE INDEX IF NOT EXISTS idx_medical_record_vet_id ON medical_record(vet_id, record_id DESC);
 CREATE INDEX IF NOT EXISTS idx_shift_date_type ON shift(shift_date, shift_type);
 CREATE INDEX IF NOT EXISTS idx_task_animal ON task(animal_id);
 CREATE INDEX IF NOT EXISTS idx_task_status_due ON task(status, due_date);
@@ -672,3 +712,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_volunteer_application_active
 CREATE INDEX IF NOT EXISTS idx_interview_slot_status_time
     ON interview_slot(status, scheduled_datetime);
 CREATE INDEX IF NOT EXISTS idx_refresh_token_person ON refresh_token(person_id);
+CREATE INDEX IF NOT EXISTS idx_report_media_report ON report_media(report_id);
+CREATE INDEX IF NOT EXISTS idx_animal_note_animal ON animal_note(animal_id, created_at DESC);

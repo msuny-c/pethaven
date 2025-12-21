@@ -1,9 +1,10 @@
 package com.pethaven.controller;
 
 import com.pethaven.dto.ApiMessage;
+import com.pethaven.dto.ShiftCreateRequest;
+import com.pethaven.dto.ShiftResponse;
 import com.pethaven.dto.ShiftSignupRequest;
 import com.pethaven.dto.TaskShiftAssignmentRequest;
-import com.pethaven.entity.ShiftEntity;
 import com.pethaven.entity.ShiftVolunteerEntity;
 import com.pethaven.entity.TaskShiftEntity;
 import com.pethaven.service.ShiftService;
@@ -11,7 +12,13 @@ import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,13 +34,13 @@ public class ShiftController {
     }
 
     @GetMapping
-    public List<ShiftEntity> list(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from) {
+    public List<ShiftResponse> list(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from) {
         return shiftService.getUpcoming(from == null ? LocalDate.now() : from);
     }
 
     @PostMapping
-    public ResponseEntity<ShiftEntity> create(@Valid @RequestBody ShiftEntity shift) {
-        ShiftEntity saved = shiftService.createShift(shift);
+    public ResponseEntity<ShiftResponse> create(@Valid @RequestBody ShiftCreateRequest shift) {
+        ShiftResponse saved = shiftService.createShift(shift);
         return ResponseEntity.ok(saved);
     }
 

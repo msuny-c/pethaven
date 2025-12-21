@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecordEntity, Long> {
-    List<MedicalRecordEntity> findByAnimalIdOrderByAdministeredDateDesc(Long animalId);
+    List<MedicalRecordEntity> findByAnimalIdOrderByIdDesc(Long animalId);
 
     @Query(value = """
             SELECT *

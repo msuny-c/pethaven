@@ -36,11 +36,7 @@ export function AdminAnimals() {
       species: animalData.species,
       breed: animalData.breed,
       ageMonths: animalData.ageMonths || (animalData.age ? animalData.age * 12 : undefined),
-      status: animalData.status,
-      behaviorNotes: animalData.behavior?.notes,
-      medicalSummary: animalData.medical
-        ? `Вакцинирован: ${animalData.medical.vaccinated ? 'да' : 'нет'}, Стерилизован: ${animalData.medical.sterilized ? 'да' : 'нет'}, Чип: ${animalData.medical.microchipped ? 'да' : 'нет'}`
-        : undefined
+      status: animalData.status
     };
     setSaving(true);
     try {

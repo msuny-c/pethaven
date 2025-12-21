@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Check, ArrowLeft, Heart, Share2, AlertCircle, Edit2, Save, XCircle, Plus, MinusCircle, ChevronDown, ChevronLeft, ChevronRight, X as Close } from 'lucide-react';
+import { Check, ArrowLeft, Share2, AlertCircle, Edit2, Save, XCircle, ChevronDown, ChevronLeft, ChevronRight, X as Close } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getAnimal, updateAnimal, getAnimalMedia, uploadAnimalMedia, addAnimalNote, updateAnimalMedical } from '../services/api';
+import { getAnimal, updateAnimal, getAnimalMedia, uploadAnimalMedia, addAnimalNote, updateAnimalMedical, getAnimalNotes } from '../services/api';
 import { Animal, AnimalMedia } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
@@ -16,13 +16,12 @@ export function AnimalProfile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<{ name: string; breed?: string; ageMonths?: number; description?: string; status?: Animal['status']; features: { text: string; positive: boolean }[]; gender?: Animal['gender']; species?: Animal['species'] }>({
+  const [form, setForm] = useState<{ name: string; breed?: string; ageMonths?: number; description?: string; status?: Animal['status']; gender?: Animal['gender']; species?: Animal['species'] }>({
     name: '',
     breed: '',
     ageMonths: undefined,
     description: '',
     status: undefined,
-    features: [],
     gender: undefined,
     species: undefined
   });
@@ -34,7 +33,8 @@ export function AnimalProfile() {
   const [fileInput, setFileInput] = useState<File | null>(null);
   const [photoDescription, setPhotoDescription] = useState('');
   const [noteText, setNoteText] = useState('');
-  const [medicalForm, setMedicalForm] = useState<{ vaccinated?: boolean; sterilized?: boolean; microchipped?: boolean; medicalSummary?: string }>({});
+  const [notes, setNotes] = useState<{ id: number; animalId: number; authorId: number; note: string; createdAt: string }[]>([]);
+  const [medicalForm, setMedicalForm] = useState<{ readyForAdoption?: boolean }>({});
   const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const canEdit = !!user && (user.roles.includes('admin') || user.roles.includes('coordinator'));
   const isVolunteer = !!user && user.roles.includes('volunteer');
@@ -54,27 +54,23 @@ export function AnimalProfile() {
       getAnimal(Number(id)).then(data => {
         setAnimal(data);
         if (data) {
-          const parsedFeatures = parseFeatures(data.behaviorNotes || data.behavior?.notes);
           setForm({
             name: data.name,
             breed: data.breed,
             ageMonths: data.ageMonths,
             description: data.description || '',
             status: data.status,
-            features: parsedFeatures,
             gender: data.gender,
             species: data.species
           });
           setMedicalForm({
-            vaccinated: data.vaccinated,
-            sterilized: data.sterilized,
-            microchipped: data.microchipped,
-            medicalSummary: data.medicalSummary
+            readyForAdoption: data.readyForAdoption ?? data.medical?.readyForAdoption
           });
         }
         setLoading(false);
       });
       getAnimalMedia(Number(id)).then(setMedia).catch(() => setMedia([]));
+      getAnimalNotes(Number(id)).then(setNotes).catch(() => setNotes([]));
     }
   }, [id]);
   const isNotFound = !loading && !animal;
@@ -97,7 +93,6 @@ export function AnimalProfile() {
         <div className="text-center text-gray-500">Загружаем карточку...</div>
       </div>;
   }
-  const featureDots = form.features.length > 0 ? form.features : parseFeatures(animal?.behaviorNotes || animal?.behavior?.notes);
   const photoList = media.map((m) => m.url || m.fileUrl).filter(Boolean) as string[];
   const heroPhoto = photoList[0] || (animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=80';
   const isCandidate = user?.roles?.includes('candidate');
@@ -130,7 +125,6 @@ export function AnimalProfile() {
   const handleSave = async () => {
     if (!animal || saving) return;
     setSaving(true);
-    const notes = form.features.map(f => `${f.positive ? '+' : '-'} ${f.text}`).join('\n');
     try {
       const updated = await updateAnimal(animal.id, {
         name: form.name,
@@ -138,7 +132,6 @@ export function AnimalProfile() {
         ageMonths: form.ageMonths,
         description: form.description,
         status: form.status,
-        behaviorNotes: notes,
         gender: form.gender,
         species: form.species
       });
@@ -151,7 +144,6 @@ export function AnimalProfile() {
     }
   };
 
-  const behaviorNotesList = (animal?.behaviorNotes || '').split('\n').map(n => n.trim()).filter(Boolean);
   const content = <>
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Breadcrumb / Back */}
@@ -320,81 +312,47 @@ export function AnimalProfile() {
               {editing ? <textarea className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Описание питомца" /> : <p>{animal.description || 'Описание уточняется.'}</p>}
             </div>
 
-            {behaviorNotesList.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">
-                <h3 className="text-lg font-semibold text-gray-900">Полевые заметки</h3>
-                <ul className="space-y-2 list-disc list-inside text-sm text-gray-700">
-                  {behaviorNotesList.map((note, idx) => (
-                    <li key={idx}>{note}</li>
-                  ))}
-                </ul>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">
+              <h3 className="text-lg font-semibold text-gray-900">Полевые заметки</h3>
+              <div className="space-y-2">
+                {notes.length > 0 ? notes.map((n) => (
+                  <div key={n.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                    <div className="text-sm text-gray-900">{n.note}</div>
+                    <div className="text-xs text-gray-500 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                  </div>
+                )) : <p className="text-sm text-gray-500">Заметок пока нет</p>}
               </div>
-            )}
-
-            {canAddNotes && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3 mb-8">
-                <h3 className="text-lg font-semibold text-gray-900">Полевая заметка</h3>
-                <textarea
-                  rows={3}
-                  className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                  placeholder="Что произошло на смене: поведение, аппетит, состояние..."
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                />
-                <div className="flex justify-end">
-                  <button
-                    disabled={!noteText.trim()}
-                    onClick={async () => {
-                      if (!noteText.trim()) return;
-                      try {
-                        await addAnimalNote(animal.id, noteText.trim());
-                        setAnimal((prev) =>
-                          prev
-                            ? { ...prev, behaviorNotes: ((prev.behaviorNotes || '') + '\n' + noteText.trim()).trim() }
-                            : prev
-                        );
-                        setNoteText('');
-                      } catch (err: any) {
-                        const msg = err?.response?.data?.message || 'Не удалось сохранить заметку';
-                        alert(msg);
-                      }
-                    }}
-                    className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
-                  >
-                    Сохранить заметку
-                  </button>
+              {canAddNotes && (
+                <div className="space-y-2 pt-2">
+                  <textarea
+                    rows={3}
+                    className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="Что произошло на смене: поведение, аппетит, состояние..."
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      disabled={!noteText.trim()}
+                      onClick={async () => {
+                        if (!noteText.trim()) return;
+                        try {
+                          await addAnimalNote(animal.id, noteText.trim());
+                          const updated = await getAnimalNotes(animal.id);
+                          setNotes(updated);
+                          setNoteText('');
+                        } catch (err: any) {
+                          const msg = err?.response?.data?.message || 'Не удалось сохранить заметку';
+                          alert(msg);
+                        }
+                      }}
+                      className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
+                    >
+                      Сохранить заметку
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Characteristics */}
-            <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4">
-                Особенности и характер
-              </h3>
-              <div className="space-y-3">
-                {featureDots.length > 0 ? featureDots.map((feat, idx) => <div key={idx} className="flex items-center text-gray-700">
-                      <div className={`w-2 h-2 rounded-full mr-3 ${feat.positive ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {editing ? <input className="flex-1 rounded-lg border-gray-200 px-2 py-1 focus:ring-amber-500 focus:border-amber-500" value={feat.text} onChange={e => setForm(prev => {
-                    const updated = [...prev.features];
-                    updated[idx] = { ...updated[idx], text: e.target.value };
-                    return { ...prev, features: updated };
-                  })} /> : feat.text}
-                      {editing && <button onClick={() => setForm(prev => ({ ...prev, features: prev.features.filter((_, i) => i !== idx) }))} className="ml-2 text-gray-400 hover:text-red-500">
-                          <MinusCircle className="w-4 h-4" />
-                        </button>}
-                    </div>) : <p className="text-sm text-gray-500">Особенности не указаны</p>}
-                {editing && <div className="flex items-center gap-3 pt-2">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setForm(prev => ({ ...prev, features: [...prev.features, { text: 'Новый плюс', positive: true }] }))} type="button" className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-sm">
-                        <Plus className="w-4 h-4 mr-1" /> Плюс
-                      </button>
-                      <button onClick={() => setForm(prev => ({ ...prev, features: [...prev.features, { text: 'Новый минус', positive: false }] }))} type="button" className="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 text-sm">
-                        <Plus className="w-4 h-4 mr-1" /> Минус
-                      </button>
-                    </div>
-                  </div>}
-              </div>
+              )}
             </div>
 
             {/* Medical Info */}
@@ -403,43 +361,26 @@ export function AnimalProfile() {
                 <span>Медицинская карта</span>
                 {canEditMedical && <Link to={`/veterinar/medical-records/${animal.id}`} className="text-sm text-blue-600 hover:underline">История процедур</Link>}
               </h3>
-              <div className="flex flex-wrap gap-3 mb-4">
-                {(animal.vaccinated || animal.medical?.vaccinated) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium">
-                    <Check className="w-3 h-3 mr-1.5" /> Вакцинирован
-                  </span>}
-                {(animal.sterilized || animal.medical?.sterilized) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium">
-                    <Check className="w-3 h-3 mr-1.5" /> Стерилизован
-                  </span>}
-                {(animal.microchipped || animal.medical?.microchipped) && <span className="inline-flex items-center px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm font-medium">
-                    <Check className="w-3 h-3 mr-1.5" /> Чипирован
-                  </span>}
-                {!(animal.vaccinated || animal.sterilized || animal.microchipped) && (
-                  <span className="text-sm text-gray-500">Медицинские отметки не заполнены</span>
+              <div className="flex flex-wrap gap-3 mb-4 items-center">
+                {animal.readyForAdoption || animal.medical?.readyForAdoption ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-green-50 text-green-700 text-sm font-medium">
+                    <Check className="w-3 h-3 mr-1.5" /> Готов к передаче
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium">
+                    <AlertCircle className="w-3 h-3 mr-1.5" /> Требуется допуск ветеринара
+                  </span>
                 )}
+                {!canEditMedical && <span className="text-xs text-gray-500">Статус ставит ветеринар</span>}
               </div>
               {canEditMedical && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <label className="flex items-center space-x-2 text-sm">
-                      <input type="checkbox" checked={!!medicalForm.vaccinated} onChange={(e) => setMedicalForm((prev) => ({ ...prev, vaccinated: e.target.checked }))} />
-                      <span>Вакцинирован</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm">
-                      <input type="checkbox" checked={!!medicalForm.sterilized} onChange={(e) => setMedicalForm((prev) => ({ ...prev, sterilized: e.target.checked }))} />
-                      <span>Стерилизован</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm">
-                      <input type="checkbox" checked={!!medicalForm.microchipped} onChange={(e) => setMedicalForm((prev) => ({ ...prev, microchipped: e.target.checked }))} />
-                      <span>Чипирован</span>
+                      <input type="checkbox" checked={!!medicalForm.readyForAdoption} onChange={(e) => setMedicalForm((prev) => ({ ...prev, readyForAdoption: e.target.checked }))} />
+                      <span>Готов к передаче</span>
                     </label>
                   </div>
-                  <textarea
-                    rows={3}
-                    className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                    placeholder="Краткие мед. заметки"
-                    value={medicalForm.medicalSummary || ''}
-                    onChange={(e) => setMedicalForm((prev) => ({ ...prev, medicalSummary: e.target.value }))}
-                  />
                   <div className="flex justify-end pt-3">
                     <button
                       onClick={async () => {
@@ -459,11 +400,7 @@ export function AnimalProfile() {
                   </div>
                 </>
               )}
-              {!canEditMedical && animal.medicalSummary && (
-                <p className="text-sm text-gray-600 mt-3">
-                  {animal.medicalSummary}
-                </p>
-              )}
+             
             </div>
 
             {/* Actions */}
@@ -517,17 +454,4 @@ export function AnimalProfile() {
       </DashboardLayout>;
   }
   return content;
-}
-
-function parseFeatures(notes?: string) {
-  if (!notes) return [] as { text: string; positive: boolean }[];
-  return notes
-    .split('\n')
-    .map(n => n.trim())
-    .filter(Boolean)
-    .map(line => {
-      const positive = line.startsWith('+');
-      const clean = line.replace(/^[-+]\s*/, '');
-      return { text: clean, positive };
-    });
 }

@@ -1,10 +1,18 @@
 package com.pethaven.controller;
 
-import com.pethaven.entity.MedicalRecordEntity;
+import com.pethaven.dto.MedicalRecordRequest;
+import com.pethaven.dto.MedicalRecordResponse;
 import com.pethaven.service.MedicalService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
@@ -20,21 +28,22 @@ public class MedicalController {
     }
 
     @GetMapping("/animal/{animalId}")
-    public List<MedicalRecordEntity> byAnimal(@PathVariable Long animalId) {
+    public List<MedicalRecordResponse> byAnimal(@PathVariable Long animalId) {
         return medicalService.getByAnimal(animalId);
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody MedicalRecordEntity record) {
-        if (record.getProcedure() == null) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<Void> create(@Valid @RequestBody MedicalRecordRequest record,
+                                       Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long vetId)) {
+            return ResponseEntity.status(401).build();
         }
-        Long id = medicalService.addRecord(record);
+        Long id = medicalService.addRecord(record, vetId);
         return ResponseEntity.created(URI.create("/api/v1/medical/" + id)).build();
     }
 
     @GetMapping("/upcoming")
-    public List<MedicalRecordEntity> upcoming(@RequestParam(defaultValue = "30") int days) {
+    public List<MedicalRecordResponse> upcoming(@RequestParam(defaultValue = "30") int days) {
         return medicalService.getUpcoming(days);
     }
 }

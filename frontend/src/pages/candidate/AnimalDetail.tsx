@@ -67,40 +67,8 @@ export function CandidateAnimalDetail() {
               О {animal.name}
             </h2>
             <p className="text-gray-600 leading-relaxed mb-6">
-              {animal.description || animal.behaviorNotes || animal.behavior?.notes || 'Описание уточняется'}
+              {animal.description || 'Описание уточняется'}
             </p>
-
-            <div className="border-t border-gray-100 pt-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Характер и совместимость
-              </h3>
-              <div className="space-y-3">
-                {parseFeatures(animal.behaviorNotes || animal.behavior?.notes).length > 0 ? parseFeatures(animal.behaviorNotes || animal.behavior?.notes).map((feat, idx) => <div key={idx} className="flex items-center text-gray-700">
-                      <div className={`w-2 h-2 rounded-full mr-3 ${feat.positive ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {feat.text}
-                    </div>) : <p className="text-sm text-gray-500">Особенности не указаны</p>}
-                {(animal.behavior?.kids !== undefined || animal.behavior?.cats !== undefined || animal.behavior?.dogs !== undefined) && <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="flex items-center">
-                      {animal.behavior?.kids ? <CheckCircle className="w-5 h-5 text-green-500 mr-2" /> : <XCircle className="w-5 h-5 text-red-500 mr-2" />}
-                      <span className="text-sm text-gray-700">
-                        Подходит для детей
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      {animal.behavior?.cats ? <CheckCircle className="w-5 h-5 text-green-500 mr-2" /> : <XCircle className="w-5 h-5 text-red-500 mr-2" />}
-                      <span className="text-sm text-gray-700">
-                        Уживается с кошками
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      {animal.behavior?.dogs ? <CheckCircle className="w-5 h-5 text-green-500 mr-2" /> : <XCircle className="w-5 h-5 text-red-500 mr-2" />}
-                      <span className="text-sm text-gray-700">
-                        Уживается с собаками
-                      </span>
-                    </div>
-                  </div>}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -144,19 +112,9 @@ export function CandidateAnimalDetail() {
               <h4 className="text-sm font-bold text-gray-900 mb-3">
                 Медицинский статус
               </h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Вакцинирован</span>
-                  {(animal.vaccinated || animal.medical?.vaccinated) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Стерилизован</span>
-                  {(animal.sterilized || animal.medical?.sterilized) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Чипирован</span>
-                  {(animal.microchipped || animal.medical?.microchipped) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Готов к передаче</span>
+                {(animal.readyForAdoption || animal.medical?.readyForAdoption) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
               </div>
             </div>
 
@@ -188,17 +146,4 @@ export function CandidateAnimalDetail() {
         </div>
       )}
     </DashboardLayout>;
-}
-
-function parseFeatures(notes?: string) {
-  if (!notes) return [] as { text: string; positive: boolean }[];
-  return notes
-    .split('\n')
-    .map(n => n.trim())
-    .filter(Boolean)
-    .map(line => {
-      const positive = line.startsWith('+');
-      const clean = line.replace(/^[-+]\s*/, '');
-      return { text: clean, positive };
-    });
 }

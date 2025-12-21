@@ -1,6 +1,5 @@
 package com.pethaven.entity;
 
-import com.pethaven.model.enums.MedicalProcedure;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,16 +26,11 @@ public class MedicalRecordEntity {
     @Column(name = "vet_id")
     private Long vetId;
 
-    @Enumerated(EnumType.STRING)
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
-    @Column(columnDefinition = "medical_procedure_type")
-    private MedicalProcedure procedure;
+    @Column(name = "procedure")
+    private String procedure;
 
     @Column(nullable = false)
     private String description;
-
-    @Column(name = "administered_date")
-    private LocalDate administeredDate;
 
     @Column(name = "next_due_date")
     private LocalDate nextDueDate;

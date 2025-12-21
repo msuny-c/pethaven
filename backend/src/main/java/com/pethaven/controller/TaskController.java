@@ -1,7 +1,10 @@
 package com.pethaven.controller;
 
-import com.pethaven.entity.TaskEntity;
-import com.pethaven.repository.TaskRepository;
+import com.pethaven.dto.TaskCreateRequest;
+import com.pethaven.dto.TaskResponse;
+import com.pethaven.dto.TaskUpdateRequest;
+import com.pethaven.service.TaskService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -17,38 +20,25 @@ import java.util.List;
 @RequestMapping("/api/v1/tasks")
 public class TaskController {
 
-    private final TaskRepository taskRepository;
+    private final TaskService taskService;
 
-    public TaskController(TaskRepository taskRepository) {
-        this.taskRepository = taskRepository;
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
     }
 
     @GetMapping
-    public List<TaskEntity> list() {
-        return taskRepository.findAll();
+    public List<TaskResponse> list() {
+        return taskService.list();
     }
 
     @PostMapping
-    public ResponseEntity<TaskEntity> create(@RequestBody TaskEntity task) {
-        TaskEntity saved = taskRepository.save(task);
+    public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskCreateRequest request) {
+        TaskResponse saved = taskService.create(request);
         return ResponseEntity.ok(saved);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<TaskEntity> update(@PathVariable Long id, @RequestBody TaskEntity payload) {
-        TaskEntity task = taskRepository.findById(id).orElseThrow();
-        if (payload.getStatus() != null) {
-            task.setStatus(payload.getStatus());
-        }
-        if (payload.getDescription() != null) {
-            task.setDescription(payload.getDescription());
-        }
-        if (payload.getDueDate() != null) {
-            task.setDueDate(payload.getDueDate());
-        }
-        if (payload.getEstimatedShifts() != null) {
-            task.setEstimatedShifts(payload.getEstimatedShifts());
-        }
-        return ResponseEntity.ok(taskRepository.save(task));
+    public ResponseEntity<TaskResponse> update(@PathVariable Long id, @Valid @RequestBody TaskUpdateRequest request) {
+        return ResponseEntity.ok(taskService.update(id, request));
     }
 }
