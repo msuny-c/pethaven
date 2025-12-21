@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload bundle to server
         run: |
-          APP_DIR="$HOME/apps/pethaven"
+          APP_DIR="~/apps/pethaven"
           ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_key \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             "mkdir -p ${APP_DIR}"
