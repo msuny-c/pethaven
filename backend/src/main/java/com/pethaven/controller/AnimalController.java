@@ -8,7 +8,9 @@ import com.pethaven.dto.AnimalResponse;
 import com.pethaven.dto.AnimalStatusUpdateRequest;
 import com.pethaven.dto.AnimalUpdateRequest;
 import com.pethaven.dto.ApiMessage;
+import com.pethaven.mapper.AnimalMapper;
 import com.pethaven.model.enums.AnimalStatus;
+import com.pethaven.entity.AnimalEntity;
 import com.pethaven.service.AnimalService;
 import com.pethaven.service.ObjectStorageService;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/animals")
@@ -27,10 +30,12 @@ public class AnimalController {
 
     private final AnimalService animalService;
     private final ObjectStorageService storageService;
+    private final AnimalMapper animalMapper;
 
-    public AnimalController(AnimalService animalService, ObjectStorageService storageService) {
+    public AnimalController(AnimalService animalService, ObjectStorageService storageService, AnimalMapper animalMapper) {
         this.animalService = animalService;
         this.storageService = storageService;
+        this.animalMapper = animalMapper;
     }
 
     @GetMapping
@@ -41,8 +46,12 @@ public class AnimalController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        boolean isCandidate = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDATE"));
         boolean includePending = isAdmin || isCoordinator;
-        return animalService.getCatalog(species, status, includePending);
+        boolean hideInternalFlags = isCandidate || authentication == null;
+        boolean onlyAvailable = authentication == null;
+        return animalService.getCatalog(species, status, includePending, hideInternalFlags, onlyAvailable);
     }
 
     @GetMapping("/species")
@@ -51,19 +60,46 @@ public class AnimalController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AnimalResponse> byId(@PathVariable Long id) {
-        return animalService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<AnimalResponse> byId(@PathVariable Long id, Authentication authentication) {
+        boolean isAdminOrCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_COORDINATOR"));
+        Optional<AnimalEntity> entityOpt = animalService.getEntity(id);
+        if (entityOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AnimalEntity entity = entityOpt.get();
+        if (!isAdminOrCoordinator && Boolean.TRUE.equals(entity.getPendingAdminReview())) {
+            return ResponseEntity.notFound().build();
+        }
+        AnimalResponse response = animalMapper.toResponse(entity);
+        if (!isAdminOrCoordinator) {
+            response = sanitizeForCandidate(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    private AnimalResponse sanitizeForCandidate(AnimalResponse response) {
+        return new AnimalResponse(
+                response.id(),
+                response.name(),
+                response.species(),
+                response.breed(),
+                response.ageMonths(),
+                response.gender(),
+                response.description(),
+                response.status(),
+                null,
+                null
+        );
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody AnimalCreateRequest request, Authentication authentication) {
+    public ResponseEntity<AnimalResponse> create(@Valid @RequestBody AnimalCreateRequest request, Authentication authentication) {
         boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
         try {
-            Long id = animalService.createAnimal(request, isCoordinator);
-            return ResponseEntity.created(URI.create("/api/v1/animals/" + id)).build();
+            AnimalResponse created = animalService.createAnimal(request, isCoordinator);
+            return ResponseEntity.created(URI.create("/api/v1/animals/" + created.id())).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }

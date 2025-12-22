@@ -11,6 +11,8 @@ public record AdoptionApplicationResponse(
         String reason,
         String experience,
         String housing,
+        Boolean consentGiven,
+        String passportUrl,
         ApplicationStatus status,
         String decisionComment,
         Long processedBy,

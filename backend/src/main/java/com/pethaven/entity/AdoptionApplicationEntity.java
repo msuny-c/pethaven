@@ -33,6 +33,12 @@ public class AdoptionApplicationEntity {
     private String experience;
     private String housing;
 
+    @Column(name = "consent_given")
+    private Boolean consentGiven = Boolean.FALSE;
+
+    @Column(name = "passport_key")
+    private String passportKey;
+
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "application_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

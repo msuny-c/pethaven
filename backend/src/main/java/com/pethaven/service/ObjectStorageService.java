@@ -53,6 +53,26 @@ public class ObjectStorageService {
         return key;
     }
 
+    public String uploadPassport(Long applicationId, MultipartFile file) {
+        String ext = extension(file.getOriginalFilename());
+        String key = "passports/" + applicationId + "/" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + ext;
+        uploadInternal(key, file);
+        return key;
+    }
+
+    public String uploadAgreementTemplate(Long agreementId, byte[] content) {
+        String key = "agreements/" + agreementId + "/template.docx";
+        uploadBytes(key, content, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        return key;
+    }
+
+    public String uploadSignedAgreement(Long agreementId, MultipartFile file) {
+        String ext = extension(file.getOriginalFilename());
+        String key = "agreements/" + agreementId + "/signed-" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + ext;
+        uploadInternal(key, file);
+        return key;
+    }
+
     private void uploadInternal(String key, MultipartFile file) {
         ensureBucket();
         try {
@@ -67,6 +87,24 @@ public class ObjectStorageService {
                     .build();
             s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (IOException | SdkException e) {
+            log.error("Failed to upload object {}", key, e);
+            throw new IllegalStateException("Не удалось загрузить файл в хранилище", e);
+        }
+    }
+
+    private void uploadBytes(String key, byte[] content, String contentType) {
+        ensureBucket();
+        try {
+            if (!StringUtils.hasText(contentType)) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(properties.getBucket())
+                    .key(key)
+                    .contentType(contentType)
+                    .build();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(content));
+        } catch (SdkException e) {
             log.error("Failed to upload object {}", key, e);
             throw new IllegalStateException("Не удалось загрузить файл в хранилище", e);
         }

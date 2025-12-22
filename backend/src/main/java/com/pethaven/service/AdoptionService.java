@@ -1,32 +1,42 @@
 package com.pethaven.service;
 
 import com.pethaven.dto.AdoptionDecisionRequest;
-import com.pethaven.dto.ApplicationRequest;
+import com.pethaven.dto.AgreementConfirmRequest;
 import com.pethaven.dto.AgreementRequest;
-import com.pethaven.dto.InterviewUpdateRequest;
+import com.pethaven.dto.ApplicationRequest;
+import com.pethaven.dto.InterviewRescheduleRequest;
 import com.pethaven.dto.InterviewSlotBookRequest;
 import com.pethaven.dto.InterviewSlotCancelRequest;
-import com.pethaven.dto.InterviewRescheduleRequest;
+import com.pethaven.dto.InterviewUpdateRequest;
+import com.pethaven.dto.PostAdoptionReportRequest;
 import com.pethaven.entity.AdoptionApplicationEntity;
 import com.pethaven.entity.AgreementEntity;
-import com.pethaven.entity.InterviewEntity;
 import com.pethaven.entity.AnimalEntity;
+import com.pethaven.entity.InterviewEntity;
+import com.pethaven.model.enums.ReportStatus;
 import com.pethaven.model.enums.ApplicationStatus;
 import com.pethaven.model.enums.InterviewStatus;
 import com.pethaven.model.enums.SystemRole;
 import com.pethaven.repository.AdoptionApplicationRepository;
 import com.pethaven.repository.AgreementRepository;
+import com.pethaven.repository.AnimalRepository;
 import com.pethaven.repository.InterviewRepository;
 import com.pethaven.repository.InterviewSlotRepository;
-import com.pethaven.repository.AnimalRepository;
 import com.pethaven.repository.PersonRepository;
-import com.pethaven.repository.PostAdoptionReportRepository;
-import com.pethaven.entity.PostAdoptionReportEntity;
+import com.pethaven.service.ObjectStorageService.StorageFile;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class AdoptionService {
@@ -38,8 +48,8 @@ public class AdoptionService {
     private final AnimalRepository animalRepository;
     private final NotificationService notificationService;
     private final PersonRepository personRepository;
-    private final PostAdoptionReportRepository reportRepository;
-    private final SettingService settingService;
+    private final ObjectStorageService storageService;
+    private final PostAdoptionReportService postAdoptionReportService;
 
     public AdoptionService(AdoptionApplicationRepository adoptionRepository,
                            InterviewRepository interviewRepository,
@@ -48,8 +58,8 @@ public class AdoptionService {
                            AnimalRepository animalRepository,
                            NotificationService notificationService,
                            PersonRepository personRepository,
-                           PostAdoptionReportRepository reportRepository,
-                           SettingService settingService) {
+                           ObjectStorageService storageService,
+                           PostAdoptionReportService postAdoptionReportService) {
         this.adoptionRepository = adoptionRepository;
         this.interviewRepository = interviewRepository;
         this.agreementRepository = agreementRepository;
@@ -57,24 +67,43 @@ public class AdoptionService {
         this.animalRepository = animalRepository;
         this.notificationService = notificationService;
         this.personRepository = personRepository;
-        this.reportRepository = reportRepository;
-        this.settingService = settingService;
+        this.storageService = storageService;
+        this.postAdoptionReportService = postAdoptionReportService;
     }
 
     @Transactional
-    public Long submitApplication(ApplicationRequest request, Long candidateId) {
+    public Long submitApplication(ApplicationRequest request, MultipartFile passport, Long candidateId) {
         if (candidateId == null) {
             throw new IllegalArgumentException("candidateId is required");
         }
+        if (!Boolean.TRUE.equals(request.consentGiven())) {
+            throw new IllegalArgumentException("Необходимо согласие на обработку данных");
+        }
+        if (passport == null || passport.isEmpty()) {
+            throw new IllegalStateException("Требуется загрузить документ");
+        }
+        animalRepository.findById(request.animalId()).ifPresent(animal -> {
+            if (Boolean.TRUE.equals(animal.getPendingAdminReview())) {
+                throw new IllegalStateException("Карточка питомца на проверке, подача заявки недоступна");
+            }
+        });
         if (adoptionRepository.existsByCandidateIdAndAnimalIdAndStatusIn(candidateId, request.animalId(),
-                java.util.List.of(ApplicationStatus.submitted, ApplicationStatus.under_review, ApplicationStatus.approved))) {
+                List.of(ApplicationStatus.submitted, ApplicationStatus.under_review, ApplicationStatus.approved))) {
             throw new IllegalStateException("Активная заявка на этого питомца уже существует");
         }
-        Long id = adoptionRepository.submit(request.animalId(), candidateId);
+        Long id;
+        try {
+            id = adoptionRepository.submit(request.animalId(), candidateId);
+        } catch (DataAccessException ex) {
+            throw new IllegalStateException(normalizeDbMessage(ex));
+        }
         adoptionRepository.findById(id).ifPresent(entity -> {
             entity.setReason(request.reason());
             entity.setExperience(request.experience());
             entity.setHousing(request.housing());
+            entity.setConsentGiven(Boolean.TRUE);
+            String key = storageService.uploadPassport(id, passport);
+            entity.setPassportKey(key);
             adoptionRepository.save(entity);
         });
         String animalName = animalRepository.findById(request.animalId())
@@ -258,167 +287,217 @@ public class AdoptionService {
 
     @Transactional
     public void reschedule(InterviewRescheduleRequest request, Long candidateId, boolean isAdmin) {
+        InterviewEntity interview = interviewRepository.findById(request.interviewId()).orElseThrow();
+        AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
+
+        if (!isAdmin && candidateId != null && !candidateId.equals(app.getCandidateId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Нельзя перенести чужое интервью");
+        }
+
+        interviewSlotRepository.expireOld(java.time.OffsetDateTime.now());
+        interviewSlotRepository.book(request.newSlotId(), app.getId());
+        interview.setStatus(InterviewStatus.scheduled);
+        interviewRepository.save(interview);
+    }
+
+    @Transactional
+    public void updateInterview(InterviewUpdateRequest request, Long uid, boolean isAdmin) {
+        InterviewEntity interview = interviewRepository.findById(request.interviewId()).orElseThrow();
+        AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
+
+        if (!isAdmin && (uid == null || (!uid.equals(interview.getInterviewerId()) && !uid.equals(app.getCandidateId())))) {
+            throw new org.springframework.security.access.AccessDeniedException("Нет прав редактировать интервью");
+        }
+
+        if (request.status() != null) {
+            interview.setStatus(request.status());
+        }
+        if (request.notes() != null) {
+            interview.setCoordinatorNotes(request.notes());
+        }
+
+        interviewRepository.save(interview);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AgreementEntity> getAgreements() {
+        return agreementRepository.findAll();
+    }
+
+    @Transactional
+    public String attachPassport(Long applicationId, Long candidateId, MultipartFile file) {
+        AdoptionApplicationEntity app = adoptionRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+        if (!candidateId.equals(app.getCandidateId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Нельзя загружать документ в чужую заявку");
+        }
+        String key = storageService.uploadPassport(applicationId, file);
+        app.setPassportKey(key);
+        adoptionRepository.save(app);
+        return key;
+    }
+
+    public StorageFile downloadPassport(Long applicationId) {
+        AdoptionApplicationEntity app = adoptionRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+        if (app.getPassportKey() == null) {
+            throw new IllegalStateException("Паспорт не загружен");
+        }
+        return storageService.download(app.getPassportKey());
+    }
+
+    @Transactional
+    public AgreementEntity createAgreement(AgreementRequest request) {
         AdoptionApplicationEntity app = adoptionRepository.findById(request.applicationId())
                 .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
-        if (!isAdmin && candidateId != null && !candidateId.equals(app.getCandidateId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Нельзя переносить чужую заявку");
+        if (app.getPassportKey() == null) {
+            throw new IllegalStateException("Не загружен паспорт кандидата");
         }
-        cancelExistingInterviews(app, candidateId, isAdmin);
-        InterviewSlotBookRequest bookRequest = new InterviewSlotBookRequest(request.newSlotId(), request.applicationId());
-        bookSlot(bookRequest, candidateId);
-    }
-
-    private void cancelExistingInterviews(AdoptionApplicationEntity app, Long actorId, boolean isAdmin) {
-        List<InterviewEntity> interviews = interviewRepository.findByApplicationIdOrderByScheduledDatetimeDesc(app.getId());
-        for (InterviewEntity interview : interviews) {
-            boolean isOwnerCandidate = actorId != null && actorId.equals(app.getCandidateId());
-            boolean isInterviewer = actorId != null && actorId.equals(interview.getInterviewerId());
-            if (!isAdmin && !(isOwnerCandidate || isInterviewer)) {
-                throw new org.springframework.security.access.AccessDeniedException("Нет прав на изменение интервью");
-            }
-            interview.setStatus(InterviewStatus.cancelled);
+        if (agreementRepository.findAll().stream().anyMatch(a -> a.getApplicationId().equals(request.applicationId()))) {
+            throw new IllegalStateException("Договор по этой заявке уже создан");
         }
-        interviewRepository.saveAll(interviews);
-    }
-
-    private void cancelInterviews(Long applicationId) {
-        List<InterviewEntity> interviews = interviewRepository.findByApplicationIdOrderByScheduledDatetimeDesc(applicationId);
-        boolean changed = false;
-        for (InterviewEntity interview : interviews) {
-            if (interview.getStatus() != InterviewStatus.cancelled) {
-                interview.setStatus(InterviewStatus.cancelled);
-                changed = true;
-            }
-        }
-        if (changed) {
-            interviewRepository.saveAll(interviews);
-        }
-    }
-
-    @Transactional
-    public void updateInterview(InterviewUpdateRequest request, Long actorId, boolean isAdmin) {
-        InterviewEntity interview = interviewRepository.findById(request.interviewId())
-                .orElseThrow();
-        if (!isAdmin && actorId != null && !actorId.equals(interview.getInterviewerId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Можно редактировать только свои интервью");
-        }
-        if (request.status() == InterviewStatus.completed && interview.getStatus() != InterviewStatus.confirmed) {
-            throw new IllegalStateException("Интервью должно быть подтверждено кандидатом");
-        }
-        interview.setStatus(request.status());
-        interview.setCoordinatorNotes(request.notes());
-        interview.setProcessedBy(actorId);
-        interviewRepository.save(interview);
-        if (request.status() == InterviewStatus.completed && request.autoApproveApplicationId() != null) {
-            adoptionRepository.findById(request.autoApproveApplicationId()).ifPresent(app -> {
-                if (app.getStatus() == ApplicationStatus.under_review || app.getStatus() == ApplicationStatus.submitted) {
-                    app.setStatus(ApplicationStatus.approved);
-                    app.setDecisionComment(request.notes());
-                    if (actorId != null) {
-                        app.setProcessedBy(actorId);
-                    }
-                    adoptionRepository.save(app);
-                    animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
-                        animal.setStatus(com.pethaven.model.enums.AnimalStatus.reserved);
-                        animalRepository.save(animal);
-                    });
-                    notificationService.push(app.getCandidateId(),
-                            com.pethaven.model.enums.NotificationType.interview_scheduled,
-                            "Результат интервью",
-                            "Заявка №" + app.getId() + " одобрена после интервью");
-                }
-            });
-        } else if (request.status() == InterviewStatus.completed) {
-            AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
-            app.setStatus(ApplicationStatus.rejected);
-            app.setDecisionComment(request.notes());
-            if (actorId != null) {
-                app.setProcessedBy(actorId);
-            }
-            adoptionRepository.save(app);
-            animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
-                if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {
-                    animal.setStatus(com.pethaven.model.enums.AnimalStatus.available);
-                    animalRepository.save(animal);
-                }
-            });
-            notificationService.push(app.getCandidateId(),
-                    com.pethaven.model.enums.NotificationType.interview_scheduled,
-                    "Результат интервью",
-                    "Заявка №" + app.getId() + " отклонена после интервью");
-        } else if (request.status() == InterviewStatus.cancelled) {
-            AdoptionApplicationEntity app = adoptionRepository.findById(interview.getApplicationId()).orElseThrow();
-            if (app.getStatus() != ApplicationStatus.approved && app.getStatus() != ApplicationStatus.rejected) {
-                app.setStatus(ApplicationStatus.under_review);
-                adoptionRepository.save(app);
-            }
-            notificationService.push(app.getCandidateId(),
-                    com.pethaven.model.enums.NotificationType.interview_scheduled,
-                    "Интервью отменено",
-                    "Интервью по заявке №" + app.getId() + " было отменено");
-        }
-    }
-
-    private String humanStatus(ApplicationStatus status) {
-        return switch (status) {
-            case submitted -> "подана";
-            case under_review -> "на рассмотрении";
-            case approved -> "одобрена";
-            case rejected -> "отклонена";
-        };
-    }
-
-    @Transactional
-    public Long completeAdoption(AgreementRequest request) {
-        AdoptionApplicationEntity application = adoptionRepository.findById(request.applicationId())
-                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
-        AnimalEntity animal = animalRepository.findById(application.getAnimalId())
-                .orElseThrow(() -> new IllegalStateException("Animal not found"));
-        if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.quarantine
-                || animal.getStatus() == com.pethaven.model.enums.AnimalStatus.not_available) {
-            throw new IllegalStateException("Животное недоступно для передачи, требуется завершить мед. требования");
-        }
+        AnimalEntity animal = animalRepository.findById(app.getAnimalId())
+                .orElseThrow(() -> new IllegalArgumentException("Животное не найдено"));
         if (!Boolean.TRUE.equals(animal.getReadyForAdoption())) {
-            throw new IllegalStateException("Животное не готово к передаче, требуется подтверждение ветеринара");
+            throw new IllegalStateException("Ветеринар не подтвердил готовность к передаче");
         }
-        Long agreementId = adoptionRepository.completeAdoption(request.applicationId(), request.signedDate(), request.postAdoptionPlan());
-        createPostAdoptionPlan(agreementId, request.signedDate());
-        notificationService.push(application.getCandidateId(),
-                com.pethaven.model.enums.NotificationType.new_application,
-                "Передача оформлена",
-                "Поздравляем! Передача питомца завершена, следуйте графику отчётов.");
-        return agreementId;
+        AgreementEntity agreement = new AgreementEntity();
+        agreement.setApplicationId(request.applicationId());
+        agreement.setPostAdoptionPlan(request.postAdoptionPlan());
+        agreement.setGeneratedAt(java.time.OffsetDateTime.now());
+        agreementRepository.saveAndFlush(agreement);
+        byte[] template = generatePlaceholderDocx(app, animal);
+        String key = storageService.uploadAgreementTemplate(agreement.getId(), template);
+        agreement.setTemplateStorageKey(key);
+        agreementRepository.save(agreement);
+        return agreement;
+    }
+
+    @Transactional
+    public AgreementEntity uploadSignedAgreement(Long agreementId, Long candidateId, MultipartFile file) {
+        AgreementEntity agreement = agreementRepository.findById(agreementId)
+                .orElseThrow(() -> new IllegalArgumentException("Договор не найден"));
+        AdoptionApplicationEntity app = adoptionRepository.findById(agreement.getApplicationId())
+                .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+        if (!candidateId.equals(app.getCandidateId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Можно загрузить только для своей заявки");
+        }
+        String key = storageService.uploadSignedAgreement(agreementId, file);
+        agreement.setSignedStorageKey(key);
+        agreement.setSignedAt(java.time.OffsetDateTime.now());
+        agreementRepository.save(agreement);
+        return agreement;
+    }
+
+    @Transactional
+    public AgreementEntity confirmAgreement(Long agreementId, Long coordinatorId, AgreementConfirmRequest request) {
+        AgreementEntity agreement = agreementRepository.findById(agreementId)
+                .orElseThrow(() -> new IllegalArgumentException("Договор не найден"));
+        if (agreement.getSignedStorageKey() == null) {
+            throw new IllegalStateException("Нет подписанного договора");
+        }
+        AdoptionApplicationEntity app = adoptionRepository.findById(agreement.getApplicationId())
+                .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+        AnimalEntity animal = animalRepository.findById(app.getAnimalId())
+                .orElseThrow(() -> new IllegalArgumentException("Животное не найдено"));
+        agreement.setSignedDate(request.signedDate());
+        agreement.setConfirmedAt(java.time.OffsetDateTime.now());
+        agreement.setConfirmedBy(coordinatorId);
+        agreementRepository.save(agreement);
+
+        app.setStatus(ApplicationStatus.approved);
+        adoptionRepository.save(app);
+        animal.setStatus(com.pethaven.model.enums.AnimalStatus.adopted);
+        animalRepository.save(animal);
+
+        postAdoptionReportService.create(new PostAdoptionReportRequest(
+                agreementId,
+                java.time.LocalDate.now(),
+                null,
+                null,
+                null,
+                ReportStatus.pending
+        ));
+        return agreement;
+    }
+
+    public StorageFile downloadAgreementFile(Long agreementId, boolean signed) {
+        AgreementEntity agreement = agreementRepository.findById(agreementId)
+                .orElseThrow(() -> new IllegalArgumentException("Договор не найден"));
+        String key = signed ? agreement.getSignedStorageKey() : agreement.getTemplateStorageKey();
+        if (key == null) {
+            throw new IllegalStateException(signed ? "Подписанный договор отсутствует" : "Шаблон договора ещё не сформирован");
+        }
+        return storageService.download(key);
     }
 
     public Optional<AgreementEntity> getAgreement(Long id) {
         return agreementRepository.findById(id);
     }
 
-    public List<AgreementEntity> getAgreements() {
-        return agreementRepository.findAll();
+    private void cancelInterviews(Long applicationId) {
+        interviewRepository.findByApplicationIdOrderByScheduledDatetimeDesc(applicationId).forEach(interview -> {
+            interview.setStatus(InterviewStatus.cancelled);
+            interviewRepository.save(interview);
+        });
+    }
+
+    private String humanStatus(ApplicationStatus status) {
+        return switch (status) {
+            case submitted -> "Подана";
+            case under_review -> "На проверке";
+            case approved -> "Одобрена";
+            case rejected -> "Отклонена";
+        };
     }
 
     private void notifyCoordinators(String title, String message) {
-        personRepository.findActiveByRole(SystemRole.coordinator.name())
-                .forEach(person -> notificationService.push(
-                        person.getId(),
-                        com.pethaven.model.enums.NotificationType.new_application,
-                        title,
-                        message
-                ));
+        personRepository.findActiveByRole(SystemRole.coordinator.name()).forEach(p -> notificationService.push(
+                p.getId(),
+                com.pethaven.model.enums.NotificationType.new_application,
+                title,
+                message
+        ));
     }
 
-    private void createPostAdoptionPlan(Long agreementId, java.time.LocalDate signedDate) {
-        if (agreementId == null) {
-            return;
+    private byte[] generatePlaceholderDocx(AdoptionApplicationEntity app, AnimalEntity animal) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            try (ZipOutputStream zip = new ZipOutputStream(bos)) {
+                addEntry(zip, "[Content_Types].xml", loadTemplate("templates/agreement-docx/[Content_Types].xml"));
+                addEntry(zip, "_rels/.rels", loadTemplate("templates/agreement-docx/_rels/.rels"));
+                String doc = loadTemplate("templates/agreement-docx/word/document.xml")
+                        .replace("{{PET_NAME}}", animal.getName() == null ? "pet" : animal.getName());
+                addEntry(zip, "word/document.xml", doc);
+            }
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("Не удалось сгенерировать шаблон договора", e);
         }
-        int offsetDays = settingService.getReportOffsetDays();
-        int fillDays = settingService.getReportFillDays();
-        int total = Math.max(1, offsetDays + fillDays);
-        PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
-        entity.setAgreementId(agreementId);
-        entity.setDueDate(signedDate.plusDays(total));
-        entity.setStatus(com.pethaven.model.enums.ReportStatus.pending);
-        reportRepository.save(entity);
+    }
+
+    private String loadTemplate(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
+        try (var is = resource.getInputStream()) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private void addEntry(ZipOutputStream zip, String path, String content) throws IOException {
+        zip.putNextEntry(new ZipEntry(path));
+        zip.write(content.getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
+    }
+
+    private String normalizeDbMessage(DataAccessException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        String message = cause != null && cause.getMessage() != null ? cause.getMessage() : ex.getMessage();
+        if (message == null) {
+            return "Не удалось создать заявку";
+        }
+        if (message.contains("Animal is not available for adoption")) {
+            return "Питомец недоступен для подачи заявки";
+        }
+        return message;
     }
 }

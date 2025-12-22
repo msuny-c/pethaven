@@ -7,6 +7,7 @@ public record ApplicationRequest(
         @NotNull @Min(1) Long animalId,
         String reason,
         String experience,
-        String housing
+        String housing,
+        @NotNull Boolean consentGiven
 ) {
 }

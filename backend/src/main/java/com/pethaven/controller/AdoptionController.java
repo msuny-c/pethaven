@@ -4,6 +4,7 @@ import com.pethaven.dto.AdoptionApplicationResponse;
 import com.pethaven.dto.AdoptionDecisionRequest;
 import com.pethaven.dto.AgreementRequest;
 import com.pethaven.dto.AgreementResponse;
+import com.pethaven.dto.AgreementConfirmRequest;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.ApplicationCancelRequest;
 import com.pethaven.dto.ApplicationRequest;
@@ -17,9 +18,12 @@ import com.pethaven.mapper.AdoptionMapper;
 import com.pethaven.model.enums.ApplicationStatus;
 import com.pethaven.service.AdoptionService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.net.URI;
 import java.util.List;
@@ -36,15 +40,62 @@ public class AdoptionController {
         this.adoptionMapper = adoptionMapper;
     }
 
-    @PostMapping("/applications")
-    public ResponseEntity<?> submit(@Valid @RequestBody ApplicationRequest request,
+    @PostMapping(value = "/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> submit(@Valid @ModelAttribute ApplicationRequest request,
+                                    @RequestPart("passport") MultipartFile passport,
                                     org.springframework.security.core.Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof Long candidateId)) {
             return ResponseEntity.status(401).build();
         }
-        Long id = adoptionService.submitApplication(request, candidateId);
-        return ResponseEntity.created(URI.create("/api/v1/adoptions/applications/" + id))
-                .body(ApiMessage.of("Заявка отправлена"));
+        try {
+            Long id = adoptionService.submitApplication(request, passport, candidateId);
+            return ResponseEntity.created(URI.create("/api/v1/adoptions/applications/" + id))
+                    .body(ApiMessage.of("Заявка отправлена"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/applications/{id}/passport", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> uploadPassport(@PathVariable Long id,
+                                            @RequestPart("file") MultipartFile file,
+                                            Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long candidateId)) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            String key = adoptionService.attachPassport(id, candidateId, file);
+            return ResponseEntity.ok(ApiMessage.of("Документ загружен: " + key));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/applications/{id}/passport")
+    public ResponseEntity<byte[]> downloadPassport(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+        boolean isCoordinatorOrAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
+        Long uid = authentication.getPrincipal() instanceof Long pid ? pid : null;
+        try {
+            var app = adoptionService.getApplication(id).orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
+            if (!isCoordinatorOrAdmin && (uid == null || !uid.equals(app.getCandidateId()))) {
+                return ResponseEntity.status(403).build();
+            }
+            var file = adoptionService.downloadPassport(id);
+            return ResponseEntity.ok()
+                    .header("Content-Type", file.contentType())
+                    .header("Content-Disposition", "attachment; filename=\"passport-" + id + "\"")
+                    .body(file.bytes());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/applications/cancel")
@@ -204,13 +255,18 @@ public class AdoptionController {
     }
 
     @PostMapping("/agreements")
-    public ResponseEntity<ApiMessage> complete(@Valid @RequestBody AgreementRequest request) {
+    public ResponseEntity<?> createAgreement(@Valid @RequestBody AgreementRequest request, Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ResponseEntity.status(401).build();
+        }
         try {
-            Long agreementId = adoptionService.completeAdoption(request);
-            return ResponseEntity.created(URI.create("/api/v1/adoptions/agreements/" + agreementId))
-                    .body(ApiMessage.of("Передача оформлена"));
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
+            AgreementResponse response = adoptionMapper.toAgreementResponse(adoptionService.createAgreement(request));
+            return ResponseEntity.created(URI.create("/api/v1/adoptions/agreements/" + response.id()))
+                    .body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
         }
     }
 
@@ -225,5 +281,109 @@ public class AdoptionController {
     @GetMapping("/agreements")
     public List<AgreementResponse> listAgreements() {
         return adoptionMapper.toAgreementResponses(adoptionService.getAgreements());
+    }
+
+    @GetMapping("/agreements/{id}/template")
+    public ResponseEntity<byte[]> downloadAgreementTemplate(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+        Long uid = authentication.getPrincipal() instanceof Long pid ? pid : null;
+        boolean isCoordinatorOrAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
+        var agreementOpt = adoptionService.getAgreement(id);
+        if (agreementOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
+        }
+        var agreement = agreementOpt.get();
+        var appOpt = adoptionService.getApplication(agreement.getApplicationId());
+        if (appOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
+        }
+        if (!isCoordinatorOrAdmin && (uid == null || !uid.equals(appOpt.get().getCandidateId()))) {
+            return ResponseEntity.status(403).build();
+        }
+        try {
+            var file = adoptionService.downloadAgreementFile(id, false);
+            return ResponseEntity.ok()
+                    .header("Content-Type", file.contentType())
+                    .header("Content-Disposition", "attachment; filename=\"agreement-template-" + id + ".docx\"")
+                    .body(file.bytes());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/agreements/{id}/signed")
+    public ResponseEntity<byte[]> downloadSignedAgreement(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+        Long uid = authentication.getPrincipal() instanceof Long pid ? pid : null;
+        boolean isCoordinatorOrAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
+        var agreementOpt = adoptionService.getAgreement(id);
+        if (agreementOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
+        }
+        var agreement = agreementOpt.get();
+        var appOpt = adoptionService.getApplication(agreement.getApplicationId());
+        if (appOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
+        }
+        if (!isCoordinatorOrAdmin && (uid == null || !uid.equals(appOpt.get().getCandidateId()))) {
+            return ResponseEntity.status(403).build();
+        }
+        try {
+            var file = adoptionService.downloadAgreementFile(id, true);
+            return ResponseEntity.ok()
+                    .header("Content-Type", file.contentType())
+                    .header("Content-Disposition", "attachment; filename=\"agreement-signed-" + id + ".docx\"")
+                    .body(file.bytes());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/agreements/{id}/signed", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> uploadSignedAgreement(@PathVariable Long id,
+                                                   @RequestPart("file") MultipartFile file,
+                                                   Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long candidateId)) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            AgreementResponse response = adoptionMapper.toAgreementResponse(
+                    adoptionService.uploadSignedAgreement(id, candidateId, file));
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/agreements/{id}/confirm")
+    public ResponseEntity<?> confirmAgreement(@PathVariable Long id,
+                                              @Valid @RequestBody AgreementConfirmRequest request,
+                                              Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ResponseEntity.status(401).build();
+        }
+        boolean canApprove = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
+        if (!canApprove) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Нет прав на подтверждение договора"));
+        }
+        Long coordinatorId = authentication.getPrincipal() instanceof Long pid ? pid : null;
+        try {
+            AgreementResponse response = adoptionMapper.toAgreementResponse(
+                    adoptionService.confirmAgreement(id, coordinatorId, request));
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessage.of(e.getMessage()));
+        }
     }
 }

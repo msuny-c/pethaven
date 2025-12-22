@@ -6,6 +6,12 @@ public record AgreementResponse(
         Long id,
         Long applicationId,
         LocalDate signedDate,
-        String postAdoptionPlan
+        String postAdoptionPlan,
+        String templateUrl,
+        String signedUrl,
+        java.time.OffsetDateTime generatedAt,
+        java.time.OffsetDateTime signedAt,
+        java.time.OffsetDateTime confirmedAt,
+        Long confirmedBy
 ) {
 }

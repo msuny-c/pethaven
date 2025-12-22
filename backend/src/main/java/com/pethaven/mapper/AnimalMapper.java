@@ -47,8 +47,5 @@ public interface AnimalMapper {
         if (entity.getPendingAdminReview() == null) {
             entity.setPendingAdminReview(Boolean.TRUE);
         }
-        if (entity.getReadyForAdoption() == null) {
-            entity.setReadyForAdoption(Boolean.FALSE);
-        }
     }
 }

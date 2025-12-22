@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.time.Instant;
 import java.util.List;
@@ -64,10 +65,10 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, messageOrDefault(ex, "Некорректное состояние"), request.getRequestURI());
     }
 
-    // @ExceptionHandler(IllegalArgumentException.class)
-    // public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex, HttpServletRequest request) {
-    //     return build(HttpStatus.BAD_REQUEST, messageOrDefault(ex, "Некорректный запрос"), request.getRequestURI());
-    // }
+    @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, messageOrDefault(ex, "Некорректный запрос"), request.getRequestURI());
+    }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
@@ -76,11 +77,6 @@ public class GlobalExceptionHandler {
                 : "Ошибка целостности данных";
         return build(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
     }
-
-    // @ExceptionHandler(Exception.class)
-    // public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
-    //     return build(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера", request.getRequestURI());
-    // }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, String path) {
         return build(status, message, path, null);

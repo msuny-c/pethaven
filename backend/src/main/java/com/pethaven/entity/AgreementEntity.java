@@ -28,4 +28,22 @@ public class AgreementEntity {
 
     @Column(name = "post_adoption_plan")
     private String postAdoptionPlan;
+
+    @Column(name = "template_storage_key")
+    private String templateStorageKey;
+
+    @Column(name = "signed_storage_key")
+    private String signedStorageKey;
+
+    @Column(name = "generated_at")
+    private java.time.OffsetDateTime generatedAt;
+
+    @Column(name = "signed_at")
+    private java.time.OffsetDateTime signedAt;
+
+    @Column(name = "confirmed_at")
+    private java.time.OffsetDateTime confirmedAt;
+
+    @Column(name = "confirmed_by")
+    private Long confirmedBy;
 }

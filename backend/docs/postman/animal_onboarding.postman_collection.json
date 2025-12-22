@@ -721,21 +721,42 @@
                 "key": "Authorization",
                 "value": "Bearer {{candidateToken}}",
                 "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"animalId\": {{animalId}},\n  \"reason\": \"Хочу взять домой, есть опыт\",\n  \"experience\": \"Опыт ухода за собакой 3 года\",\n  \"housing\": \"Квартира, парк рядом\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "animalId",
+                  "value": "{{animalId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "reason",
+                  "value": "Хочу взять домой, есть опыт",
+                  "type": "text"
+                },
+                {
+                  "key": "experience",
+                  "value": "Опыт ухода за собакой 3 года",
+                  "type": "text"
+                },
+                {
+                  "key": "housing",
+                  "value": "Квартира, парк рядом",
+                  "type": "text"
+                },
+                {
+                  "key": "consentGiven",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "passport",
+                  "type": "file",
+                  "src": ""
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/adoptions/applications",
@@ -764,6 +785,43 @@
               }
             }
           ]
+        },
+        {
+          "name": "Candidate uploads passport scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/adoptions/applications/{{applicationId}}/passport",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "adoptions",
+                "applications",
+                "{{applicationId}}",
+                "passport"
+              ]
+            }
+          }
         },
         {
           "name": "Candidate views own applications",
@@ -977,7 +1035,7 @@
       "name": "Adoption completion",
       "item": [
         {
-          "name": "Coordinator completes adoption (agreement)",
+          "name": "Coordinator generates agreement",
           "request": {
             "method": "POST",
             "header": [
@@ -994,7 +1052,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"applicationId\": {{applicationId}},\n  \"signedDate\": \"2024-12-21\",\n  \"postAdoptionPlan\": \"Фотоотчёт раз в 2 недели\"\n}",
+              "raw": "{\n  \"applicationId\": {{applicationId}},\n  \"postAdoptionPlan\": \"Фотоотчёт раз в 2 недели\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1013,7 +1071,18 @@
                 "agreements"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.environment.set('agreementId', json.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Vet confirms ready for adoption",
@@ -1051,6 +1120,138 @@
                 "animals",
                 "{{animalId}}",
                 "medical"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coordinator downloads agreement template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coordinatorToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/adoptions/agreements/{{agreementId}}/template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "adoptions",
+                "agreements",
+                "{{agreementId}}",
+                "template"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Candidate uploads signed agreement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/adoptions/agreements/{{agreementId}}/signed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "adoptions",
+                "agreements",
+                "{{agreementId}}",
+                "signed"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coordinator reviews signed agreement",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coordinatorToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/adoptions/agreements/{{agreementId}}/signed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "adoptions",
+                "agreements",
+                "{{agreementId}}",
+                "signed"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coordinator confirms adoption after signed agreement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{coordinatorToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"signedDate\": \"2024-12-21\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/adoptions/agreements/{{agreementId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "adoptions",
+                "agreements",
+                "{{agreementId}}",
+                "confirm"
               ]
             }
           }
@@ -1406,7 +1607,19 @@
                 "assign"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.taskId) pm.environment.set('taskId', json.taskId);",
+                  "if (json && json.shiftId) pm.environment.set('shiftId', json.shiftId);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Volunteer signs up for shift",

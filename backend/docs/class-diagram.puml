@@ -3,58 +3,292 @@ hide circle
 skinparam linetype ortho
 
 package Controller {
-  class AuthController
-  class AnimalController
-  class AdoptionController
-  class MedicalController
-  class NotificationController
-  class PersonController
-  class PostAdoptionReportController
-  class ShiftController
-  class TaskController
-  class VolunteerController
-  class MediaController
+  class AuthController {
+    +register(request)
+    +login(request)
+  }
+  class AnimalController {
+    +catalog(species,status,auth)
+    +byId(id,auth)
+    +create(request,auth)
+    +update(id,payload,auth)
+    +updateStatus(id,request,auth)
+    +review(id,approved,auth)
+    +delete(id)
+    +uploadMedia(id,file,description)
+    +addBehaviorNote(id,note,auth)
+    +updateMedical(id,payload)
+    +media(id)
+    +notes(id)
+  }
+  class AdoptionController {
+    +submit(request,passport,auth)
+    +cancel(request,auth)
+    +list(status,auth)
+    +getById(id,auth)
+    +decide(request,auth)
+    +schedule(request,auth)
+    +confirmInterview(id,auth)
+    +declineInterview(id,auth)
+    +interviewsByApp(id)
+    +allInterviews()
+    +bookSlot(request,auth)
+    +cancelSlot(request,auth)
+    +reschedule(request,auth)
+    +updateInterview(request,auth)
+    +createAgreement(request,auth)
+    +getAgreement(id)
+    +listAgreements()
+    +downloadAgreementTemplate(id,auth)
+    +downloadSignedAgreement(id,auth)
+    +uploadSignedAgreement(id,file,auth)
+    +confirmAgreement(id,request,auth)
+  }
+  class MedicalController {
+    +byAnimal(animalId)
+    +create(record,auth)
+    +upcoming(days)
+  }
+  class NotificationController {
+    +list(auth)
+    +markRead(id,auth)
+    +markAllRead(auth)
+  }
+  class PersonController {
+    +me(auth)
+    +list()
+    +updateProfile(request,auth)
+    +uploadAvatar(file,auth)
+    +deleteSelf(auth)
+    +updateUser(id,request)
+    +setActive(id,active)
+  }
+  class PostAdoptionReportController {
+    +list(auth)
+    +create(request)
+    +update(id,request,auth)
+    +submit(id,request,auth)
+    +media(id,auth)
+    +uploadMedia(id,file,description,auth)
+  }
+  class ShiftController {
+    +list(from)
+    +create(shift)
+    +signup(request,auth)
+    +volunteers(shiftId)
+    +tasks(shiftId)
+    +assignTask(request)
+    +attendance(shiftId,request)
+    +submit(shiftId,request,auth)
+    +approve(shiftId,request,auth)
+  }
+  class TaskController {
+    +list()
+    +create(request)
+    +update(id,request,auth)
+  }
+  class VolunteerController {
+    +apply(request,auth)
+    +list()
+    +decision(request)
+  }
+  class MediaController {
+    +media(key)
+  }
 }
 
 package Service {
-  class AuthService
-  class AnimalService
-  class AdoptionService
-  class MedicalService
-  class NotificationService
-  class PersonService
-  class TokenService
-  class ShiftService
-  class VolunteerService
-  class VolunteerApplicationService
-  class ObjectStorageService
-  class PostAdoptionReminderScheduler
+  class AuthService {
+    +registerCandidate(request)
+    +login(request)
+  }
+  class AnimalService {
+    +getCatalog(species,status,includePending,hideFlags,onlyAvailable)
+    +getAvailableSpecies()
+    +getById(id)
+    +getEntity(id)
+    +createAnimal(request,forcePendingReview)
+    +updateAnimal(id,payload,forcePendingReview)
+    +updateStatus(animalId,status,allowPendingReview)
+    +delete(animalId)
+    +addMedia(animalId,key,description)
+    +addBehaviorNote(animalId,note,authorId)
+    +updateMedical(id,payload)
+    +reviewAnimal(id,approved)
+    +getMedia(animalId)
+    +getNotes(animalId)
+  }
+  class AdoptionService {
+    +submitApplication(request,passport,candidateId)
+    +getApplications(status,candidateId)
+    +getApplication(id)
+    +updateStatus(request,actorId)
+    +cancelByCandidate(appId,candidateId,reason)
+    +scheduleInterview(appId,interviewerId,at)
+    +getInterviewsByApplication(id)
+    +getAllInterviews()
+    +bookSlot(request,candidateId)
+    +cancelSlot(request,candidateId,isAdmin)
+    +confirmInterview(id,candidateId)
+    +declineInterview(id,candidateId)
+    +reschedule(request,candidateId,isAdmin)
+    +updateInterview(request,uid,isAdmin)
+    +createAgreement(request)
+    +uploadSignedAgreement(id,candidateId,file)
+    +confirmAgreement(id,coordinatorId,request)
+    +downloadAgreementFile(id,signed)
+    +getAgreement(id)
+  }
+  class MedicalService {
+    +getByAnimal(animalId)
+    +addRecord(request,vetId)
+    +getUpcoming(days)
+  }
+  class NotificationService {
+    +push(personId,type,title,message)
+    +list(personId)
+    +markRead(personId,notificationId)
+    +markAllRead(personId)
+  }
+  class PersonService {
+    +getProfile(id)
+    +list()
+    +updateProfile(id,request)
+    +updateUser(id,request)
+    +setActive(id,active)
+  }
+  class TokenService {
+    +generateToken(personId)
+    +revokeTokens(personId)
+  }
+  class ShiftService {
+    +getUpcoming(from)
+    +createShift(request)
+    +signup(shiftId,volunteerId)
+    +getVolunteers(shiftId)
+    +getShiftTasks(shiftId)
+    +assignTask(request)
+    +markAttendance(shiftId,volunteerId,status,hours)
+    +submitShift(shiftId,volunteerId,hours)
+    +approveShift(shiftId,volunteerId,hours)
+  }
+  class VolunteerService {
+    +apply(personId,motivation,availability)
+    +list()
+    +setDecision(appId,status,comment)
+  }
+  class VolunteerApplicationService {
+    +apply(personId,motivation,availability)
+    +list()
+    +decide(id,status,comment,processedBy)
+  }
+  class ObjectStorageService {
+    +uploadAvatar(personId,file)
+    +uploadAnimalMedia(animalId,file)
+    +uploadReportMedia(reportId,file)
+    +uploadPassport(applicationId,file)
+    +uploadAgreementTemplate(agreementId,bytes)
+    +uploadSignedAgreement(agreementId,file)
+    +download(key)
+  }
+  class PostAdoptionReminderScheduler {
+    +run() : void
+  }
+  class PostAdoptionReportService {
+    +listForCandidate(candidateId)
+    +listAll()
+    +create(request)
+    +update(id,request,authorId)
+    +submit(id,request,candidateId)
+    +getMedia(reportId,requesterId,isCandidate)
+    +uploadMedia(reportId,file,description,candidateId)
+  }
+  class SettingService {
+    +getInt(key,default)
+    +get(key,default)
+    +set(key,value)
+    +setInt(key,value)
+    +getReportOffsetDays()
+    +getReportFillDays()
+  }
 }
 
 package Repository {
-  class AnimalRepository
-  class AnimalMediaRepository
-  class AdoptionApplicationRepository
+  class AnimalRepository {
+    +findCatalog(species,status,includePending)
+    +findAvailableSpecies()
+  }
+  class AnimalMediaRepository {
+    +findByAnimalIdOrderByUploadedAtDesc(animalId)
+  }
+  class AdoptionApplicationRepository {
+    +findByStatus(status)
+    +findByCandidateId(candidateId)
+    +existsByCandidateIdAndAnimalIdAndStatusIn(cid,aid,statuses)
+    +findActiveByCandidateId(candidateId)
+    +findActiveByCandidateIdAndStatus(candidateId,status)
+    +submit(animalId,candidateId)
+    +scheduleInterview(appId,interviewerId,at)
+  }
   class AgreementRepository
-  class InterviewRepository
-  class InterviewSlotRepository
-  class MedicalRecordRepository
+  class InterviewRepository {
+    +findByApplicationIdOrderByScheduledDatetimeDesc(appId)
+    +findAll()
+  }
+  class InterviewSlotRepository {
+    +book(slotId,appId)
+    +cancelBooking(slotId,appId)
+    +expireOld(now)
+  }
+  class MedicalRecordRepository {
+    +findByAnimalIdOrderByIdDesc(animalId)
+    +findUpcoming(toDate)
+  }
   class NotificationRepository
-  class PersonRepository
-  class PostAdoptionReportRepository
+  class PersonRepository {
+    +findActiveByRole(role)
+    +findById(id)
+  }
+  class PostAdoptionReportRepository {
+    +findVisibleDetailedByCandidate(cid)
+    +findAll()
+    +findById(id)
+    +findByIdAndCandidate(id,cid)
+    +existsByAgreementIdAndStatus(agreementId,status)
+    +findAllById(ids)
+  }
+  class ReportMediaRepository
   class RoleRepository
-  class ShiftRepository
-  class ShiftVolunteerRepository
+  class ShiftRepository {
+    +findByShiftDateGreaterThanEqualOrderByShiftDateAsc(from)
+    +signup(shiftId,volunteerId)
+  }
+  class ShiftVolunteerRepository {
+    +findByIdShiftId(shiftId)
+    +findByIdVolunteerId(volunteerId)
+  }
   class TaskRepository
-  class TaskShiftRepository
+  class TaskShiftRepository {
+    +findByIdShiftId(shiftId)
+  }
   class VolunteerMentorRepository
   class VolunteerApplicationRepository
+  class AnimalNoteRepository
 }
 
 package Security {
-  class SecurityConfig
-  class JwtService
-  class JwtAuthFilter
+  class SecurityConfig {
+    +filterChain(http)
+    +passwordEncoder()
+  }
+  class JwtService {
+    +extractUsername(token)
+    +isTokenValid(token,userDetails)
+    +generateToken(userDetails)
+  }
+  class JwtAuthFilter {
+    +doFilterInternal(req,res,chain)
+  }
   class OpenApiConfig
   class CorsConfig
   class StaticResourceConfig
@@ -62,23 +296,153 @@ package Security {
 
 class PetHavenApplication
 
-class PersonEntity
-class RoleEntity
-class AnimalEntity
-class AnimalMediaEntity
-class MedicalRecordEntity
-class AdoptionApplicationEntity
-class InterviewSlotEntity
-class InterviewEntity
-class AgreementEntity
-class PostAdoptionReportEntity
-class VolunteerApplicationEntity
-class VolunteerMentorEntity
-class ShiftEntity
-class ShiftVolunteerEntity
-class TaskEntity
-class TaskShiftEntity
-class NotificationEntity
+class PersonEntity {
+  -id: Long
+  -email: String
+  -password: String
+  -firstName: String
+  -lastName: String
+  -phoneNumber: String
+  -active: Boolean
+}
+class RoleEntity {
+  -id: Long
+  -name: String
+}
+class AnimalEntity {
+  -id: Long
+  -name: String
+  -species: String
+  -breed: String
+  -ageMonths: Integer
+  -gender: String
+  -description: String
+  -readyForAdoption: Boolean
+  -status: AnimalStatus
+  -pendingAdminReview: Boolean
+}
+class AnimalMediaEntity {
+  -id: Long
+  -animal: AnimalEntity
+  -storageKey: String
+  -description: String
+  -uploadedAt: java.time.OffsetDateTime
+}
+class MedicalRecordEntity {
+  -id: Long
+  -animalId: Long
+  -vetId: Long
+  -procedure: String
+  -description: String
+  -nextDueDate: java.time.LocalDate
+}
+class AdoptionApplicationEntity {
+  -id: Long
+  -animalId: Long
+  -candidateId: Long
+  -reason: String
+  -experience: String
+  -housing: String
+  -consentGiven: Boolean
+  -passportKey: String
+  -status: ApplicationStatus
+  -decisionComment: String
+  -processedBy: Long
+  -createdAt: java.time.OffsetDateTime
+}
+class InterviewSlotEntity {
+  -id: Long
+  -interviewerId: Long
+  -scheduledDatetime: java.time.OffsetDateTime
+  -status: com.pethaven.model.enums.InterviewSlotStatus
+}
+class InterviewEntity {
+  -id: Long
+  -applicationId: Long
+  -interviewerId: Long
+  -scheduledDatetime: java.time.OffsetDateTime
+  -status: InterviewStatus
+  -coordinatorNotes: String
+  -processedBy: Long
+}
+class AgreementEntity {
+  -id: Long
+  -applicationId: Long
+  -signedDate: java.time.LocalDate
+  -postAdoptionPlan: String
+  -templateStorageKey: String
+  -signedStorageKey: String
+  -generatedAt: java.time.OffsetDateTime
+  -signedAt: java.time.OffsetDateTime
+  -confirmedAt: java.time.OffsetDateTime
+  -confirmedBy: Long
+}
+class PostAdoptionReportEntity {
+  -id: Long
+  -agreementId: Long
+  -dueDate: java.time.LocalDate
+  -reportText: String
+  -volunteerFeedback: String
+  -submittedDate: java.time.LocalDate
+  -status: com.pethaven.model.enums.ReportStatus
+  -commentAuthorId: Long
+}
+class VolunteerApplicationEntity {
+  -id: Long
+  -personId: Long
+  -motivation: String
+  -availability: String
+  -status: com.pethaven.model.enums.VolunteerApplicationStatus
+  -decisionComment: String
+}
+class VolunteerMentorEntity {
+  -id: Long
+  -mentorId: Long
+  -volunteerId: Long
+}
+class ShiftEntity {
+  -id: Long
+  -shiftDate: java.time.LocalDate
+  -shiftType: com.pethaven.model.enums.ShiftType
+}
+class ShiftVolunteerEntity {
+  -id: ShiftVolunteerId
+  -attendanceStatus: com.pethaven.model.enums.AttendanceStatus
+  -submittedAt: java.time.OffsetDateTime
+  -approvedAt: java.time.OffsetDateTime
+  -workedHours: Integer
+  -signedUpAt: java.time.OffsetDateTime
+}
+class TaskEntity {
+  -id: Long
+  -title: String
+  -description: String
+  -animalId: Long
+  -status: com.pethaven.model.enums.TaskStatus
+  -estimatedShifts: Integer
+  -dueDate: java.time.LocalDate
+  -updatedAt: java.time.OffsetDateTime
+}
+class TaskShiftEntity {
+  -id: TaskShiftId
+  -progressNotes: String
+}
+class NotificationEntity {
+  -id: Long
+  -personId: Long
+  -type: com.pethaven.model.enums.NotificationType
+  -title: String
+  -message: String
+  -read: Boolean
+  -createdAt: java.time.OffsetDateTime
+}
+class AnimalNoteEntity {
+  -id: Long
+  -animalId: Long
+  -authorId: Long
+  -note: String
+  -createdAt: java.time.OffsetDateTime
+}
 
 PetHavenApplication --> AuthController
 PetHavenApplication --> AnimalController
@@ -92,7 +456,7 @@ MedicalController --> MedicalService
 NotificationController --> NotificationService
 PersonController --> PersonService
 PersonController --> ObjectStorageService
-PostAdoptionReportController --> PostAdoptionReportRepository
+PostAdoptionReportController --> PostAdoptionReportService
 ShiftController --> ShiftService
 TaskController --> TaskRepository
 VolunteerController --> VolunteerService
@@ -120,6 +484,14 @@ ShiftService --> TaskShiftRepository
 VolunteerService --> VolunteerMentorRepository
 VolunteerApplicationService --> VolunteerApplicationRepository
 PostAdoptionReminderScheduler --> PostAdoptionReportRepository
+PostAdoptionReportService --> PostAdoptionReportRepository
+PostAdoptionReportService --> ReportMediaRepository
+PostAdoptionReportService --> ObjectStorageService
+PostAdoptionReportService --> SettingService
+PostAdoptionReportService --> NotificationService
+PostAdoptionReportService --> PersonRepository
+AdoptionService --> PostAdoptionReportService
+AnimalService --> AnimalNoteRepository
 
 PersonEntity "many" -- "many" RoleEntity : roles
 VolunteerApplicationEntity "1" -- "1" PersonEntity : applicant
@@ -138,6 +510,7 @@ TaskShiftEntity "many" -- "1" ShiftEntity
 ShiftVolunteerEntity "many" -- "1" ShiftEntity
 ShiftVolunteerEntity "many" -- "1" PersonEntity : volunteer
 NotificationEntity "many" -- "1" PersonEntity
+AnimalNoteEntity "many" -- "1" AnimalEntity
 
 SecurityConfig ..> JwtAuthFilter
 JwtAuthFilter ..> JwtService

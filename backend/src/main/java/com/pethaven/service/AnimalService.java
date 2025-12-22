@@ -50,9 +50,23 @@ public class AnimalService {
         this.animalNoteMapper = animalNoteMapper;
     }
 
-    public List<AnimalResponse> getCatalog(String species, AnimalStatus status, boolean includePending) {
+    public List<AnimalResponse> getCatalog(String species, AnimalStatus status, boolean includePending, boolean hideInternalFlags, boolean onlyAvailable) {
         List<AnimalEntity> animals = animalRepository.findCatalog(species, status == null ? null : status.name(), includePending);
-        return animalMapper.toResponses(animals);
+        List<AnimalResponse> responses = animalMapper.toResponses(animals);
+        if (!includePending) {
+            responses = responses.stream()
+                    .filter(a -> a.pendingAdminReview() == null || !a.pendingAdminReview())
+                    .toList();
+        }
+        if (onlyAvailable) {
+            responses = responses.stream()
+                    .filter(a -> a.status() == AnimalStatus.available)
+                    .toList();
+        }
+        if (hideInternalFlags) {
+            responses = responses.stream().map(this::sanitizeForCandidate).toList();
+        }
+        return responses;
     }
 
     public List<String> getAvailableSpecies() {
@@ -63,16 +77,37 @@ public class AnimalService {
         return animalRepository.findById(id).map(animalMapper::toResponse);
     }
 
-    public Long createAnimal(AnimalCreateRequest request, boolean forcePendingReview) {
+    public Optional<AnimalEntity> getEntity(Long id) {
+        return animalRepository.findById(id);
+    }
+
+    private AnimalResponse sanitizeForCandidate(AnimalResponse response) {
+        return new AnimalResponse(
+                response.id(),
+                response.name(),
+                response.species(),
+                response.breed(),
+                response.ageMonths(),
+                response.gender(),
+                response.description(),
+                response.status(),
+                null,
+                null
+        );
+    }
+
+    public AnimalResponse createAnimal(AnimalCreateRequest request, boolean forcePendingReview) {
         AnimalEntity animal = animalMapper.toEntity(request);
         if (!forcePendingReview && animal.getStatus() == com.pethaven.model.enums.AnimalStatus.pending_review) {
             throw new IllegalArgumentException("Статус 'на проверке' устанавливается автоматически администратором");
         }
         animal.setPendingAdminReview(Boolean.TRUE);
-        animal.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
+        if (animal.getStatus() == null) {
+            animal.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
+        }
         AnimalEntity saved = animalRepository.save(animal);
         notifyAdminsPendingReview(saved);
-        return saved.getId();
+        return animalMapper.toResponse(saved);
     }
 
     @Transactional
