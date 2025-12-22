@@ -48,9 +48,9 @@ media:
   proxy-base: /api/v1/media
 
 storage:
-  bucket: ${STORAGE_BUCKET:pethaven}
-  endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
-  region: ${STORAGE_REGION:us-east-1}
-  access-key: ${STORAGE_ACCESS_KEY:minioadmin}
-  secret-key: ${STORAGE_SECRET_KEY:minioadmin}
-  public-url: ${STORAGE_PUBLIC_URL:http://localhost:9000/pethaven}
+  bucket: ${MINIO_BUCKET:pethaven}
+  endpoint: ${MINIO_URL:http://localhost:9000}
+  region: ${MINIO_REGION:us-east-1}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  public-url: ${MINIO_PUBLIC_URL:${MINIO_URL}/pethaven}
