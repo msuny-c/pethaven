@@ -75,8 +75,23 @@ export async function updateAnimalMedical(id: number, payload: { readyForAdoptio
   return data;
 }
 
-export async function submitApplication(animalId: number, details?: { reason?: string; experience?: string; housing?: string; }): Promise<boolean> {
-  await api.post('/adoptions/applications', { animalId, reason: details?.reason, experience: details?.experience, housing: details?.housing });
+export async function submitApplication(
+  animalId: number,
+  details: { reason?: string; experience?: string; housing?: string },
+  passportFile: File,
+  consentGiven = true
+): Promise<boolean> {
+  const formData = new FormData();
+  formData.append('animalId', String(animalId));
+  if (details?.reason) formData.append('reason', details.reason);
+  if (details?.experience) formData.append('experience', details.experience);
+  if (details?.housing) formData.append('housing', details.housing);
+  formData.append('consentGiven', consentGiven ? 'true' : 'false');
+  formData.append('passport', passportFile);
+
+  await api.post('/adoptions/applications', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
   return true;
 }
 
@@ -92,6 +107,21 @@ export async function getApplicationById(id: number): Promise<Application> {
 
 export async function updateApplicationStatus(applicationId: number, status: ApplicationStatus, decisionComment: string) {
   return api.patch('/adoptions/applications/status', { applicationId, status, decisionComment });
+}
+
+export async function uploadPassport(applicationId: number, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  await api.post(`/adoptions/applications/${applicationId}/passport`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+}
+
+export async function downloadPassport(applicationId: number): Promise<Blob> {
+  const { data } = await api.get(`/adoptions/applications/${applicationId}/passport`, {
+    responseType: 'blob'
+  });
+  return data;
 }
 
 export async function getNotifications(): Promise<Notification[]> {
@@ -250,12 +280,41 @@ export async function getAgreements(): Promise<Agreement[]> {
   return data;
 }
 
-export async function completeTransfer(applicationId: number, plan: string, signedDate: string) {
-  await api.post('/adoptions/agreements', {
+export async function createAgreement(applicationId: number, postAdoptionPlan: string, signedDate?: string) {
+  const { data } = await api.post<Agreement>('/adoptions/agreements', {
     applicationId,
-    postAdoptionPlan: plan,
+    postAdoptionPlan,
     signedDate
   });
+  return data;
+}
+
+export async function uploadSignedAgreement(agreementId: number, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<Agreement>(`/adoptions/agreements/${agreementId}/signed`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return data;
+}
+
+export async function confirmAgreement(agreementId: number, signedDate: string) {
+  const { data } = await api.post<Agreement>(`/adoptions/agreements/${agreementId}/confirm`, { signedDate });
+  return data;
+}
+
+export async function downloadAgreementTemplate(agreementId: number): Promise<Blob> {
+  const { data } = await api.get(`/adoptions/agreements/${agreementId}/template`, { responseType: 'blob' });
+  return data;
+}
+
+export async function downloadSignedAgreement(agreementId: number): Promise<Blob> {
+  const { data } = await api.get(`/adoptions/agreements/${agreementId}/signed`, { responseType: 'blob' });
+  return data;
+}
+
+export async function completeTransfer(applicationId: number, plan: string, signedDate: string) {
+  return createAgreement(applicationId, plan, signedDate);
 }
 
 export async function getInterviews(applicationId: number): Promise<Interview[]> {

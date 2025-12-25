@@ -97,7 +97,9 @@ export function CoordinatorAnimals() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredAnimals.map((animal) => (
+            {filteredAnimals.map((animal) => {
+            const isAdopted = animal.status === 'adopted';
+            return (
               <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
@@ -126,17 +128,25 @@ export function CoordinatorAnimals() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="space-y-2">
-                    <select
-                      className="rounded-lg border border-amber-200 bg-white text-sm text-gray-700 px-3 py-1.5"
-                      value={animal.status}
-                      onChange={(e) => handleStatusChange(animal.id, e.target.value as Animal['status'])}
-                    >
-                      {STATUS_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    {isAdopted ? (
+                      <>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                          Пристроен
+                        </span>
+                      </>
+                    ) : (
+                      <select
+                        className="rounded-lg border border-amber-200 bg-white text-sm text-gray-700 px-3 py-1.5"
+                        value={animal.status}
+                        onChange={(e) => handleStatusChange(animal.id, e.target.value as Animal['status'])}
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {animal.pendingAdminReview && (
                       <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
                         На проверке
@@ -150,7 +160,8 @@ export function CoordinatorAnimals() {
                   </Link>
                 </td>
               </tr>
-            ))}
+            );
+          })}
           </tbody>
         </table>
       </div>

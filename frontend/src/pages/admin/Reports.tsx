@@ -28,15 +28,34 @@ export function AdminReports() {
     return ((adopted / animals.length) * 100).toFixed(0);
   }, [animals]);
 
-  const statsAnimals = useMemo(
-    () => ({
+  const statsAnimals = useMemo(() => {
+    const translate = (status: Animal['status']) => {
+      switch (status) {
+        case 'available':
+          return 'Доступен';
+        case 'quarantine':
+          return 'Карантин';
+        case 'reserved':
+          return 'Зарезервирован';
+        case 'adopted':
+          return 'Пристроен';
+        default:
+          return status;
+      }
+    };
+    const counts: Record<string, number> = {};
+    animals.forEach((a) => {
+      const key = translate(a.status);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return {
       available: animals.filter((a) => a.status === 'available').length,
       quarantine: animals.filter((a) => a.status === 'quarantine').length,
       reserved: animals.filter((a) => a.status === 'reserved').length,
-      adopted: animals.filter((a) => a.status === 'adopted').length
-    }),
-    [animals]
-  );
+      adopted: animals.filter((a) => a.status === 'adopted').length,
+      labels: counts
+    };
+  }, [animals]);
 
   const statsApplications = useMemo(
     () => ({
@@ -82,7 +101,7 @@ export function AdminReports() {
           <div className="space-y-4">
             {[
               { label: 'Доступны для адопции', value: statsAnimals.available, color: 'bg-green-500' },
-              { label: 'На карантине', value: statsAnimals.quarantine, color: 'bg-red-500' },
+              { label: 'Карантин', value: statsAnimals.quarantine, color: 'bg-red-500' },
               { label: 'Зарезервированы', value: statsAnimals.reserved, color: 'bg-amber-500' },
               { label: 'Пристроены', value: statsAnimals.adopted, color: 'bg-blue-500' }
             ].map((stat, i) => (

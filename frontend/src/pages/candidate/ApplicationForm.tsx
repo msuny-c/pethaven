@@ -21,6 +21,9 @@ export function CandidateApplicationForm() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -38,18 +41,32 @@ export function CandidateApplicationForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setError(null);
+    if (!passportFile) {
+      setError('Загрузите скан паспорта (PDF или изображение)');
+      return;
+    }
+    if (!consentAccepted) {
+      setError('Подтвердите согласие на обработку персональных данных');
+      return;
+    }
     setSending(true);
     try {
       await submitApplication(animal.id, {
         reason: formData.reason,
         experience: formData.experience,
         housing: formData.housing
-      });
+      }, passportFile, true);
       setSubmitted(true);
       setTimeout(() => navigate('/candidate/applications'), 2000);
-    } catch {
+    } catch (err: any) {
+      const message: string = err?.response?.data?.message || 'Не удалось отправить заявку';
+      if (message.toLowerCase().includes('активная заявка')) {
+        setError('У вас уже есть активная заявка на этого питомца. Дождитесь решения или отмените прежнюю.');
+      } else {
+        setError(message);
+      }
       setSending(false);
-      alert('Не удалось отправить заявку');
     }
   };
   if (submitted) {
@@ -88,6 +105,45 @@ export function CandidateApplicationForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-gray-900">
+                Документы
+              </h4>
+              <div className="border-2 border-dashed border-amber-200 rounded-xl bg-amber-50/40 p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <p className="font-semibold text-gray-900">Скан паспорта</p>
+                    <p className="text-sm text-gray-600">
+                      Загрузите разворот с фото (PDF или изображение, до 15 МБ)
+                    </p>
+                    {passportFile && <p className="text-xs text-amber-600 mt-2">Файл: {passportFile.name}</p>}
+                  </div>
+                  <div className="px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm font-medium text-amber-600 shadow-sm hover:border-amber-300">
+                    Выбрать файл
+                  </div>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 15 * 1024 * 1024) {
+                    setError('Файл больше 15 МБ. Выберите другой.');
+                    return;
+                  }
+                  setPassportFile(file);
+                  setError(null);
+                }} />
+                </label>
+              </div>
+              <label className="flex items-start space-x-3 bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)} className="mt-1 w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500" />
+                <span className="text-sm text-gray-700">
+                  Даю согласие на обработку персональных данных и загрузку паспорта для оформления договора адопции
+                </span>
+              </label>
+              {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                  {error}
+                </div>}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Жилищные условия <span className="text-red-500">*</span>

@@ -12,6 +12,11 @@ public record AgreementResponse(
         java.time.OffsetDateTime generatedAt,
         java.time.OffsetDateTime signedAt,
         java.time.OffsetDateTime confirmedAt,
-        Long confirmedBy
+        Long confirmedBy,
+        Long coordinatorId,
+        String coordinatorFirstName,
+        String coordinatorLastName,
+        String coordinatorPhone,
+        String coordinatorAvatar
 ) {
 }

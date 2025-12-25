@@ -31,6 +31,7 @@ export function AnimalModal({
     },
     photos: []
   });
+  const statusLocked = initialData?.status === 'adopted';
   if (!isOpen) return null;
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <motion.div initial={{
@@ -127,7 +128,11 @@ export function AnimalModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Статус
                 </label>
-                <select className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.status} onChange={e => setFormData({
+                <select
+                  className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
+                  value={formData.status}
+                  disabled={statusLocked}
+                  onChange={e => setFormData({
               ...formData,
               status: e.target.value as any
             })}>
@@ -137,6 +142,9 @@ export function AnimalModal({
                   <option value="adopted">Усыновлен</option>
                   <option value="not_available">Недоступен</option>
                 </select>
+                {statusLocked && (
+                  <p className="text-xs text-gray-500 mt-1">Статус «Пристроен» зафиксирован и не редактируется</p>
+                )}
               </div>
 
               <div>

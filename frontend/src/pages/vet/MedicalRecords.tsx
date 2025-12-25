@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Plus, Calendar, Stethoscope, PawPrint, User, Heart, CheckCircle, AlertCircle } from 'lucide-react';
 import { MedicalRecord, Animal } from '../../types';
-import { getAnimal, getMedicalRecords, updateAnimalMedical } from '../../services/api';
+import { createMedicalRecord, getAnimal, getMedicalRecords, updateAnimalMedical } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function VetMedicalRecords() {
@@ -16,23 +16,26 @@ export function VetMedicalRecords() {
   const [error, setError] = useState<string | null>(null);
   const { primaryRole } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [readyLocally, setReadyLocally] = useState(false);
+  const [newRecord, setNewRecord] = useState({ procedure: '', description: '', nextDueDate: '' });
 
   useEffect(() => {
     if (animalId) {
       const idNum = Number(animalId);
       (async () => {
-        try {
-          const animal = await getAnimal(idNum);
-          if (animal) {
-            setAnimal(animal);
-            setAnimalName(animal.name);
-            setAnimalBreed(animal.breed || '');
-            setAnimalPhoto((animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80');
-          }
-          const recs = await getMedicalRecords(idNum);
-          setRecords(recs);
-        } catch {
-          setRecords([]);
+      try {
+        const animal = await getAnimal(idNum);
+        if (animal) {
+          setAnimal(animal);
+          setAnimalName(animal.name);
+          setAnimalBreed(animal.breed || '');
+          setAnimalPhoto((animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80');
+          setReadyLocally(!!(animal.readyForAdoption || animal.medical?.readyForAdoption));
+        }
+        const recs = await getMedicalRecords(idNum);
+        setRecords(recs);
+      } catch {
+        setRecords([]);
           setError('Не удалось загрузить медкарту. Проверьте права доступа.');
         }
       })();
@@ -59,18 +62,10 @@ export function VetMedicalRecords() {
     );
   }
 
-  const readyForAdoption = animal?.readyForAdoption || animal?.medical?.readyForAdoption;
+  const readyForAdoption = !!(readyLocally || animal?.readyForAdoption || animal?.medical?.readyForAdoption);
 
   return (
-    <DashboardLayout
-      title={`Медкарта: ${animalName || `Животное #${animalId}`}`}
-      actions={
-        <div className="flex items-center space-x-2">
-          <Plus className="w-4 h-4 text-amber-600" />
-          <span className="text-sm text-gray-700">Медкарта</span>
-        </div>
-      }
-    >
+    <DashboardLayout title={`Медкарта: ${animalName || `Животное #${animalId}`}`}>
       {error && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
           {error}
@@ -121,10 +116,18 @@ export function VetMedicalRecords() {
                         <Stethoscope className="w-5 h-5 text-amber-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1">
                             <h4 className="font-bold text-gray-900">{record.procedure}</h4>
                             <p className="text-sm text-gray-600">{record.description}</p>
+                            {record.vetId && (
+                              <button
+                                onClick={() => window.open(`/veterinar/profile/${record.vetId}`, '_self')}
+                                className="text-xs text-amber-700 hover:underline font-semibold inline-flex items-center gap-1"
+                              >
+                                Провёл: {record.vetFirstName || record.vetLastName ? `${record.vetFirstName || ''} ${record.vetLastName || ''}`.trim() : `Ветеринар #${record.vetId}`}
+                              </button>
+                            )}
                           </div>
                           {record.nextDueDate && (
                             <div className="text-sm text-gray-500 flex items-center">
@@ -144,12 +147,8 @@ export function VetMedicalRecords() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-          <Plus className="w-4 h-4 mr-2 text-amber-500" />
-          Готовность к передаче
-        </h3>
-        <div className="flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
           <div className="flex items-center gap-3">
             {readyForAdoption ? (
               <CheckCircle className="w-6 h-6 text-green-500" />
@@ -157,9 +156,7 @@ export function VetMedicalRecords() {
               <AlertCircle className="w-6 h-6 text-amber-500" />
             )}
             <div>
-              <div className="font-semibold text-gray-900">
-                {readyForAdoption ? 'Подтверждено' : 'Требуется подтверждение'}
-              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Готовность к передаче</h3>
               <div className="text-sm text-gray-600">
                 Ветеринар отмечает готовность питомца к передаче.
               </div>
@@ -167,7 +164,7 @@ export function VetMedicalRecords() {
           </div>
           <button
             type="button"
-            disabled={readyForAdoption || saving || !animalId}
+            disabled={!!readyForAdoption || saving || !animalId}
             onClick={async () => {
               if (!animalId) return;
               setSaving(true);
@@ -175,15 +172,108 @@ export function VetMedicalRecords() {
                 await updateAnimalMedical(Number(animalId), { readyForAdoption: true });
                 const animalUpdated = await getAnimal(Number(animalId));
                 setAnimal(animalUpdated);
+                setReadyLocally(true);
               } catch {
                 setError('Не удалось обновить статус готовности');
               } finally {
                 setSaving(false);
               }
             }}
-            className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
+            className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold ${
+              readyForAdoption
+                ? 'bg-green-50 text-green-700 border border-green-100 cursor-not-allowed'
+                : 'bg-amber-500 text-white hover:bg-amber-600'
+            } disabled:opacity-60`}
           >
-            Подтвердить готовность
+            {readyForAdoption ? 'Готовность подтверждена' : saving ? 'Подтверждаем...' : 'Подтвердить готовность'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-amber-50 via-white to-white rounded-xl shadow-sm border border-amber-100 p-6">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center">
+            <Plus className="w-4 h-4 text-amber-600 mr-2" />
+            <h3 className="font-bold text-gray-900">Новая процедура</h3>
+          </div>
+          <span className="text-xs text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-3 py-1">
+            Заполняется только ветеринаром
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="md:col-span-2">
+            <label className="text-sm text-gray-700 block mb-1">Процедура *</label>
+            <input
+              type="text"
+              value={newRecord.procedure}
+              onChange={(e) => setNewRecord((prev) => ({ ...prev, procedure: e.target.value }))}
+              className="w-full rounded-lg border border-amber-200 bg-white focus:ring-amber-500 focus:border-amber-500 px-3 py-2"
+              placeholder="Осмотр, прививка, обработка..."
+              required
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm text-gray-700 block mb-1">Описание *</label>
+            <textarea
+              rows={2}
+              value={newRecord.description}
+              onChange={(e) => setNewRecord((prev) => ({ ...prev, description: e.target.value }))}
+              className="w-full rounded-lg border border-amber-200 bg-white focus:ring-amber-500 focus:border-amber-500 px-3 py-2"
+              placeholder="Кратко: препараты, реакции, рекомендации..."
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Следующая дата</label>
+            <input
+              type="date"
+              value={newRecord.nextDueDate}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setNewRecord((prev) => ({ ...prev, nextDueDate: e.target.value }))}
+              className="w-full rounded-lg border border-amber-200 bg-white focus:ring-amber-500 focus:border-amber-500 px-3 py-2"
+            />
+            <p className="text-xs text-gray-500 mt-1">Нельзя ставить дату в прошлом</p>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={async () => {
+              if (!animalId || !newRecord.description.trim() || !newRecord.procedure.trim()) {
+                setError('Заполните процедуру и описание');
+                return;
+              }
+              if (newRecord.nextDueDate) {
+                const selected = new Date(newRecord.nextDueDate).setHours(0, 0, 0, 0);
+                const today = new Date().setHours(0, 0, 0, 0);
+                if (selected < today) {
+                  setError('Дата следующей процедуры не может быть в прошлом');
+                  return;
+                }
+              }
+              setSaving(true);
+              try {
+                await createMedicalRecord({
+                  animalId: Number(animalId),
+                  procedure: newRecord.procedure.trim(),
+                  description: newRecord.description.trim(),
+                  nextDueDate: newRecord.nextDueDate || undefined
+                });
+                const animalUpdated = await getAnimal(Number(animalId));
+                setAnimal(animalUpdated);
+                const recs = await getMedicalRecords(Number(animalId));
+                setRecords(recs);
+                setNewRecord({ procedure: '', description: '', nextDueDate: '' });
+                setError(null);
+              } catch {
+                setError('Не удалось добавить процедуру');
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="px-5 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 disabled:opacity-50 shadow-sm"
+            disabled={saving}
+          >
+            Сохранить процедуру
           </button>
         </div>
       </div>

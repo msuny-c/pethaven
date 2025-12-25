@@ -13,6 +13,9 @@ export function AdoptionForm() {
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const {
     user,
     authenticate
@@ -29,9 +32,18 @@ export function AdoptionForm() {
   });
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!id) return;
     if (!user && (!form.email || !form.password || !form.firstName || !form.lastName)) {
       alert('Заполните контактные данные и пароль для регистрации');
+      return;
+    }
+    if (!passportFile) {
+      setError('Загрузите скан паспорта (PDF или фото)');
+      return;
+    }
+    if (!consentAccepted) {
+      setError('Подтвердите согласие на обработку персональных данных');
       return;
     }
     setSending(true);
@@ -51,14 +63,18 @@ export function AdoptionForm() {
         reason: form.reason,
         experience: form.experience,
         housing: form.housing
-      });
+      }, passportFile, true);
       setSubmitted(true);
       window.scrollTo(0, 0);
       setTimeout(() => navigate('/candidate/applications'), 800);
     } catch (err: any) {
       console.error(err);
-      const message = err?.response?.data?.message || 'Не удалось отправить заявку. Попробуйте позже.';
-      alert(message);
+      const message: string = err?.response?.data?.message || 'Не удалось отправить заявку. Попробуйте позже.';
+      if (message.toLowerCase().includes('активная заявка')) {
+        setError('У вас уже есть активная заявка на этого питомца. Дождитесь решения или отмените прежнюю.');
+      } else {
+        setError(message);
+      }
     } finally {
       setSending(false);
     }
@@ -162,13 +178,52 @@ export function AdoptionForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Пароль для входа
                   </label>
-                  <input required type="password" value={form.password} onChange={e => setForm(prev => ({
+              <input required type="password" value={form.password} onChange={e => setForm(prev => ({
                 ...prev,
                 password: e.target.value
               }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" />
                   <p className="text-xs text-gray-500 mt-1">Используется для входа в личный кабинет кандидата.</p>
                 </div>
               </div>}
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 border-b pb-2 pt-4">
+                Документы
+              </h3>
+              <div className="border-2 border-dashed border-amber-200 rounded-xl bg-amber-50/40 p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <p className="font-semibold text-gray-900">Скан паспорта</p>
+                    <p className="text-sm text-gray-600">
+                      Загрузите разворот с фото (PDF или изображение, до 15 МБ)
+                    </p>
+                    {passportFile && <p className="text-xs text-amber-600 mt-2">Файл: {passportFile.name}</p>}
+                  </div>
+                  <div className="px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm font-medium text-amber-600 shadow-sm hover:border-amber-300">
+                    Выбрать файл
+                  </div>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 15 * 1024 * 1024) {
+                    setError('Файл больше 15 МБ. Выберите другой.');
+                    return;
+                  }
+                  setPassportFile(file);
+                  setError(null);
+                }} />
+                </label>
+              </div>
+              <label className="flex items-start space-x-3 bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)} className="mt-1 w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500" />
+                <span className="text-sm text-gray-700">
+                  Даю согласие на обработку персональных данных и загрузку паспорта для оформления договора адопции
+                </span>
+              </label>
+              {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                  {error}
+                </div>}
+            </div>
 
             {/* Living Conditions */}
             <div className="space-y-4">
@@ -223,8 +278,9 @@ export function AdoptionForm() {
                 {sending ? 'Отправляем...' : 'Отправить заявку'}
               </button>
               <p className="text-xs text-gray-500 text-center mt-4">
-                Нажимая кнопку, вы соглашаетесь с обработкой персональных данных
+                Паспорт и согласие обязательны для подготовки договора адопции
               </p>
+              {error && <p className="text-sm text-red-600 text-center mt-2">{error}</p>}
             </div>
           </form>
         </div>

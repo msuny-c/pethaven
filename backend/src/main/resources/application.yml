@@ -20,6 +20,10 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     schemas: s408194
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 20MB
 
 logging:
   level:
@@ -49,7 +53,7 @@ media:
 
 storage:
   bucket: ${MINIO_BUCKET:pethaven}
-  endpoint: ${MINIO_URL:http://localhost:9000}
+  endpoint: ${MINIO_URL:http://localhost:37000}
   region: ${MINIO_REGION:us-east-1}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}

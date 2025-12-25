@@ -56,7 +56,8 @@ export function CoordinatorPostAdoption() {
         reportsData.map(async (r) => {
           try {
             const media = await getReportMedia(r.id);
-            return [r.id, media] as const;
+            const normalized = media.map((m: any) => ({ ...m, url: m.url || m.fileUrl }));
+            return [r.id, normalized] as const;
           } catch {
             return [r.id, []] as const;
           }
@@ -72,7 +73,7 @@ export function CoordinatorPostAdoption() {
   const stats = useMemo(() => {
     return {
       pending: reports.filter((r) => r.status === 'pending').length,
-      submitted: reports.filter((r) => r.status === 'submitted').length,
+      submitted: reports.filter((r) => r.status === 'submitted' || r.status === 'reviewed').length,
       overdue: reports.filter((r) => r.status === 'overdue').length
     };
   }, [reports]);
@@ -116,7 +117,6 @@ export function CoordinatorPostAdoption() {
               <th className="px-6 py-3">Животное</th>
               <th className="px-6 py-3">Усыновитель</th>
               <th className="px-6 py-3">Срок сдачи</th>
-              <th className="px-6 py-3">План</th>
               <th className="px-6 py-3">Статус</th>
               <th className="px-6 py-3 text-right">Действия</th>
             </tr>
@@ -167,20 +167,17 @@ export function CoordinatorPostAdoption() {
                       {report.dueDate}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
-                    {agreement?.postAdoptionPlan || '—'}
-                  </td>
               <td className="px-6 py-4">
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    report.status === 'submitted'
+                    report.status === 'submitted' || report.status === 'reviewed'
                       ? 'bg-green-100 text-green-800'
                           : isOverdue
                             ? 'bg-red-100 text-red-800'
                             : 'bg-amber-100 text-amber-800'
                       }`}
                 >
-                  {report.status === 'submitted'
+                  {report.status === 'submitted' || report.status === 'reviewed'
                     ? 'Получено'
                     : isOverdue
                       ? 'Просрочено'

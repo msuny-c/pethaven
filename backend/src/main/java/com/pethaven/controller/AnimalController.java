@@ -46,12 +46,20 @@ public class AnimalController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        boolean isVet = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_VETERINAR"));
         boolean isCandidate = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_CANDIDATE"));
         boolean includePending = isAdmin || isCoordinator;
         boolean hideInternalFlags = isCandidate || authentication == null;
         boolean onlyAvailable = authentication == null;
-        return animalService.getCatalog(species, status, includePending, hideInternalFlags, onlyAvailable);
+        List<AnimalResponse> responses = animalService.getCatalog(species, status, includePending, hideInternalFlags, onlyAvailable);
+        if (isVet) {
+            responses = responses.stream()
+                    .filter(a -> a.status() != AnimalStatus.adopted)
+                    .toList();
+        }
+        return responses;
     }
 
     @GetMapping("/species")
@@ -63,16 +71,22 @@ public class AnimalController {
     public ResponseEntity<AnimalResponse> byId(@PathVariable Long id, Authentication authentication) {
         boolean isAdminOrCoordinator = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_COORDINATOR"));
+        boolean isVet = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_VETERINAR"));
+        boolean canSeeInternal = isAdminOrCoordinator || isVet;
         Optional<AnimalEntity> entityOpt = animalService.getEntity(id);
         if (entityOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         AnimalEntity entity = entityOpt.get();
-        if (!isAdminOrCoordinator && Boolean.TRUE.equals(entity.getPendingAdminReview())) {
+        if (isVet && entity.getStatus() == AnimalStatus.adopted) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!canSeeInternal && Boolean.TRUE.equals(entity.getPendingAdminReview())) {
             return ResponseEntity.notFound().build();
         }
         AnimalResponse response = animalMapper.toResponse(entity);
-        if (!isAdminOrCoordinator) {
+        if (!canSeeInternal) {
             response = sanitizeForCandidate(response);
         }
         return ResponseEntity.ok(response);

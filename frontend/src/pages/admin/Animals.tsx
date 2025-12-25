@@ -68,6 +68,34 @@ export function AdminAnimals() {
       }
     }
   };
+  const translateStatus = (status: Animal['status']) => {
+    switch (status) {
+      case 'available':
+        return 'Доступен';
+      case 'quarantine':
+        return 'Карантин';
+      case 'reserved':
+        return 'Зарезервирован';
+      case 'adopted':
+        return 'Пристроен';
+      default:
+        return 'Недоступен';
+    }
+  };
+  const statusClass = (status: Animal['status']) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-800';
+      case 'quarantine':
+        return 'bg-red-100 text-red-800';
+      case 'reserved':
+        return 'bg-amber-100 text-amber-800';
+      case 'adopted':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
   return <DashboardLayout title="Управление животными" actions={<button onClick={() => {
     setEditingAnimal(undefined);
     setIsModalOpen(true);
@@ -123,8 +151,8 @@ export function AdminAnimals() {
                       </div>
                     ) : (
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                    ${animal.status === 'available' ? 'bg-green-100 text-green-800' : animal.status === 'quarantine' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {animal.status}
+                    ${statusClass(animal.status)}`}>
+                        {translateStatus(animal.status)}
                       </span>
                     )}
                   </div>

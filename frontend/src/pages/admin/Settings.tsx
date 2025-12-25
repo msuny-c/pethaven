@@ -7,23 +7,20 @@ export function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     reportOffset: '30',
-    reportWindow: '7',
-    vaccInterval: '365'
+    reportWindow: '7'
   });
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [reportOffset, reportWindow, vaccInterval] = await Promise.all([
+        const [reportOffset, reportWindow] = await Promise.all([
           getSetting('report_offset_days').catch(() => getSetting('report_interval_days').catch(() => '')),
-          getSetting('report_fill_days').catch(() => ''),
-          getSetting('vaccination_interval_days').catch(() => '')
+          getSetting('report_fill_days').catch(() => '')
         ]);
         setSettings({
           reportOffset: reportOffset || '30',
-          reportWindow: reportWindow || '7',
-          vaccInterval: vaccInterval || '365'
+          reportWindow: reportWindow || '7'
         });
       } finally {
         setLoading(false);
@@ -37,8 +34,7 @@ export function AdminSettings() {
     try {
       await Promise.all([
         setSetting('report_offset_days', settings.reportOffset || '30'),
-        setSetting('report_fill_days', settings.reportWindow || '7'),
-        setSetting('vaccination_interval_days', settings.vaccInterval || '365')
+        setSetting('report_fill_days', settings.reportWindow || '7')
       ]);
       alert('Настройки сохранены');
     } catch (e: any) {
@@ -81,28 +77,6 @@ export function AdminSettings() {
                 onChange={(e) => setSettings((s) => ({ ...s, reportWindow: e.target.value }))}
               />
             </label>
-          </div>
-
-          <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <div className="text-xs uppercase text-gray-500">Медицина</div>
-                <div className="font-semibold text-gray-900">Вакцинации</div>
-              </div>
-            </div>
-            <label className="block text-sm text-gray-700">
-              Период вакцинации (дней)
-              <input
-                type="number"
-                min={1}
-                className="mt-2 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
-                value={settings.vaccInterval}
-                onChange={(e) => setSettings((s) => ({ ...s, vaccInterval: e.target.value }))}
-              />
-            </label>
-            <p className="text-xs text-gray-500 mt-2">
-              Используется для напоминаний по повторным прививкам.
-            </p>
           </div>
         </div>
 

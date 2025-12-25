@@ -23,11 +23,35 @@ public interface AdoptionMapper {
 
     List<InterviewResponse> toInterviewResponses(List<InterviewEntity> entities);
 
-    @Mapping(target = "templateUrl", expression = "java(templateUrl(entity))")
-    @Mapping(target = "signedUrl", expression = "java(signedUrl(entity))")
-    AgreementResponse toAgreementResponse(AgreementEntity entity);
+    default AgreementResponse toAgreementResponse(AgreementEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new AgreementResponse(
+                entity.getId(),
+                entity.getApplicationId(),
+                entity.getSignedDate(),
+                entity.getPostAdoptionPlan(),
+                templateUrl(entity),
+                signedUrl(entity),
+                entity.getGeneratedAt(),
+                entity.getSignedAt(),
+                entity.getConfirmedAt(),
+                entity.getConfirmedBy(),
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
 
-    List<AgreementResponse> toAgreementResponses(List<AgreementEntity> entities);
+    default List<AgreementResponse> toAgreementResponses(List<AgreementEntity> entities) {
+        if (entities == null) {
+            return java.util.Collections.emptyList();
+        }
+        return entities.stream().map(this::toAgreementResponse).toList();
+    }
 
     default String passportUrl(AdoptionApplicationEntity entity) {
         if (entity == null || entity.getPassportKey() == null) {

@@ -82,6 +82,8 @@ export interface Application {
   animalId: number;
   candidateId: number;
   candidateName?: string;
+  consentGiven?: boolean;
+  passportUrl?: string;
   reason?: string;
   experience?: string;
   housing?: string;
@@ -89,6 +91,7 @@ export interface Application {
   status: ApplicationStatus;
   notes?: string;
   decisionComment?: string;
+  processedBy?: number;
   date?: string;
   details?: {
     email?: string;
@@ -104,6 +107,8 @@ export interface MedicalRecord {
   id: number;
   animalId: number;
   vetId: number;
+  vetFirstName?: string;
+  vetLastName?: string;
   procedure: string;
   description: string;
   nextDueDate?: string;
@@ -170,8 +175,19 @@ export interface Notification {
 export interface Agreement {
   id: number;
   applicationId: number;
-  signedDate: string;
+  signedDate?: string;
   postAdoptionPlan: string;
+  templateUrl?: string;
+  signedUrl?: string;
+  generatedAt?: string;
+  signedAt?: string;
+  confirmedAt?: string;
+  confirmedBy?: number;
+  coordinatorId?: number;
+  coordinatorFirstName?: string;
+  coordinatorLastName?: string;
+  coordinatorPhone?: string;
+  coordinatorAvatar?: string;
 }
 
 export interface ShiftVolunteer {

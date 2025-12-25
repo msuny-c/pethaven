@@ -3,6 +3,7 @@ package com.pethaven.service;
 import com.pethaven.dto.AdoptionDecisionRequest;
 import com.pethaven.dto.AgreementConfirmRequest;
 import com.pethaven.dto.AgreementRequest;
+import com.pethaven.dto.AgreementResponse;
 import com.pethaven.dto.ApplicationRequest;
 import com.pethaven.dto.InterviewRescheduleRequest;
 import com.pethaven.dto.InterviewSlotBookRequest;
@@ -50,6 +51,7 @@ public class AdoptionService {
     private final PersonRepository personRepository;
     private final ObjectStorageService storageService;
     private final PostAdoptionReportService postAdoptionReportService;
+    private final SettingService settingService;
 
     public AdoptionService(AdoptionApplicationRepository adoptionRepository,
                            InterviewRepository interviewRepository,
@@ -59,7 +61,8 @@ public class AdoptionService {
                            NotificationService notificationService,
                            PersonRepository personRepository,
                            ObjectStorageService storageService,
-                           PostAdoptionReportService postAdoptionReportService) {
+                           PostAdoptionReportService postAdoptionReportService,
+                           SettingService settingService) {
         this.adoptionRepository = adoptionRepository;
         this.interviewRepository = interviewRepository;
         this.agreementRepository = agreementRepository;
@@ -69,6 +72,7 @@ public class AdoptionService {
         this.personRepository = personRepository;
         this.storageService = storageService;
         this.postAdoptionReportService = postAdoptionReportService;
+        this.settingService = settingService;
     }
 
     @Transactional
@@ -87,8 +91,12 @@ public class AdoptionService {
                 throw new IllegalStateException("Карточка питомца на проверке, подача заявки недоступна");
             }
         });
-        if (adoptionRepository.existsByCandidateIdAndAnimalIdAndStatusIn(candidateId, request.animalId(),
-                List.of(ApplicationStatus.submitted, ApplicationStatus.under_review, ApplicationStatus.approved))) {
+        boolean hasActive = adoptionRepository.findByCandidateId(candidateId).stream()
+                .filter(app -> app.getAnimalId().equals(request.animalId()))
+                .anyMatch(app -> app.getStatus() == ApplicationStatus.submitted
+                        || app.getStatus() == ApplicationStatus.under_review
+                        || app.getStatus() == ApplicationStatus.approved);
+        if (hasActive) {
             throw new IllegalStateException("Активная заявка на этого питомца уже существует");
         }
         Long id;
@@ -124,10 +132,13 @@ public class AdoptionService {
 
     public List<AdoptionApplicationEntity> getApplications(ApplicationStatus status, Long candidateId) {
         if (candidateId != null) {
+            List<AdoptionApplicationEntity> candidateApps = adoptionRepository.findByCandidateId(candidateId);
             if (status != null) {
-                return adoptionRepository.findActiveByCandidateIdAndStatus(candidateId, status);
+                candidateApps = candidateApps.stream()
+                        .filter(a -> a.getStatus() == status)
+                        .toList();
             }
-            return adoptionRepository.findActiveByCandidateId(candidateId);
+            return candidateApps;
         }
         if (status != null) {
             return adoptionRepository.findByStatus(status);
@@ -324,6 +335,56 @@ public class AdoptionService {
         return agreementRepository.findAll();
     }
 
+    public AgreementResponse enrichAgreement(AgreementResponse base) {
+        if (base == null) {
+            return null;
+        }
+        Long coordinatorId = null;
+        String firstName = null;
+        String lastName = null;
+        String phone = null;
+        String avatar = null;
+
+        var appOpt = adoptionRepository.findById(base.applicationId());
+        if (appOpt.isPresent() && appOpt.get().getProcessedBy() != null) {
+            Long processorId = appOpt.get().getProcessedBy();
+            coordinatorId = processorId;
+            var coordinatorOpt = personRepository.findById(processorId);
+            if (coordinatorOpt.isPresent()) {
+                var person = coordinatorOpt.get();
+                firstName = person.getFirstName();
+                lastName = person.getLastName();
+                phone = person.getPhoneNumber();
+                avatar = person.avatarUrlPublic();
+            }
+        }
+
+        return new AgreementResponse(
+                base.id(),
+                base.applicationId(),
+                base.signedDate(),
+                base.postAdoptionPlan(),
+                base.templateUrl(),
+                base.signedUrl(),
+                base.generatedAt(),
+                base.signedAt(),
+                base.confirmedAt(),
+                base.confirmedBy(),
+                coordinatorId,
+                firstName,
+                lastName,
+                phone,
+                avatar
+        );
+    }
+
+    public List<AgreementResponse> enrichAgreements(List<AgreementResponse> responses) {
+        if (responses == null) {
+            return List.of();
+        }
+        return responses.stream().map(this::enrichAgreement).toList();
+    }
+
     @Transactional
     public String attachPassport(Long applicationId, Long candidateId, MultipartFile file) {
         AdoptionApplicationEntity app = adoptionRepository.findById(applicationId)
@@ -386,6 +447,13 @@ public class AdoptionService {
         agreement.setSignedStorageKey(key);
         agreement.setSignedAt(java.time.OffsetDateTime.now());
         agreementRepository.save(agreement);
+        personRepository.findActiveByRole(SystemRole.coordinator.name())
+                .forEach(p -> notificationService.push(
+                        p.getId(),
+                        com.pethaven.model.enums.NotificationType.new_application,
+                        "Кандидат загрузил договор",
+                        "Подписанный договор по заявке №" + app.getId() + " загружен кандидатом"
+                ));
         return agreement;
     }
 
@@ -410,9 +478,18 @@ public class AdoptionService {
         animal.setStatus(com.pethaven.model.enums.AnimalStatus.adopted);
         animalRepository.save(animal);
 
+        personRepository.findById(app.getCandidateId()).ifPresent(candidate ->
+                notificationService.push(
+                        candidate.getId(),
+                        com.pethaven.model.enums.NotificationType.new_application,
+                        "Передача подтверждена",
+                        "Договор по заявке №" + app.getId() + " подтвержден координатором"
+                )
+        );
+
         postAdoptionReportService.create(new PostAdoptionReportRequest(
                 agreementId,
-                java.time.LocalDate.now(),
+                java.time.LocalDate.now().plusDays(settingService.getReportOffsetDays()),
                 null,
                 null,
                 null,

@@ -43,9 +43,10 @@ export function VetAnimals() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {animals.map(animal => {
+            {animals.filter(animal => animal.status !== 'adopted').map(animal => {
             const ready = animal.readyForAdoption || animal.medical?.readyForAdoption;
             const needsAttention = !ready;
+            const isAdopted = animal.status === 'adopted';
             return <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -85,51 +86,53 @@ export function VetAnimals() {
                         {animal.status}
                       </span>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={savingId === animal.id || animal.status === 'quarantine'}
-                        onClick={async () => {
-                          setSavingId(animal.id);
-                          try {
-                            await updateAnimalStatus(animal.id, 'quarantine');
-                            setAnimals((list) =>
-                              list.map((a) => (a.id === animal.id ? { ...a, status: 'quarantine' } : a))
-                            );
-                            setError(null);
-                          } catch (e: any) {
-                            const msg = e?.response?.data?.message || 'Не удалось изменить статус';
-                            setError(msg);
-                          } finally {
-                            setSavingId(null);
-                          }
-                        }}
-                        className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
-                      >
-                        <Shield className="w-3 h-3 mr-1" />
-                        Карантин
-                      </button>
-                      <button
-                        disabled={savingId === animal.id || animal.status === 'available'}
-                        onClick={async () => {
-                          setSavingId(animal.id);
-                          try {
-                            await updateAnimalStatus(animal.id, 'available');
-                            setAnimals((list) =>
-                              list.map((a) => (a.id === animal.id ? { ...a, status: 'available' } : a))
-                            );
-                            setError(null);
-                          } catch (e: any) {
-                            const msg = e?.response?.data?.message || 'Не удалось изменить статус';
-                            setError(msg);
-                          } finally {
-                            setSavingId(null);
-                          }
-                        }}
-                        className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1" />
-                        Снять карантин
-                      </button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <button
+                          disabled={isAdopted || savingId === animal.id || animal.status === 'quarantine'}
+                          onClick={async () => {
+                            setSavingId(animal.id);
+                            try {
+                              await updateAnimalStatus(animal.id, 'quarantine');
+                              setAnimals((list) =>
+                                list.map((a) => (a.id === animal.id ? { ...a, status: 'quarantine' } : a))
+                              );
+                              setError(null);
+                            } catch (e: any) {
+                              const msg = e?.response?.data?.message || 'Не удалось изменить статус';
+                              setError(msg);
+                            } finally {
+                              setSavingId(null);
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <Shield className="w-3 h-3 mr-1" />
+                          Карантин
+                        </button>
+                        <button
+                          disabled={isAdopted || savingId === animal.id || animal.status === 'available'}
+                          onClick={async () => {
+                            setSavingId(animal.id);
+                            try {
+                              await updateAnimalStatus(animal.id, 'available');
+                              setAnimals((list) =>
+                                list.map((a) => (a.id === animal.id ? { ...a, status: 'available' } : a))
+                              );
+                              setError(null);
+                            } catch (e: any) {
+                              const msg = e?.response?.data?.message || 'Не удалось изменить статус';
+                              setError(msg);
+                            } finally {
+                              setSavingId(null);
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Снять карантин
+                        </button>
+                      </div>
                     </div>
                     {savingId === animal.id && (
                       <div className="text-xs text-gray-400 mt-1">Сохраняем...</div>

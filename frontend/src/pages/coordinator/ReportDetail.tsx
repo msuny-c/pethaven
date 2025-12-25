@@ -17,12 +17,16 @@ export function CoordinatorReportDetail() {
   const [recommendation, setRecommendation] = useState('');
   const [saving, setSaving] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [reportsCache, setReportsCache] = useState<Record<number, PostAdoptionReport>>({});
 
   useEffect(() => {
     const load = async () => {
       if (!id) return;
       const reports = await getPostAdoptionReports();
       const current = reports.find((r) => r.id === Number(id)) || null;
+      const cache: Record<number, PostAdoptionReport> = {};
+      reports.forEach((r) => (cache[r.id] = r));
+      setReportsCache(cache);
       setReport(current || null);
       if (!current) return;
       setRecommendation(current.volunteerFeedback || '');
@@ -61,6 +65,7 @@ export function CoordinatorReportDetail() {
       });
       const updated = { ...report, volunteerFeedback: recommendation, status: 'reviewed' as const };
       setReport(updated);
+      setReportsCache((prev) => ({ ...prev, [report.id]: updated }));
       alert('Рекомендации сохранены');
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось сохранить';
@@ -119,7 +124,7 @@ export function CoordinatorReportDetail() {
                 {report.status === 'reviewed'
                   ? 'Проверен'
                   : report.status === 'submitted'
-                    ? 'Отправлен'
+                    ? 'Получено'
                     : report.status === 'overdue'
                       ? 'Просрочен'
                       : 'Ожидается'}
@@ -179,7 +184,9 @@ export function CoordinatorReportDetail() {
                         volunteerFeedback: recommendation,
                         status: 'submitted'
                       });
-                      setReport({ ...report, status: 'submitted', submittedDate });
+                      const updated = { ...report, status: 'submitted' as const, submittedDate };
+                      setReport(updated);
+                      setReportsCache((prev) => ({ ...prev, [report.id]: updated }));
                     } catch (e: any) {
                       const msg = e?.response?.data?.message || 'Не удалось обновить статус';
                       alert(msg);
@@ -212,8 +219,16 @@ export function CoordinatorReportDetail() {
             </div>
             {animal ? (
               <div className="space-y-2">
-                <div className="font-bold text-gray-900">{animal.name}</div>
-                <div className="text-sm text-gray-600">{animal.breed}</div>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=120&q=80'}
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">{animal.name}</div>
+                    <div className="text-sm text-gray-600">{animal.breed}</div>
+                  </div>
+                </div>
                 <Link
                   to={`/coordinator/animals/${animal.id}`}
                   className="text-sm text-blue-600 hover:underline"
@@ -233,10 +248,18 @@ export function CoordinatorReportDetail() {
             </div>
             {candidate && application ? (
               <div className="space-y-2">
-                <div className="font-bold text-gray-900">
-                  {candidate.firstName} {candidate.lastName}
+                <div className="flex items-center gap-3">
+                  <img
+                    src={candidate.avatarUrl || 'https://i.pravatar.cc/120'}
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">
+                      {candidate.firstName} {candidate.lastName}
+                    </div>
+                    <div className="text-sm text-gray-600">{candidate.email}</div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">{candidate.email}</div>
                 <Link
                   to={`/coordinator/candidate/${application.candidateId}`}
                   className="text-sm text-blue-600 hover:underline"

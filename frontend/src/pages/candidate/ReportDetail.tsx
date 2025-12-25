@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { getAgreement, getAnimals, getApplicationById, getPostAdoptionReports, getReportMedia, getUsers } from '../../services/api';
 import { Animal, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
-import { ArrowLeft, Calendar, PawPrint } from 'lucide-react';
+import { ArrowLeft, Calendar, PawPrint, User as UserIcon } from 'lucide-react';
 
 export function CandidateReportDetail() {
   const { id } = useParams();
@@ -163,8 +163,16 @@ export function CandidateReportDetail() {
             </div>
             {animal ? (
               <div className="space-y-2">
-                <div className="font-bold text-gray-900">{animal.name}</div>
-                <div className="text-sm text-gray-600">{animal.breed}</div>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=120&q=80'}
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">{animal.name}</div>
+                    <div className="text-sm text-gray-600">{animal.breed}</div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="text-sm text-gray-500">
@@ -172,6 +180,27 @@ export function CandidateReportDetail() {
               </div>
             )}
           </div>
+
+          {coordinator && (
+            <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center mb-3">
+                <UserIcon className="w-4 h-4 text-amber-500 mr-2" />
+                <div className="font-semibold text-gray-900">Координатор</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <img
+                  src={coordinator.avatarUrl || 'https://i.pravatar.cc/120'}
+                  className="w-12 h-12 rounded-full object-cover border"
+                />
+                <div>
+                  <div className="font-bold text-gray-900">
+                    {coordinator.firstName} {coordinator.lastName}
+                  </div>
+                  <div className="text-sm text-gray-600">{coordinator.email}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

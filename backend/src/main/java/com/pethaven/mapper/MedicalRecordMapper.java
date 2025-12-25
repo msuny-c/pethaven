@@ -11,6 +11,8 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface MedicalRecordMapper {
 
+    @Mapping(target = "vetFirstName", ignore = true)
+    @Mapping(target = "vetLastName", ignore = true)
     MedicalRecordResponse toResponse(MedicalRecordEntity entity);
 
     List<MedicalRecordResponse> toResponses(List<MedicalRecordEntity> entities);

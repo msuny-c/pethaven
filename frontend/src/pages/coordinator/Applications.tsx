@@ -113,7 +113,8 @@ export function CoordinatorApplications() {
                       {app.status === 'submitted' ? 'Новая' : app.status === 'under_review' ? 'На рассмотрении' : app.status === 'approved' ? 'Одобрена' : 'Отклонена'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right flex justify-end space-x-2">
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end items-center space-x-2">
                     <Link to={`/coordinator/applications/${app.id}`} className="p-1 text-gray-400 hover:text-amber-600" title="Страница заявки">
                       <FileText className="w-5 h-5" />
                     </Link>
@@ -134,6 +135,7 @@ export function CoordinatorApplications() {
                           <X className="w-5 h-5" />
                         </button>
                       </>}
+                    </div>
                   </td>
                 </tr>;
           })}

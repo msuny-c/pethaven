@@ -3,7 +3,15 @@ import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, PawPrint, ArrowLeft, Info, CheckCircle, XCircle } from 'lucide-react';
 import { Application, Animal, Interview } from '../../types';
-import { getAnimal, getApplicationById, getInterviews, confirmInterview, cancelAdoptionApplication, declineInterview } from '../../services/api';
+import {
+  getAnimal,
+  getApplicationById,
+  getInterviews,
+  confirmInterview,
+  cancelAdoptionApplication,
+  declineInterview,
+  getAgreements
+} from '../../services/api';
 
 export function CandidateApplicationDetail() {
   const { id } = useParams();
@@ -15,6 +23,7 @@ export function CandidateApplicationDetail() {
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [declining, setDeclining] = useState(false);
+  const [agreementConfirmed, setAgreementConfirmed] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -24,10 +33,19 @@ export function CandidateApplicationDetail() {
       try {
         const app = await getApplicationById(Number(id));
         setApplication(app);
-        const interviewData = await getInterviews(app.id);
+        const [interviewData, pet] = await Promise.all([
+          getInterviews(app.id),
+          getAnimal(app.animalId)
+        ]);
         setInterviews(interviewData);
-        const pet = await getAnimal(app.animalId);
         setAnimal(pet);
+        try {
+          const agreements = await getAgreements();
+          const match = agreements.find((a) => a.applicationId === app.id);
+          setAgreementConfirmed(Boolean(match?.confirmedAt));
+        } catch {
+          setAgreementConfirmed(false);
+        }
       } catch (e) {
         console.error(e);
         setError('Не удалось загрузить заявку');
@@ -172,14 +190,16 @@ export function CandidateApplicationDetail() {
 
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase">Статус</h3>
-                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center gap-2 text-gray-900 font-medium mb-2">
-                    <Info className="w-4 h-4 text-amber-500" />
-                    Последнее решение
+                {application.decisionComment && (
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-gray-900 font-medium mb-2">
+                      <Info className="w-4 h-4 text-amber-500" />
+                      Последнее решение
+                    </div>
+                    <p className="text-sm text-gray-700">{application.decisionComment}</p>
                   </div>
-                  <p className="text-sm text-gray-700">{application.decisionComment || 'Комментариев нет'}</p>
-                </div>
-                {(application.status === 'submitted' || application.status === 'under_review' || application.status === 'approved') && (
+                )}
+                {(application.status === 'submitted' || application.status === 'under_review') && !agreementConfirmed && (
                   <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-gray-900 font-medium">
@@ -194,9 +214,6 @@ export function CandidateApplicationDetail() {
                         {cancelling ? 'Отменяем...' : 'Отменить'}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      При отмене статус заявки сменится на отклонена, а резерв питомца будет снят.
-                    </p>
                   </div>
                 )}
                 {upcomingInterview && (

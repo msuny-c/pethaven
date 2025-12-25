@@ -260,7 +260,8 @@ public class AdoptionController {
             return ResponseEntity.status(401).build();
         }
         try {
-            AgreementResponse response = adoptionMapper.toAgreementResponse(adoptionService.createAgreement(request));
+            AgreementResponse response = adoptionService.enrichAgreement(
+                    adoptionMapper.toAgreementResponse(adoptionService.createAgreement(request)));
             return ResponseEntity.created(URI.create("/api/v1/adoptions/agreements/" + response.id()))
                     .body(response);
         } catch (IllegalArgumentException e) {
@@ -274,13 +275,15 @@ public class AdoptionController {
     public ResponseEntity<AgreementResponse> getAgreement(@PathVariable Long id) {
         return adoptionService.getAgreement(id)
                 .map(adoptionMapper::toAgreementResponse)
+                .map(adoptionService::enrichAgreement)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/agreements")
     public List<AgreementResponse> listAgreements() {
-        return adoptionMapper.toAgreementResponses(adoptionService.getAgreements());
+        return adoptionService.enrichAgreements(
+                adoptionMapper.toAgreementResponses(adoptionService.getAgreements()));
     }
 
     @GetMapping("/agreements/{id}/template")
@@ -353,8 +356,9 @@ public class AdoptionController {
             return ResponseEntity.status(401).build();
         }
         try {
-            AgreementResponse response = adoptionMapper.toAgreementResponse(
-                    adoptionService.uploadSignedAgreement(id, candidateId, file));
+            AgreementResponse response = adoptionService.enrichAgreement(
+                    adoptionMapper.toAgreementResponse(
+                            adoptionService.uploadSignedAgreement(id, candidateId, file)));
             return ResponseEntity.ok(response);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(ApiMessage.of(e.getMessage()));
@@ -377,8 +381,9 @@ public class AdoptionController {
         }
         Long coordinatorId = authentication.getPrincipal() instanceof Long pid ? pid : null;
         try {
-            AgreementResponse response = adoptionMapper.toAgreementResponse(
-                    adoptionService.confirmAgreement(id, coordinatorId, request));
+            AgreementResponse response = adoptionService.enrichAgreement(
+                    adoptionMapper.toAgreementResponse(
+                            adoptionService.confirmAgreement(id, coordinatorId, request)));
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(ApiMessage.of(e.getMessage()));

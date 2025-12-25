@@ -42,6 +42,7 @@ export function AnimalProfile() {
   const canManageMedia = canEdit || isVolunteer;
   const canAddNotes = canManageMedia;
   const canEditMedical = isVet || (!!user && user.roles.includes('admin'));
+  const statusLocked = animal?.status === 'adopted';
   const statusOptions: Array<{ value: Animal['status']; label: string }> = [
     { value: 'quarantine', label: 'Карантин' },
     { value: 'available', label: 'Доступен' },
@@ -131,7 +132,7 @@ export function AnimalProfile() {
         breed: form.breed,
         ageMonths: form.ageMonths,
         description: form.description,
-        status: form.status,
+        status: statusLocked ? animal.status : form.status,
         gender: form.gender,
         species: form.species
       });
@@ -273,22 +274,34 @@ export function AnimalProfile() {
                 </div>
                 </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {editing ? <div className="relative">
+              {editing ? (
+                statusLocked ? (
+                  <div className="space-y-1">
+                    <div className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide ${statusBadge(currentStatus)}`}>
+                      {statusOptions.find((s) => s.value === currentStatus)?.label || 'Статус'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
                     <button type="button" onClick={() => setStatusOpen((v) => !v)} className="px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-2">
                       {statusOptions.find((s) => s.value === currentStatus)?.label || 'Статус'}
                       <ChevronDown className="w-4 h-4" />
-                      </button>
-                      {statusOpen && <div className="absolute z-10 mt-2 w-48 bg-white rounded-xl shadow-lg border border-amber-100 overflow-hidden">
-                          {statusOptions.map((opt) => <button key={opt.value} className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 ${opt.value === (form.status || animal.status) ? 'font-semibold text-amber-700' : 'text-gray-700'}`} onClick={() => {
+                    </button>
+                    {statusOpen && <div className="absolute z-10 mt-2 w-48 bg-white rounded-xl shadow-lg border border-amber-100 overflow-hidden">
+                        {statusOptions.map((opt) => <button key={opt.value} className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 ${opt.value === (form.status || animal.status) ? 'font-semibold text-amber-700' : 'text-gray-700'}`} onClick={() => {
                     setForm((f) => ({ ...f, status: opt.value }));
                     setStatusOpen(false);
                   }}>
                               {opt.label}
                             </button>)}
-                        </div>}
-                    </div> : <div className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide ${statusBadge(currentStatus)}`}>
-                      {statusOptions.find((s) => s.value === currentStatus)?.label || 'Статус'}
-                    </div>}
+                      </div>}
+                  </div>
+                )
+              ) : (
+                <div className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide ${statusBadge(currentStatus)}`}>
+                  {statusOptions.find((s) => s.value === currentStatus)?.label || 'Статус'}
+                </div>
+              )}
                 {animal.pendingAdminReview && (
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
                     На проверке

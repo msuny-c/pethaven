@@ -131,6 +131,10 @@ export function Sidebar() {
           label: 'Мои заявки',
           icon: FileText
         }, {
+          path: '/candidate/agreements',
+          label: 'Договоры',
+          icon: FileText
+        }, {
           path: '/candidate/animals',
           label: 'Животные',
           icon: PawPrint

@@ -32,10 +32,12 @@ import { CoordinatorShiftManagement } from './pages/coordinator/ShiftManagement'
 import { CoordinatorAnimals } from './pages/coordinator/Animals';
 import { CandidateProfile } from './pages/coordinator/CandidateProfile';
 import { CoordinatorApplicationDetail } from './pages/coordinator/ApplicationDetail';
+import { CoordinatorAgreementDetail } from './pages/coordinator/AgreementDetail';
 // Vet Pages
 import { VetDashboard } from './pages/vet/Dashboard';
 import { VetAnimals } from './pages/vet/Animals';
 import { VetMedicalRecords } from './pages/vet/MedicalRecords';
+import { VetProfileView } from './pages/vet/ProfileView';
 // Volunteer Pages
 import { VolunteerDashboard } from './pages/volunteer/Dashboard';
 import { VolunteerShifts } from './pages/volunteer/Shifts';
@@ -53,6 +55,8 @@ import { CandidateReports } from './pages/candidate/Reports';
 import { CandidateReportDetail } from './pages/candidate/ReportDetail';
 import { CandidateApplicationForm } from './pages/candidate/ApplicationForm';
 import { CandidateApplicationDetail } from './pages/candidate/ApplicationDetail';
+import { CandidateAgreements } from './pages/candidate/Agreements';
+import { CandidateAgreementDetail } from './pages/candidate/AgreementDetail';
 function ScrollToTop() {
   const {
     pathname
@@ -113,6 +117,7 @@ export function App() {
               <Route path="/coordinator/animals" element={<CoordinatorAnimals />} />
               <Route path="/coordinator/animals/:id" element={<AnimalProfile />} />
               <Route path="/coordinator/shift-management" element={<CoordinatorShiftManagement />} />
+              <Route path="/coordinator/agreements/:id" element={<CoordinatorAgreementDetail />} />
               <Route path="/coordinator/candidate/:id" element={<CandidateProfile />} />
             </Route>
 
@@ -121,6 +126,7 @@ export function App() {
               <Route path="/veterinar/dashboard" element={<VetDashboard />} />
               <Route path="/veterinar/animals" element={<VetAnimals />} />
               <Route path="/veterinar/medical-records/:animalId" element={<VetMedicalRecords />} />
+              <Route path="/veterinar/profile/:id" element={<VetProfileView />} />
             </Route>
 
             {/* Volunteer Routes */}
@@ -142,6 +148,8 @@ export function App() {
               <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
               <Route path="/candidate/applications" element={<CandidateApplications />} />
               <Route path="/candidate/applications/:id" element={<CandidateApplicationDetail />} />
+              <Route path="/candidate/agreements" element={<CandidateAgreements />} />
+              <Route path="/candidate/agreements/:id" element={<CandidateAgreementDetail />} />
               <Route path="/candidate/animals" element={<CandidateAnimals />} />
               <Route path="/candidate/animals/:id" element={<CandidateAnimalDetail />} />
               <Route path="/candidate/apply/:id" element={<CandidateApplicationForm />} />

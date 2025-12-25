@@ -58,6 +58,9 @@ public class PostAdoptionReportService {
     }
 
     public PostAdoptionReportResponse create(PostAdoptionReportRequest request) {
+        if (request.agreementId() == null || request.dueDate() == null) {
+            throw new IllegalArgumentException("agreementId и dueDate обязательны для создания отчёта");
+        }
         PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
         applyRequest(entity, request);
         return reportMapper.toResponse(reportRepository.save(entity));
@@ -106,8 +109,12 @@ public class PostAdoptionReportService {
     }
 
     private void applyRequest(PostAdoptionReportEntity entity, PostAdoptionReportRequest request) {
-        entity.setAgreementId(request.agreementId());
-        entity.setDueDate(request.dueDate());
+        if (request.agreementId() != null) {
+            entity.setAgreementId(request.agreementId());
+        }
+        if (request.dueDate() != null) {
+            entity.setDueDate(request.dueDate());
+        }
         entity.setReportText(request.reportText());
         entity.setVolunteerFeedback(request.volunteerFeedback());
         entity.setSubmittedDate(request.submittedDate());

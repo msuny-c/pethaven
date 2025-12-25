@@ -38,8 +38,12 @@ public class MedicalController {
         if (authentication == null || !(authentication.getPrincipal() instanceof Long vetId)) {
             return ResponseEntity.status(401).build();
         }
-        Long id = medicalService.addRecord(record, vetId);
-        return ResponseEntity.created(URI.create("/api/v1/medical/" + id)).build();
+        try {
+            Long id = medicalService.addRecord(record, vetId);
+            return ResponseEntity.created(URI.create("/api/v1/medical/" + id)).build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/upcoming")

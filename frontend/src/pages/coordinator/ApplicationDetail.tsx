@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Application, Animal, UserProfile } from '../../types';
-import { getAnimal, getApplicationById, getUsers, updateApplicationStatus, scheduleInterview } from '../../services/api';
-import { ArrowLeft, Calendar, PawPrint, Mail, Phone, User, Check, X, CalendarPlus } from 'lucide-react';
+import { Application, Animal, UserProfile, Interview } from '../../types';
+import { Agreement } from '../../types';
+import {
+  getAnimal,
+  getApplicationById,
+  getUsers,
+  updateApplicationStatus,
+  scheduleInterview,
+  getAgreements,
+  downloadSignedAgreement,
+  downloadPassport,
+  getInterviews
+} from '../../services/api';
+import { ArrowLeft, Calendar, PawPrint, Mail, Phone, User, Check, X, CalendarPlus, FileText, FileDown, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function CoordinatorApplicationDetail() {
@@ -17,6 +28,10 @@ export function CoordinatorApplicationDetail() {
   const [decisionLoading, setDecisionLoading] = useState(false);
   const [scheduleState, setScheduleState] = useState<{ datetime: string }>({ datetime: '' });
   const [decisionComment, setDecisionComment] = useState('');
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [downloadingPassport, setDownloadingPassport] = useState(false);
+  const [downloadingSigned, setDownloadingSigned] = useState(false);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -27,9 +42,20 @@ export function CoordinatorApplicationDetail() {
         const app = await getApplicationById(Number(id));
         setApplication(app);
         setDecisionComment(app.decisionComment || '');
-        const [pet, users] = await Promise.all([getAnimal(app.animalId), getUsers()]);
+        const [pet, users, agreements] = await Promise.all([
+          getAnimal(app.animalId),
+          getUsers(),
+          getAgreements()
+        ]);
         setAnimal(pet);
         setCandidate(users.find((u) => u.id === app.candidateId) || null);
+        setAgreement(agreements.find((a) => a.applicationId === app.id) || null);
+        try {
+          const ints = await getInterviews(app.id);
+          setInterviews(ints);
+        } catch {
+          setInterviews([]);
+        }
       } catch (e) {
         console.error(e);
         setError('Не удалось загрузить заявку');
@@ -59,6 +85,7 @@ export function CoordinatorApplicationDetail() {
 
   const status = statusLabel(application?.status || 'submitted');
   const canAct = application && application.status !== 'approved' && application.status !== 'rejected';
+  const interviewCompleted = interviews.some((i) => i.status === 'completed');
   const toOffsetIso = (localValue: string) => {
     const value = localValue.length === 16 ? `${localValue}:00` : localValue;
     const date = new Date(value);
@@ -68,6 +95,42 @@ export function CoordinatorApplicationDetail() {
     const mm = String(Math.abs(tz) % 60).padStart(2, '0');
     return `${value}${sign}${hh}:${mm}`;
   };
+
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handlePassportDownload = async () => {
+    if (!application?.passportUrl) return;
+    setDownloadingPassport(true);
+    try {
+      const blob = await downloadPassport(application.id);
+      downloadFile(blob, `passport-${application.id}.pdf`);
+    } catch {
+      alert('Не удалось скачать паспорт кандидата');
+    } finally {
+      setDownloadingPassport(false);
+    }
+  };
+
+  const handleDownloadSigned = async () => {
+    if (!agreement?.signedUrl) return;
+    setDownloadingSigned(true);
+    try {
+      const blob = await downloadSignedAgreement(agreement.id);
+      downloadFile(blob, `agreement-signed-${agreement.id}.docx`);
+    } catch {
+      alert('Не удалось скачать подписанный договор');
+    } finally {
+      setDownloadingSigned(false);
+    }
+  };
+
   return (
     <DashboardLayout
       title="Заявка"
@@ -171,42 +234,45 @@ export function CoordinatorApplicationDetail() {
                         placeholder="Обоснование решения"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-gray-500">Назначить интервью</label>
-                      <div className="flex flex-col space-y-2">
-                        <div className="relative">
-                          <input
-                            type="datetime-local"
-                            min={new Date().toISOString().slice(0, 16)}
-                            className="rounded-xl border border-amber-200 bg-amber-50/60 shadow-inner px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 w-full"
-                            value={scheduleState.datetime}
-                            onChange={(e) => setScheduleState((s) => ({ ...s, datetime: e.target.value }))}
-                          />
-                          <Calendar className="w-4 h-4 text-amber-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    {!interviewCompleted && (
+                      <div className="space-y-2">
+                        <label className="text-xs text-gray-500">Назначить интервью</label>
+                        <div className="flex flex-col space-y-2">
+                          <div className="relative">
+                            <input
+                              type="datetime-local"
+                              min={new Date().toISOString().slice(0, 16)}
+                              className="rounded-xl border border-amber-200 bg-amber-50/60 shadow-inner px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 w-full"
+                              value={scheduleState.datetime}
+                              onChange={(e) => setScheduleState((s) => ({ ...s, datetime: e.target.value }))}
+                            />
+                            <Calendar className="w-4 h-4 text-amber-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!application || !scheduleState.datetime) return;
+                              try {
+                                const isoWithOffset = toOffsetIso(scheduleState.datetime);
+                                await scheduleInterview(application.id, isoWithOffset);
+                                setScheduleState({ datetime: '' });
+                                setApplication({ ...application, status: 'under_review' });
+                                alert('Интервью назначено');
+                              } catch (e: any) {
+                                const msg = e?.response?.data?.message || 'Не удалось назначить интервью';
+                                alert(msg);
+                              }
+                            }}
+                            className="inline-flex items-center justify-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600"
+                          >
+                            <CalendarPlus className="w-4 h-4 mr-2" /> Назначить
+                          </button>
+                          <p className="text-xs text-gray-500">Интервьюер: {user?.firstName} {user?.lastName}</p>
                         </div>
-                        <button
-                          onClick={async () => {
-                            if (!application || !scheduleState.datetime) return;
-                            try {
-                              const isoWithOffset = toOffsetIso(scheduleState.datetime);
-                              await scheduleInterview(application.id, isoWithOffset);
-                              setScheduleState({ datetime: '' });
-                              setApplication({ ...application, status: 'under_review' });
-                              alert('Интервью назначено');
-                            } catch (e: any) {
-                              const msg = e?.response?.data?.message || 'Не удалось назначить интервью';
-                              alert(msg);
-                            }
-                          }}
-                          className="inline-flex items-center justify-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600"
-                        >
-                          <CalendarPlus className="w-4 h-4 mr-2" /> Назначить
-                        </button>
-                        <p className="text-xs text-gray-500">Интервьюер: {user?.firstName} {user?.lastName}</p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
+                {/* Блок про договоры перенесён в раздел "Передачи" */}
                 <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Контакты кандидата</h3>
                   <div className="space-y-2 text-sm text-gray-700">
