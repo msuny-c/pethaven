@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Search, Shield, ToggleLeft, ToggleRight, Trash2, PlusCircle } from 'lucide-react';
+import { Search, ToggleLeft, ToggleRight, Trash2, PlusCircle, Edit2 } from 'lucide-react';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Role, UserProfile } from '../../types';
-import { createUser, deleteUser, getUsers, updateUserRoles, updateUserStatus } from '../../services/api';
+import { createUser, deleteUser, getUsers, updateUserRoles, updateUserStatus, updateUserProfileAdmin } from '../../services/api';
 
 export function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
-    const [newUser, setNewUser] = useState({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
@@ -17,14 +20,6 @@ export function AdminUsers() {
     phoneNumber: '',
     role: 'coordinator' as Role
   });
-  const [creating, setCreating] = useState(false);
-  const roleLabels: Record<string, string> = {
-    admin: 'Администратор',
-    coordinator: 'Координатор',
-    veterinar: 'Ветеринар',
-    volunteer: 'Волонтер',
-    candidate: 'Кандидат'
-  };
 
   useEffect(() => {
     refresh();
@@ -57,20 +52,32 @@ export function AdminUsers() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName) return;
+  const handleSave = async () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || (!editingUser && !formData.password.trim())) return;
     setCreating(true);
     try {
-      await createUser({
-        email: newUser.email,
-        password: newUser.password,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        phoneNumber: newUser.phoneNumber,
-        roles: [newUser.role]
-      });
-      setNewUser({
+      if (editingUser) {
+        const updated = await updateUserProfileAdmin(editingUser.id, {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber
+        });
+        await updateUserRoles(editingUser.id, [formData.role]);
+        setUsers((list) => list.map((u) => (u.id === updated.id ? { ...u, ...updated, roles: [formData.role] } : u)));
+      } else {
+        await createUser({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber,
+          roles: [formData.role]
+        });
+        await refresh();
+      }
+      setIsModalOpen(false);
+      setEditingUser(null);
+      setFormData({
         email: '',
         password: '',
         firstName: '',
@@ -78,53 +85,18 @@ export function AdminUsers() {
         phoneNumber: '',
         role: 'coordinator'
       });
-      await refresh();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Не удалось создать пользователя';
+      const msg = err?.response?.data?.message || 'Не удалось сохранить пользователя';
       alert(msg);
     } finally {
       setCreating(false);
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    const colors: Record<string, string> = {
-      admin: 'bg-red-100 text-red-700',
-      coordinator: 'bg-blue-100 text-blue-700',
-      veterinar: 'bg-green-100 text-green-700',
-      volunteer: 'bg-amber-100 text-amber-700',
-      candidate: 'bg-gray-100 text-gray-700'
-    };
-    return colors[role] || colors.candidate;
-  };
-
   return (
     <DashboardLayout title="Управление пользователями">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex items-center mb-3">
-          <PlusCircle className="w-4 h-4 text-amber-500 mr-2" />
-          <h3 className="font-bold text-gray-900">Создать аккаунт сотрудника</h3>
-        </div>
-        <form className="grid grid-cols-1 md:grid-cols-5 gap-3" onSubmit={handleCreate}>
-          <input required type="text" placeholder="Имя" className="rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={newUser.firstName} onChange={(e) => setNewUser((prev) => ({ ...prev, firstName: e.target.value }))} />
-          <input required type="text" placeholder="Фамилия" className="rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={newUser.lastName} onChange={(e) => setNewUser((prev) => ({ ...prev, lastName: e.target.value }))} />
-          <input required type="email" placeholder="Email" className="rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={newUser.email} onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))} />
-          <input required type="password" placeholder="Пароль" className="rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={newUser.password} onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))} />
-          <div className="flex items-center space-x-2">
-            <select className="flex-1 rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500" value={newUser.role} onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value as Role }))}>
-              <option value="coordinator">Координатор</option>
-              <option value="veterinar">Ветеринар</option>
-              <option value="admin">Администратор</option>
-            </select>
-            <button type="submit" disabled={creating} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50">
-              {creating ? 'Создание...' : 'Создать'}
-            </button>
-          </div>
-        </form>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -135,6 +107,24 @@ export function AdminUsers() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setFormData({
+                email: '',
+                password: '',
+                firstName: '',
+                lastName: '',
+                phoneNumber: '',
+                role: 'coordinator'
+              });
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Новый сотрудник
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -162,23 +152,17 @@ export function AdminUsers() {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadge(primaryRole)}`}>
-                      <Shield className="w-3 h-3 mr-1" />
-                      {roleLabels[primaryRole] || primaryRole}
-                    </span>
-                    <select
-                      className="rounded-lg border-gray-200 text-sm bg-white shadow-inner px-3 py-1.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                      value={primaryRole}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value as Role)}
-                    >
-                      <option value="candidate">Кандидат</option>
-                      <option value="volunteer">Волонтёр</option>
-                      <option value="veterinar">Ветеринар</option>
-                      <option value="coordinator">Координатор</option>
-                      <option value="admin">Администратор</option>
-                    </select>
-                  </div>
+                  <select
+                    className="rounded-lg border-gray-200 text-sm bg-white shadow-inner px-3 py-1.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    value={primaryRole}
+                    onChange={(e) => handleRoleChange(user.id, e.target.value as Role)}
+                  >
+                    <option value="candidate">Кандидат</option>
+                    <option value="volunteer">Волонтёр</option>
+                    <option value="veterinar">Ветеринар</option>
+                    <option value="coordinator">Координатор</option>
+                    <option value="admin">Администратор</option>
+                  </select>
                 </td>
                 <td className="px-6 py-4">
                   <button onClick={() => handleActiveToggle(user.id, !isActive)} className="flex items-center text-sm text-gray-700">
@@ -194,6 +178,24 @@ export function AdminUsers() {
                   </button>
                 </td>
                 <td className="px-6 py-4 text-right">
+                  <button
+                    onClick={() => {
+                      setEditingUser(user);
+                      setFormData({
+                        email: user.email,
+                        password: '',
+                        firstName: user.firstName || '',
+                        lastName: user.lastName || '',
+                        phoneNumber: user.phoneNumber || '',
+                        role: primaryRole as Role
+                      });
+                      setIsModalOpen(true);
+                    }}
+                    className="text-gray-400 hover:text-blue-600 mx-2"
+                    title="Редактировать"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
                   <button onClick={() => setDeleteId(user.id)} className="text-gray-400 hover:text-red-600 mx-2">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -214,6 +216,91 @@ export function AdminUsers() {
         message="Вы уверены? Это действие нельзя отменить."
         isDanger
       />
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">{editingUser ? 'Редактирование сотрудника' : 'Новый сотрудник'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">×</button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 mb-4">
+              <div>
+                <label className="text-sm text-gray-600">Имя</label>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Фамилия</label>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Email</label>
+                <input
+                  type="email"
+                  disabled={!!editingUser}
+                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
+                  value={formData.email}
+                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Телефон</label>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData((p) => ({ ...p, phoneNumber: e.target.value }))}
+                />
+              </div>
+              {!editingUser && (
+                <div>
+                  <label className="text-sm text-gray-600">Пароль</label>
+                  <input
+                    type="password"
+                    className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                    value={formData.password}
+                    onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
+                  />
+                </div>
+              )}
+              <div>
+                <label className="text-sm text-gray-600">Роль</label>
+                <select
+                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 h-11 focus:ring-amber-500 focus:border-amber-500"
+                  value={formData.role}
+                  onChange={(e) => setFormData((p) => ({ ...p, role: e.target.value as Role }))}
+                >
+                  <option value="candidate">Кандидат</option>
+                  <option value="volunteer">Волонтёр</option>
+                  <option value="veterinar">Ветеринар</option>
+                  <option value="coordinator">Координатор</option>
+                  <option value="admin">Администратор</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">Отмена</button>
+              <button
+                onClick={handleSave}
+                disabled={creating}
+                className="px-4 py-2 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 disabled:opacity-50"
+              >
+                {creating ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

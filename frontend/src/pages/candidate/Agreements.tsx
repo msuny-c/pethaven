@@ -72,12 +72,6 @@ export function CandidateAgreements() {
                           <PawPrint className="w-3 h-3 mr-1" />
                           {animal?.breed}
                         </span>
-                        {agreement.signedDate && (
-                          <span className="flex items-center text-xs text-gray-500">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Подписан: {agreement.signedDate}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>

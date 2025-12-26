@@ -149,17 +149,11 @@ export function CandidateAgreementDetail() {
                 {statusLabel.text}
               </span>
             </div>
-          <div className="flex items-center text-sm text-gray-500 gap-3 mt-2">
-            <div className="flex items-center">
-              <PawPrint className="w-4 h-4 mr-1" />
-              {animal?.name || `Питомец #${application.animalId}`}
-            </div>
-              {agreement.signedDate && (
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Подписан: {agreement.signedDate}
-                </div>
-              )}
+            <div className="flex items-center text-sm text-gray-500 gap-3 mt-2">
+              <div className="flex items-center">
+                <PawPrint className="w-4 h-4 mr-1" />
+                {animal?.name || `Питомец #${application.animalId}`}
+              </div>
             </div>
           </div>
           {animal && (

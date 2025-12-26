@@ -105,7 +105,7 @@ export function VetMedicalRecords() {
             <div className="space-y-2 text-sm text-gray-700">
               <div className="flex items-center">
                 <PawPrint className="w-4 h-4 mr-2 text-amber-500" />
-                Вид: {animal.species === 'cat' ? 'Кошка' : 'Собака'}
+                Вид: {animal.species === 'cat' ? 'Кошка' : animal.species === 'dog' ? 'Собака' : animal.species}
               </div>
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-2 text-blue-500" />

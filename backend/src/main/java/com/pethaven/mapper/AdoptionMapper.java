@@ -30,7 +30,6 @@ public interface AdoptionMapper {
         return new AgreementResponse(
                 entity.getId(),
                 entity.getApplicationId(),
-                entity.getSignedDate(),
                 entity.getPostAdoptionPlan(),
                 templateUrl(entity),
                 signedUrl(entity),

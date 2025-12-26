@@ -23,9 +23,6 @@ public class AgreementEntity {
     @Column(name = "application_id")
     private Long applicationId;
 
-    @Column(name = "signed_date")
-    private LocalDate signedDate;
-
     @Column(name = "post_adoption_plan")
     private String postAdoptionPlan;
 

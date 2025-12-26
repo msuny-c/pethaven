@@ -144,7 +144,7 @@ export function AnimalProfile() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Вид:</span>
                   <span className="font-medium text-gray-900">
-                    {animal.species === 'cat' ? 'Кошка' : 'Собака'}
+                    {animal.species === 'cat' ? 'Кошка' : animal.species === 'dog' ? 'Собака' : animal.species}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

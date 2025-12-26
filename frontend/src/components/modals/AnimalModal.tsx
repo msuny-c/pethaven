@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, Upload, ChevronDown } from 'lucide-react';
 import { Animal } from '../../types';
+import { getAnimalSpecies } from '../../services/api';
 interface AnimalModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,6 +32,7 @@ export function AnimalModal({
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const statusLocked = initialData?.status === 'adopted';
+  const [speciesOptions, setSpeciesOptions] = useState<string[]>(['dog', 'cat']);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -63,6 +65,18 @@ export function AnimalModal({
     setErrors({});
     setSubmitError('');
   }, [isOpen, initialData]);
+
+  useEffect(() => {
+    getAnimalSpecies()
+      .then((list) => {
+        if (Array.isArray(list) && list.length) {
+          setSpeciesOptions(list);
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, []);
 
   if (!isOpen) return null;
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
@@ -111,10 +125,13 @@ export function AnimalModal({
                 <div className="relative">
                   <select className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 pr-10 appearance-none" value={formData.species} onChange={e => setFormData({
                 ...formData,
-                species: e.target.value as 'cat' | 'dog'
+                species: e.target.value as Animal['species']
               })}>
-                    <option value="dog">Собака</option>
-                    <option value="cat">Кошка</option>
+                    {speciesOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt.toLowerCase() === 'dog' ? 'Собака' : opt.toLowerCase() === 'cat' ? 'Кошка' : opt}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

@@ -50,8 +50,7 @@ public interface AdoptionApplicationRepository extends JpaRepository<AdoptionApp
                            @Param("interviewerId") Long interviewerId,
                            @Param("scheduledAt") OffsetDateTime scheduledAt);
 
-    @Query(value = "SELECT complete_adoption(CAST(:applicationId AS integer), CAST(:signedDate AS date), CAST(:plan AS text))", nativeQuery = true)
+    @Query(value = "SELECT complete_adoption(CAST(:applicationId AS integer), CAST(:plan AS text))", nativeQuery = true)
     Long completeAdoption(@Param("applicationId") Long applicationId,
-                          @Param("signedDate") LocalDate signedDate,
                           @Param("plan") String plan);
 }

@@ -24,7 +24,6 @@ export function CoordinatorAgreementDetail() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<'template' | 'signed' | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [confirmDate, setConfirmDate] = useState('');
 
   const loadData = async () => {
     if (!id) return;
@@ -32,7 +31,6 @@ export function CoordinatorAgreementDetail() {
     try {
       const agr = await getAgreement(Number(id));
       setAgreement(agr);
-      setConfirmDate(agr.signedDate || new Date().toISOString().slice(0, 10));
       const app = await getApplicationById(agr.applicationId);
       setApplication(app);
       const [pet, users] = await Promise.all([getAnimal(app.animalId), getUsers().catch(() => [])]);
@@ -80,7 +78,7 @@ export function CoordinatorAgreementDetail() {
     if (!agreement) return;
     setConfirming(true);
     try {
-      await confirmAgreement(agreement.id, confirmDate || new Date().toISOString().slice(0, 10));
+      await confirmAgreement(agreement.id);
       await loadData();
     } catch {
       alert('Не удалось подтвердить передачу');
@@ -147,12 +145,6 @@ export function CoordinatorAgreementDetail() {
                 <PawPrint className="w-4 h-4 mr-1" />
                 {animal?.name || `Питомец #${application.animalId}`}
               </div>
-              {agreement.signedDate && (
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Подписан: {agreement.signedDate}
-                </div>
-              )}
               {agreement.confirmedAt && (
                 <div className="flex items-center text-green-700">
                   <CheckCircle className="w-4 h-4 mr-1" />

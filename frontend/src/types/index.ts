@@ -169,7 +169,6 @@ export interface Notification {
 export interface Agreement {
   id: number;
   applicationId: number;
-  signedDate?: string;
   postAdoptionPlan: string;
   templateUrl?: string;
   signedUrl?: string;

@@ -30,6 +30,16 @@ public class PersonService {
         return personRepository.findAll();
     }
 
+    public List<PersonEntity> findAllExcept(Long excludeId) {
+        List<PersonEntity> all = personRepository.findAll();
+        if (excludeId == null) {
+            return all;
+        }
+        return all.stream()
+                .filter(p -> !excludeId.equals(p.getId()))
+                .toList();
+    }
+
     @Transactional
     public PersonEntity createUser(String email,
                                    String rawPassword,

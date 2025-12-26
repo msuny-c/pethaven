@@ -19,12 +19,11 @@ export function CoordinatorTransfers() {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [animals, setAnimals] = useState<Record<number, Animal>>({});
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
-  const [planDrafts, setPlanDrafts] = useState<Record<number, string>>({});
-  const [signedDates, setSignedDates] = useState<Record<number, string>>({});
   const [creatingId, setCreatingId] = useState<number | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'ready' | 'progress' | 'done'>('ready');
+  const [planDrafts, setPlanDrafts] = useState<Record<number, string>>({});
 
   const loadData = async () => {
     const [apps, agrs, animalsList, usersList] = await Promise.all([
@@ -35,12 +34,6 @@ export function CoordinatorTransfers() {
     ]);
     setApplications(apps);
     setAgreements(agrs);
-    const defaultSignedDates: Record<number, string> = {};
-    const today = new Date().toISOString().slice(0, 10);
-    agrs.forEach((a) => {
-      defaultSignedDates[a.applicationId] = a.signedDate || today;
-    });
-    setSignedDates((prev) => ({ ...defaultSignedDates, ...prev }));
     const animalsMap: Record<number, Animal> = {};
     animalsList.forEach((a) => (animalsMap[a.id] = a));
     setAnimals(animalsMap);
@@ -95,7 +88,7 @@ export function CoordinatorTransfers() {
   const handleCreateAgreement = async (applicationId: number) => {
     const application = applications.find((a) => a.id === applicationId);
     if (!application) return;
-    const animal = animals[application.animalId];
+              const animal = animals[application.animalId];
     if (!application.passportUrl) {
       alert('Кандидат не загрузил паспорт — договор не может быть сформирован');
       return;
@@ -105,10 +98,9 @@ export function CoordinatorTransfers() {
       return;
     }
     const plan = planDrafts[applicationId] || 'Фотоотчет каждую неделю в первый месяц';
-    const date = signedDates[applicationId] || new Date().toISOString().slice(0, 10);
     setCreatingId(applicationId);
     try {
-      await createAgreement(applicationId, plan, date);
+      await createAgreement(applicationId, plan);
       await loadData();
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось сформировать договор';
@@ -119,11 +111,9 @@ export function CoordinatorTransfers() {
   };
 
   const handleConfirmAgreement = async (agreement: Agreement) => {
-    const appId = agreement.applicationId;
-    const date = signedDates[appId] || new Date().toISOString().slice(0, 10);
     setConfirmingId(agreement.id);
     try {
-      await confirmAgreement(agreement.id, date);
+      await confirmAgreement(agreement.id);
       await loadData();
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось подтвердить передачу';
@@ -160,7 +150,6 @@ export function CoordinatorTransfers() {
               const animal = animals[transfer.animalId];
               const candidate = users[transfer.candidateId];
               const plan = planDrafts[transfer.id] || 'Фотоотчет каждую неделю в первый месяц';
-              const date = signedDates[transfer.id] || new Date().toISOString().slice(0, 10);
               const ready = animal?.readyForAdoption;
               const passport = !!transfer.passportUrl;
               return (
@@ -216,15 +205,6 @@ export function CoordinatorTransfers() {
                         className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
                         placeholder="Частота отчетов, визиты, фото"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-gray-500">Плановая дата подписания</label>
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setSignedDates((prev) => ({ ...prev, [transfer.id]: e.target.value }))}
-                        className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
-                      />
                       {!ready && (
                         <p className="text-xs text-amber-600 flex items-center gap-1">
                           <ShieldCheck className="w-4 h-4" /> Ветеринар должен подтвердить готовность
@@ -271,7 +251,6 @@ export function CoordinatorTransfers() {
               if (!app) return null;
               const animal = animals[app.animalId];
               const candidate = users[app.candidateId];
-              const date = signedDates[app.id] || agreement.signedDate || new Date().toISOString().slice(0, 10);
               return (
                 <div key={agreement.id} className="p-6 space-y-3 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-4">

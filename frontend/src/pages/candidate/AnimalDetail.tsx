@@ -134,12 +134,12 @@ export function CandidateAnimalDetail() {
             </div>
 
             <div className="space-y-4 mb-6">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Вид:</span>
-                <span className="font-medium text-gray-900">
-                  {animal.species === 'cat' ? 'Кошка' : 'Собака'}
-                </span>
-              </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Вид:</span>
+                  <span className="font-medium text-gray-900">
+                  {animal.species === 'cat' ? 'Кошка' : animal.species === 'dog' ? 'Собака' : animal.species}
+                  </span>
+                </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Порода:</span>
                 <span className="font-medium text-gray-900">

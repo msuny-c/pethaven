@@ -163,7 +163,7 @@ export function AdminAnimals() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">
-                    {animal.species === 'cat' ? 'Кошка' : 'Собака'}
+                    {animal.species === 'cat' ? 'Кошка' : animal.species === 'dog' ? 'Собака' : animal.species}
                   </div>
                   <div className="text-xs text-gray-500">{animal.breed}</div>
                 </td>
@@ -179,13 +179,12 @@ export function AdminAnimals() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  {animal.pendingAdminReview ? (
+                    {animal.pendingAdminReview ? (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={async () => {
-                          const comment = await showPrompt({ message: 'Комментарий (необязательно)', title: 'Утвердить карточку', confirmLabel: 'Утвердить', cancelLabel: 'Отмена' });
                           try {
-                            await reviewAnimal(animal.id, true, comment || undefined);
+                            await reviewAnimal(animal.id, true);
                             await refresh();
                           } catch {
                             setError('Не удалось утвердить карточку');

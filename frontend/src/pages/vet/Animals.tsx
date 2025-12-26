@@ -86,7 +86,7 @@ export function VetAnimals() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">
-                      {animal.species === 'cat' ? 'Кошка' : 'Собака'}
+                      {animal.species === 'cat' ? 'Кошка' : animal.species === 'dog' ? 'Собака' : animal.species}
                     </div>
                     <div className="text-xs text-gray-500">{animal.breed}</div>
                   </td>

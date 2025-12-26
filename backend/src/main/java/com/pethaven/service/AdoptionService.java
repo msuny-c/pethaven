@@ -373,7 +373,6 @@ public class AdoptionService {
         return new AgreementResponse(
                 base.id(),
                 base.applicationId(),
-                base.signedDate(),
                 base.postAdoptionPlan(),
                 base.templateUrl(),
                 base.signedUrl(),
@@ -479,7 +478,6 @@ public class AdoptionService {
                 .orElseThrow(() -> new IllegalArgumentException("Заявка не найдена"));
         AnimalEntity animal = animalRepository.findById(app.getAnimalId())
                 .orElseThrow(() -> new IllegalArgumentException("Животное не найдено"));
-        agreement.setSignedDate(request.signedDate());
         agreement.setConfirmedAt(java.time.OffsetDateTime.now());
         agreement.setConfirmedBy(coordinatorId);
         agreementRepository.save(agreement);

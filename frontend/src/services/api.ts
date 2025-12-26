@@ -290,11 +290,10 @@ export async function getAgreements(): Promise<Agreement[]> {
   return data;
 }
 
-export async function createAgreement(applicationId: number, postAdoptionPlan: string, signedDate?: string) {
+export async function createAgreement(applicationId: number, postAdoptionPlan: string) {
   const { data } = await api.post<Agreement>('/adoptions/agreements', {
     applicationId,
-    postAdoptionPlan,
-    signedDate
+    postAdoptionPlan
   });
   return data;
 }
@@ -308,8 +307,8 @@ export async function uploadSignedAgreement(agreementId: number, file: File) {
   return data;
 }
 
-export async function confirmAgreement(agreementId: number, signedDate: string) {
-  const { data } = await api.post<Agreement>(`/adoptions/agreements/${agreementId}/confirm`, { signedDate });
+export async function confirmAgreement(agreementId: number) {
+  const { data } = await api.post<Agreement>(`/adoptions/agreements/${agreementId}/confirm`, {});
   return data;
 }
 
@@ -323,8 +322,8 @@ export async function downloadSignedAgreement(agreementId: number): Promise<Blob
   return data;
 }
 
-export async function completeTransfer(applicationId: number, plan: string, signedDate: string) {
-  return createAgreement(applicationId, plan, signedDate);
+export async function completeTransfer(applicationId: number, plan: string) {
+  return createAgreement(applicationId, plan);
 }
 
 export async function getInterviews(applicationId: number): Promise<Interview[]> {
@@ -390,6 +389,11 @@ export async function updateUserRoles(personId: number, roles: string[]) {
 
 export async function updateUserStatus(personId: number, active: boolean) {
   const { data } = await api.patch<UserProfile>('/users/status', { personId, active });
+  return normalizeUser(data);
+}
+
+export async function updateUserProfileAdmin(personId: number, payload: { firstName?: string; lastName?: string; phoneNumber?: string }) {
+  const { data } = await api.patch<UserProfile>('/users/profile', { personId, ...payload });
   return normalizeUser(data);
 }
 

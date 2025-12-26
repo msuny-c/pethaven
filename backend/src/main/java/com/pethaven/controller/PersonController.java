@@ -8,6 +8,7 @@ import com.pethaven.dto.ApiMessage;
 import com.pethaven.dto.SelfDeactivateRequest;
 import com.pethaven.dto.SelfProfileUpdateRequest;
 import com.pethaven.dto.UserCreateRequest;
+import com.pethaven.dto.AdminUserUpdateRequest;
 import com.pethaven.service.ObjectStorageService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -37,8 +38,9 @@ public class PersonController {
     }
 
     @GetMapping
-    public List<PersonEntity> getAll() {
-        return personService.findAll();
+    public List<PersonEntity> getAll(Authentication authentication) {
+        Long currentUserId = authentication != null && authentication.getPrincipal() instanceof Long uid ? uid : null;
+        return personService.findAllExcept(currentUserId);
     }
 
     @PostMapping
@@ -117,5 +119,21 @@ public class PersonController {
         }
         PersonEntity updated = personService.updateProfile(uid, request.firstName(), request.lastName(), request.phoneNumber());
         return ResponseEntity.ok(updated);
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<?> updateProfileAdmin(@Valid @RequestBody AdminUserUpdateRequest request,
+                                                Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Только администратор может редактировать сотрудников"));
+        }
+        try {
+            PersonEntity updated = personService.updateProfile(request.personId(), request.firstName(), request.lastName(), request.phoneNumber());
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(ApiMessage.of("Пользователь не найден"));
+        }
     }
 }
