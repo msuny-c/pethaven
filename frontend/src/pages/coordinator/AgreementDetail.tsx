@@ -175,14 +175,6 @@ export function CoordinatorAgreementDetail() {
 
         <div className="p-6 space-y-6">
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => handleDownload('template')}
-              disabled={downloading === 'template'}
-              className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 inline-flex items-center"
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              {downloading === 'template' ? 'Скачиваем...' : 'Скачать шаблон'}
-            </button>
             {agreement.signedUrl && (
               <button
                 onClick={() => handleDownload('signed')}

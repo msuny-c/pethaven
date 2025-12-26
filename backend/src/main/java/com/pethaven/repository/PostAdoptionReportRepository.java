@@ -105,4 +105,14 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
               AND r.status IN ('pending', 'overdue')
             """, nativeQuery = true)
     List<PostAdoptionReportReminderProjection> findPendingForReminder();
+
+    @Query(value = """
+            SELECT aa.candidate_id
+            FROM post_adoption_report r
+                     JOIN agreement ag ON ag.agreement_id = r.agreement_id
+                     JOIN adoption_application aa ON aa.application_id = ag.application_id
+            WHERE r.report_id = :reportId
+            LIMIT 1
+            """, nativeQuery = true)
+    Long findCandidateIdByReportId(Long reportId);
 }

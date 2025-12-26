@@ -78,13 +78,15 @@ export function CoordinatorApplicationDetail() {
         return { text: 'Отклонена', className: 'bg-red-100 text-red-700' };
       case 'under_review':
         return { text: 'На рассмотрении', className: 'bg-indigo-100 text-indigo-700' };
+      case 'cancelled':
+        return { text: 'Отменена', className: 'bg-gray-100 text-gray-700' };
       default:
         return { text: 'Новая', className: 'bg-blue-100 text-blue-700' };
     }
   };
 
   const status = statusLabel(application?.status || 'submitted');
-  const canAct = application && application.status !== 'approved' && application.status !== 'rejected';
+  const canAct = application && application.status !== 'approved' && application.status !== 'rejected' && application.status !== 'cancelled';
   const interviewCompleted = interviews.some((i) => i.status === 'completed');
   const toOffsetIso = (localValue: string) => {
     const value = localValue.length === 16 ? `${localValue}:00` : localValue;

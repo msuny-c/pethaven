@@ -66,7 +66,8 @@ export function AdminVolunteerApplications() {
           </div>
           {loading && <span className="text-sm text-gray-500">Обновляем...</span>}
         </div>
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[720px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
               <th className="px-6 py-3">Волонтёр</th>
@@ -159,6 +160,7 @@ export function AdminVolunteerApplications() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </DashboardLayout>
   );

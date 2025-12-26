@@ -166,7 +166,7 @@ public class AdoptionService {
                     animal.setStatus(com.pethaven.model.enums.AnimalStatus.reserved);
                     animalRepository.save(animal);
                 });
-            } else if (request.status() == ApplicationStatus.rejected) {
+            } else if (request.status() == ApplicationStatus.rejected || request.status() == ApplicationStatus.cancelled) {
                 animalRepository.findById(entity.getAnimalId()).ifPresent(animal -> {
                     if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {
                         animal.setStatus(com.pethaven.model.enums.AnimalStatus.available);
@@ -189,7 +189,7 @@ public class AdoptionService {
         if (!candidateId.equals(app.getCandidateId())) {
             throw new org.springframework.security.access.AccessDeniedException("Нельзя отменить чужую заявку");
         }
-        app.setStatus(ApplicationStatus.rejected);
+        app.setStatus(ApplicationStatus.cancelled);
         app.setDecisionComment((reason == null || reason.isBlank()) ? "Отменено кандидатом" : "Отменено кандидатом: " + reason);
         adoptionRepository.save(app);
         animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
@@ -525,6 +525,7 @@ public class AdoptionService {
             case under_review -> "На проверке";
             case approved -> "Одобрена";
             case rejected -> "Отклонена";
+            case cancelled -> "Отменена";
         };
     }
 

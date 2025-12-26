@@ -110,8 +110,8 @@ export function CoordinatorPostAdoption() {
         <div className="p-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-900">Отчёты усыновителей</h3>
         </div>
-
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[720px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
               <th className="px-6 py-3">Животное</th>
@@ -170,18 +170,22 @@ export function CoordinatorPostAdoption() {
               <td className="px-6 py-4">
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    report.status === 'submitted' || report.status === 'reviewed'
-                      ? 'bg-green-100 text-green-800'
-                          : isOverdue
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-amber-100 text-amber-800'
-                      }`}
+                    report.status === 'reviewed'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : report.status === 'submitted'
+                        ? 'bg-green-100 text-green-800'
+                        : isOverdue
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-amber-100 text-amber-800'
+                  }`}
                 >
-                  {report.status === 'submitted' || report.status === 'reviewed'
-                    ? 'Получено'
-                    : isOverdue
-                      ? 'Просрочено'
-                      : 'Ожидается'}
+                  {report.status === 'reviewed'
+                    ? 'Проверен'
+                    : report.status === 'submitted'
+                      ? 'Получено'
+                      : isOverdue
+                        ? 'Просрочено'
+                        : 'Ожидается'}
                 </span>
               </td>
               <td className="px-6 py-4 text-right">
@@ -198,6 +202,7 @@ export function CoordinatorPostAdoption() {
           </tbody>
         </table>
       {reports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
+        </div>
       </div>
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

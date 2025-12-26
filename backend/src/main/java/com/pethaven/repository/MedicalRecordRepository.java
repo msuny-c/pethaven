@@ -20,4 +20,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecordEnti
             ORDER BY next_due_date ASC
             """, nativeQuery = true)
     List<MedicalRecordEntity> findUpcoming(@Param("toDate") java.time.LocalDate toDate);
+
+    void deleteByAnimalId(Long animalId);
 }

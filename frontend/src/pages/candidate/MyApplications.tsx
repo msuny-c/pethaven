@@ -61,7 +61,15 @@ export function CandidateApplications() {
                             {animal?.name}
                           </h3>
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${app.status === 'approved' ? 'bg-green-100 text-green-700' : app.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {app.status === 'submitted' ? 'Отправлено' : app.status === 'under_review' ? 'На рассмотрении' : app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                            {app.status === 'submitted'
+                              ? 'Отправлено'
+                              : app.status === 'under_review'
+                                ? 'На рассмотрении'
+                                : app.status === 'approved'
+                                  ? 'Одобрено'
+                                  : app.status === 'cancelled'
+                                    ? 'Отменено'
+                                    : 'Отклонено'}
                           </span>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mb-2">

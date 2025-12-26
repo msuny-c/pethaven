@@ -2,7 +2,11 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LayoutDashboard, Users, PawPrint, FileText, Calendar, ClipboardList, Activity, LogOut, Home, Settings, FileCheck, User } from 'lucide-react';
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { user, primaryRole, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,7 +88,7 @@ export function Sidebar() {
           icon: LayoutDashboard
         }, {
           path: '/veterinar/animals',
-          label: 'Пациенты',
+          label: 'Животные',
           icon: PawPrint
         }, {
           path: '/profile',
@@ -160,7 +164,7 @@ export function Sidebar() {
   };
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || 'Пользователь';
   const roleLabel = primaryRole ? (roleLabels[primaryRole] || primaryRole) : 'Роль не указана';
-  return <div className="w-64 bg-gray-900 text-white min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-30">
+  return <div className={`${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 w-64 bg-gray-900 text-white min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-30 md:translate-x-0`}>
       <div className="p-6 flex items-center space-x-3 border-b border-gray-800">
         <div className="bg-amber-500 p-1.5 rounded-lg">
           <PawPrint className="h-6 w-6 text-white" />

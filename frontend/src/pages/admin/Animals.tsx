@@ -111,7 +111,8 @@ export function AdminAnimals() {
           </div>
         </div>
 
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[720px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
               <th className="px-6 py-3">Имя / ID</th>
@@ -203,6 +204,7 @@ export function AdminAnimals() {
               </tr>)}
           </tbody>
         </table>
+        </div>
       </div>
 
       {error && <div className="text-sm text-red-600 mb-4">{error}</div>}

@@ -141,7 +141,8 @@ export function CoordinatorTaskManagement() {
           <div className="text-sm text-gray-600">Задачи приюта</div>
           {loading && <div className="ml-3 text-xs text-gray-400">Обновляем...</div>}
         </div>
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[720px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
               <th className="px-6 py-3">Задача</th>
@@ -187,6 +188,7 @@ export function CoordinatorTaskManagement() {
             })}
           </tbody>
         </table>
+        </div>
         {tasks.length === 0 && <div className="p-8 text-center text-gray-500">Нет задач</div>}
       </div>
     </DashboardLayout>

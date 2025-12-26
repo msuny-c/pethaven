@@ -30,6 +30,7 @@ public class AnimalService {
     private final AnimalMediaRepository animalMediaRepository;
     private final AnimalNoteRepository animalNoteRepository;
     private final NotificationService notificationService;
+    private final com.pethaven.repository.MedicalRecordRepository medicalRecordRepository;
     private final PersonRepository personRepository;
     private final AnimalMapper animalMapper;
     private final AnimalNoteMapper animalNoteMapper;
@@ -38,6 +39,7 @@ public class AnimalService {
                          AnimalMediaRepository animalMediaRepository,
                          AnimalNoteRepository animalNoteRepository,
                          NotificationService notificationService,
+                         com.pethaven.repository.MedicalRecordRepository medicalRecordRepository,
                          PersonRepository personRepository,
                          AnimalMapper animalMapper,
                          AnimalNoteMapper animalNoteMapper) {
@@ -45,6 +47,7 @@ public class AnimalService {
         this.animalMediaRepository = animalMediaRepository;
         this.animalNoteRepository = animalNoteRepository;
         this.notificationService = notificationService;
+        this.medicalRecordRepository = medicalRecordRepository;
         this.personRepository = personRepository;
         this.animalMapper = animalMapper;
         this.animalNoteMapper = animalNoteMapper;
@@ -143,6 +146,7 @@ public class AnimalService {
     }
 
     public void delete(Long animalId) {
+        medicalRecordRepository.deleteByAnimalId(animalId);
         animalRepository.deleteById(animalId);
     }
 

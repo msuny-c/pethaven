@@ -5,11 +5,13 @@ import { Activity, Syringe, AlertTriangle, Clipboard } from 'lucide-react';
 import { getAnimals, getMedicalRecords, getUpcomingMedical } from '../../services/api';
 import { Animal, MedicalRecord } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 export function VetDashboard() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { primaryRole } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -20,7 +22,12 @@ export function VetDashboard() {
         try {
           const recLists = await Promise.all(data.slice(0, 3).map(a => getMedicalRecords(a.id)));
           const upcoming = await getUpcomingMedical(45);
-          setRecords([...recLists.flat(), ...upcoming]);
+          const merged = [...recLists.flat(), ...upcoming];
+          const unique = merged.reduce<Record<number, MedicalRecord>>((acc, rec) => {
+            if (rec.id && !acc[rec.id]) acc[rec.id] = rec;
+            return acc;
+          }, {});
+          setRecords(Object.values(unique));
         } catch {
           setRecords([]);
         }
@@ -56,7 +63,7 @@ export function VetDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="На карантине" value={quarantineCount} icon={AlertTriangle} color="bg-red-500" />
         <StatCard title="Требуют внимания" value={proceduresDue} icon={Syringe} color="bg-blue-500" />
-        <StatCard title="Всего пациентов" value={animals.length} icon={Activity} color="bg-green-500" />
+        <StatCard title="Всего животных" value={animals.length} icon={Activity} color="bg-green-500" />
         <StatCard title="Записей в карте" value={records.length} icon={Clipboard} color="bg-purple-500" />
       </div>
 
@@ -64,10 +71,11 @@ export function VetDashboard() {
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           Предстоящие вакцинации
         </h3>
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
-              <th className="px-4 py-2">Пациент</th>
+              <th className="px-4 py-2">Животное</th>
               <th className="px-4 py-2">Процедура</th>
               <th className="px-4 py-2">Дата</th>
             </tr>
@@ -75,11 +83,9 @@ export function VetDashboard() {
           <tbody>
             {records.filter(r => r.nextDueDate).map(record => {
             const overdue = record.nextDueDate ? new Date(record.nextDueDate) < new Date() : false;
-            return <tr key={record.id} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-3 font-medium">
-                    <a href={`/veterinar/medical-records/${record.animalId}`} className="text-blue-600 hover:underline">
-                      {animalNames[record.animalId] || `Животное #${record.animalId}`}
-                    </a>
+            return <tr key={record.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/veterinar/medical-records/${record.animalId}`)}>
+                  <td className="px-4 py-3 font-medium text-blue-700">
+                    {animalNames[record.animalId] || `Животное #${record.animalId}`}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {getProcedureLabel(record.procedure)}
@@ -96,6 +102,7 @@ export function VetDashboard() {
               </tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </DashboardLayout>;
 }

@@ -75,7 +75,7 @@ export interface ReportMedia {
   uploadedAt?: string;
 }
 
-export type ApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
+export type ApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled';
 
 export interface Application {
   id: number;

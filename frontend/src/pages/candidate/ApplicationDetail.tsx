@@ -60,7 +60,8 @@ export function CandidateApplicationDetail() {
       submitted: { text: 'Подана', className: 'bg-blue-100 text-blue-700' },
       under_review: { text: 'На рассмотрении', className: 'bg-indigo-100 text-indigo-700' },
       approved: { text: 'Одобрена', className: 'bg-green-100 text-green-700' },
-      rejected: { text: 'Отклонена', className: 'bg-red-100 text-red-700' }
+      rejected: { text: 'Отклонена', className: 'bg-red-100 text-red-700' },
+      cancelled: { text: 'Отменена', className: 'bg-gray-100 text-gray-700' }
     };
     const item = map[status];
     return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${item.className}`}>{item.text}</span>;

@@ -39,7 +39,15 @@ export function CandidateDashboard() {
                     <div className="text-sm text-gray-500">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : ''}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${app.status === 'approved' ? 'bg-green-100 text-green-700' : app.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {app.status === 'submitted' ? 'Отправлено' : app.status === 'under_review' ? 'На рассмотрении' : app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                    {app.status === 'submitted'
+                      ? 'Отправлено'
+                      : app.status === 'under_review'
+                        ? 'На рассмотрении'
+                        : app.status === 'approved'
+                          ? 'Одобрено'
+                          : app.status === 'cancelled'
+                            ? 'Отменено'
+                            : 'Отклонено'}
                   </span>
                 </div>)}
             </div> : <p className="text-gray-500">У вас пока нет активных заявок</p>}

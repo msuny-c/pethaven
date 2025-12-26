@@ -4,5 +4,6 @@ public enum ApplicationStatus {
     submitted,
     under_review,
     approved,
-    rejected
+    rejected,
+    cancelled
 }

@@ -66,7 +66,8 @@ export function CoordinatorApplications() {
   };
   return <DashboardLayout title="Заявки на адопцию">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[760px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
               <th className="px-6 py-3">Кандидат</th>
@@ -109,8 +110,22 @@ export function CoordinatorApplications() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                      ${app.status === 'approved' ? 'bg-green-100 text-green-800' : app.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {app.status === 'submitted' ? 'Новая' : app.status === 'under_review' ? 'На рассмотрении' : app.status === 'approved' ? 'Одобрена' : 'Отклонена'}
+                      ${app.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : app.status === 'rejected'
+                          ? 'bg-red-100 text-red-800'
+                          : app.status === 'cancelled'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-blue-100 text-blue-800'}`}>
+                      {app.status === 'submitted'
+                        ? 'Новая'
+                        : app.status === 'under_review'
+                          ? 'На рассмотрении'
+                          : app.status === 'approved'
+                            ? 'Одобрена'
+                            : app.status === 'cancelled'
+                              ? 'Отменена'
+                              : 'Отклонена'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -141,6 +156,7 @@ export function CoordinatorApplications() {
           })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <ApplicationReviewModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onConfirm={handleConfirm} type={modalType} />

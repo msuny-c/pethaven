@@ -140,7 +140,7 @@ export function ProfilePage() {
                   <Lock className="w-4 h-4 text-gray-400" />
                   Удалить аккаунт
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
                   <input
                     type="password"
                     value={password}
@@ -148,9 +148,6 @@ export function ProfilePage() {
                     placeholder="Введите пароль"
                     className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3 py-2"
                   />
-                  <div className="text-xs text-gray-500 md:col-span-1">
-                    После удаления доступ будет заблокирован. Администратор сможет восстановить вручную.
-                  </div>
                   <button
                     onClick={async () => {
                       if (!password) {

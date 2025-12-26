@@ -69,11 +69,24 @@ public class PostAdoptionReportService {
     public PostAdoptionReportResponse update(Long id, PostAdoptionReportRequest request, Long authorId) {
         PostAdoptionReportEntity entity = reportRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Report not found: " + id));
+        ReportStatus previousStatus = entity.getStatus();
         applyRequest(entity, request);
         if (authorId != null && request.volunteerFeedback() != null) {
             entity.setCommentAuthorId(authorId);
         }
-        return reportMapper.toResponse(reportRepository.save(entity));
+        PostAdoptionReportResponse response = reportMapper.toResponse(reportRepository.save(entity));
+        if (request.status() == ReportStatus.reviewed && previousStatus != ReportStatus.reviewed) {
+            Long candidateId = reportRepository.findCandidateIdByReportId(id);
+            if (candidateId != null) {
+                notificationService.push(
+                        candidateId,
+                        com.pethaven.model.enums.NotificationType.report_due,
+                        "Отчёт проверен",
+                        "Ваш отчёт #" + id + " проверен координатором"
+                );
+            }
+        }
+        return response;
     }
 
     public void submit(Long id, PostAdoptionReportRequest request, Long candidateId) {
