@@ -95,7 +95,13 @@ export function CandidateApplicationForm() {
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="p-6 bg-amber-50 border-b border-amber-100 flex items-center">
-            <img src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'} alt={animal.name} className="w-16 h-16 rounded-full object-cover mr-4" />
+            {animal.photos && animal.photos[0] ? (
+              <img src={animal.photos[0]} alt={animal.name} className="w-16 h-16 rounded-full object-cover mr-4" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-4">
+                {(animal.name || 'Ж')[0]}
+              </div>
+            )}
             <div>
               <h3 className="text-lg font-bold text-gray-900">{animal.name}</h3>
               <p className="text-sm text-gray-600">

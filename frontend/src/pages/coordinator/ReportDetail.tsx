@@ -250,9 +250,17 @@ export function CoordinatorReportDetail() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <img
-                    src={candidate.avatarUrl || 'https://i.pravatar.cc/120'}
-                    className="w-12 h-12 rounded-full object-cover border"
+                    src={candidate.avatarUrl || ''}
+                    className="w-12 h-12 rounded-full object-cover border bg-amber-100 text-amber-700 flex items-center justify-center"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const next = e.currentTarget.nextSibling as HTMLElement | null;
+                      if (next) next.classList.remove('hidden');
+                    }}
                   />
+                  <div className="hidden w-12 h-12 rounded-full bg-amber-100 text-amber-700 items-center justify-center text-sm font-semibold border">
+                    {(candidate.firstName || candidate.email || 'К')[0]}
+                  </div>
                   <div>
                     <div className="font-bold text-gray-900">
                       {candidate.firstName} {candidate.lastName}

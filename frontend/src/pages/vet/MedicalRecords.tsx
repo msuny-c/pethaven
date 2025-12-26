@@ -30,7 +30,7 @@ export function VetMedicalRecords() {
           setAnimal(animal);
           setAnimalName(animal.name);
           setAnimalBreed(animal.breed || '');
-          setAnimalPhoto((animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80');
+          setAnimalPhoto((animal.photos && animal.photos[0]) || '');
           setReadyLocally(!!(animal.readyForAdoption || animal.medical?.readyForAdoption));
         }
         const recs = await getMedicalRecords(idNum);
@@ -89,7 +89,13 @@ export function VetMedicalRecords() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center mb-6">
-            <img src={animalPhoto} alt={animalName} className="w-20 h-20 rounded-xl object-cover mr-4" />
+            {animalPhoto ? (
+              <img src={animalPhoto} alt={animalName} className="w-20 h-20 rounded-xl object-cover mr-4" />
+            ) : (
+              <div className="w-20 h-20 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xl mr-4">
+                {(animalName || 'Ж')[0]}
+              </div>
+            )}
             <div>
               <h3 className="text-xl font-bold text-gray-900">{animalName}</h3>
               <p className="text-sm text-gray-500">{animalBreed}</p>

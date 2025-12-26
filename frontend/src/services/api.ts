@@ -35,7 +35,8 @@ export async function getAnimal(id: number): Promise<Animal | null> {
 }
 
 export async function createAnimal(animal: Partial<Animal>) {
-  await api.post('/animals', animal);
+  const { data } = await api.post<Animal>('/animals', animal);
+  return data;
 }
 
 export async function updateAnimal(id: number, animal: Partial<Animal>) {

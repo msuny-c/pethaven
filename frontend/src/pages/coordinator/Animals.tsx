@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { Animal } from '../../types';
-import { createAnimal, getAnimals, updateAnimalStatus } from '../../services/api';
+import { createAnimal, getAnimals, updateAnimalStatus, uploadAnimalMedia } from '../../services/api';
 
 const STATUS_OPTIONS: Array<{ value: Animal['status']; label: string }> = [
   { value: 'quarantine', label: 'Карантин' },
@@ -37,20 +37,50 @@ export function CoordinatorAnimals() {
     );
   }, [animals, searchTerm]);
 
-  const handleSave = async (animalData: Partial<Animal>) => {
+  const handleSave = async (animalData: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => {
     setIsSaving(true);
-    const payload = {
-      name: animalData.name || 'Без имени',
-      species: animalData.species || 'dog',
-      breed: animalData.breed,
-      ageMonths:
-        animalData.ageMonths ??
-        (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
-      status: (animalData.status as Animal['status']) || 'quarantine'
-    };
-    await createAnimal(payload);
-    await loadAnimals();
-    setIsSaving(false);
+    try {
+      const payload = {
+        name: animalData.name || 'Без имени',
+        species: animalData.species || 'dog',
+        breed: animalData.breed,
+        ageMonths:
+          animalData.ageMonths ??
+          (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
+        gender: animalData.gender || 'male',
+        status: (animalData.status as Animal['status']) || 'quarantine',
+        description: animalData.description
+      };
+      const created = await createAnimal(payload);
+      if (created?.id) {
+        if (animalData.extraPhotos?.length) {
+          for (const file of animalData.extraPhotos) {
+            await uploadAnimalMedia(created.id, file);
+          }
+        }
+        if (animalData.mainPhoto) {
+          await uploadAnimalMedia(created.id, animalData.mainPhoto);
+        }
+      }
+      await loadAnimals();
+      setIsSaving(false);
+      return { ok: true };
+    } catch (err: any) {
+      setIsSaving(false);
+      const validation = err?.response?.data?.validation as Record<string, string[]> | undefined;
+      const errors: Record<string, string> = {};
+      if (validation) {
+        Object.entries(validation).forEach(([key, messages]) => {
+          const msg = messages && messages[0];
+          if (!msg) return;
+          const humanKey = key === 'name' ? 'Имя' : key === 'species' ? 'Вид' : key === 'gender' ? 'Пол' : key === 'ageMonths' ? 'Возраст' : key;
+          const humanMsg = msg === 'must not be blank' ? 'Поле обязательно' : msg === 'must not be null' ? 'Поле обязательно' : msg;
+          errors[key] = `${humanKey}: ${humanMsg}`;
+        });
+      }
+      const message = err?.response?.data?.message || 'Не удалось сохранить карточку';
+      return { ok: false, errors: Object.keys(errors).length ? errors : undefined, message };
+    }
   };
 
   const handleStatusChange = async (id: number, status: Animal['status']) => {
@@ -100,18 +130,23 @@ export function CoordinatorAnimals() {
           <tbody className="divide-y divide-gray-100">
             {filteredAnimals.map((animal) => {
             const isAdopted = animal.status === 'adopted';
+            const photoUrl = animal.photos && animal.photos[0];
+            const initial = animal.name ? animal.name.charAt(0).toUpperCase() : '#';
             return (
               <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <img
-                      src={
-                        (animal.photos && animal.photos[0]) ||
-                        'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                      }
-                      alt={animal.name}
-                      className="w-10 h-10 rounded-full object-cover mr-3"
-                    />
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={animal.name}
+                        className="w-10 h-10 rounded-full object-cover mr-3"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-3">
+                        {initial}
+                      </div>
+                    )}
                     <div>
                       <div className="font-medium text-gray-900">{animal.name}</div>
                       <div className="text-xs text-gray-500">#{animal.id}</div>

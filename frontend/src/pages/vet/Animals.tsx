@@ -62,10 +62,18 @@ export function VetAnimals() {
             {animals.filter(animal => animal.status !== 'adopted').map(animal => {
             const ready = animal.readyForAdoption || animal.medical?.readyForAdoption;
             const isAdopted = animal.status === 'adopted';
+            const photoUrl = animal.photos && animal.photos[0];
+            const initial = animal.name ? animal.name.charAt(0).toUpperCase() : 'Ж';
             return <tr key={animal.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate(`/veterinar/medical-records/${animal.id}`)}>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'} alt={animal.name} className="w-10 h-10 rounded-full object-cover mr-3" />
+                      {photoUrl ? (
+                        <img src={photoUrl} alt={animal.name} className="w-10 h-10 rounded-full object-cover mr-3" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-3">
+                          {initial}
+                        </div>
+                      )}
                       <div>
                         <div className="font-medium text-gray-900">
                           {animal.name}

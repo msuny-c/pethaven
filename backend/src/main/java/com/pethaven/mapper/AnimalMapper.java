@@ -15,10 +15,12 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
+import java.util.Comparator;
 
 @Mapper(componentModel = "spring")
 public interface AnimalMapper {
 
+    @Mapping(target = "photos", expression = "java(mapMediaToUrls(entity))")
     AnimalResponse toResponse(AnimalEntity entity);
 
     List<AnimalResponse> toResponses(List<AnimalEntity> entities);
@@ -47,5 +49,16 @@ public interface AnimalMapper {
         if (entity.getPendingAdminReview() == null) {
             entity.setPendingAdminReview(Boolean.TRUE);
         }
+    }
+
+    default List<String> mapMediaToUrls(AnimalEntity entity) {
+        if (entity == null || entity.getMedia() == null) {
+            return List.of();
+        }
+        return entity.getMedia().stream()
+                .sorted(Comparator.comparing(AnimalMediaEntity::getUploadedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .map(AnimalMediaEntity::getUrl)
+                .toList();
     }
 }

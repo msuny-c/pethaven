@@ -328,6 +328,17 @@ public class AdoptionService {
         }
 
         interviewRepository.save(interview);
+
+        // Автообновление статуса заявки после проведённого интервью (одобрение)
+        if (request.status() == InterviewStatus.completed && request.autoApproveApplicationId() != null) {
+            if (app.getId().equals(request.autoApproveApplicationId())) {
+                app.setStatus(ApplicationStatus.approved);
+                if (uid != null) {
+                    app.setProcessedBy(uid);
+                }
+                adoptionRepository.save(app);
+            }
+        }
     }
 
     @Transactional(readOnly = true)

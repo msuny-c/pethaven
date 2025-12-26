@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Check, X, User, FileText, Calendar } from 'lucide-react';
 import { ApplicationReviewModal } from '../../components/modals/ApplicationReviewModal';
 import { Application, Animal, UserProfile } from '../../types';
-import { getApplications, getAnimals, getUsers, updateApplicationStatus, scheduleInterview } from '../../services/api';
+import { getApplications, getAnimals, getUsers, updateApplicationStatus, scheduleInterview, getAllInterviews } from '../../services/api';
 export function CoordinatorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
@@ -15,8 +15,9 @@ export function CoordinatorApplications() {
   const [scheduleFor, setScheduleFor] = useState<number | null>(null);
   const [scheduleDatetime, setScheduleDatetime] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const [interviewCompletedApps, setInterviewCompletedApps] = useState<Set<number>>(new Set());
   useEffect(() => {
-    Promise.all([getApplications(), getAnimals(), getUsers()]).then(([apps, animals, users]) => {
+    Promise.all([getApplications(), getAnimals(), getUsers(), getAllInterviews()]).then(([apps, animals, users, interviews]) => {
       setApplications(apps);
       const map: Record<number, Animal> = {};
       animals.forEach(a => map[a.id] = a);
@@ -24,6 +25,13 @@ export function CoordinatorApplications() {
       const uMap: Record<number, UserProfile> = {};
       users.forEach(u => uMap[u.id] = u);
       setUserMap(uMap);
+      const completed = new Set<number>();
+      interviews.forEach(i => {
+        if (i.status === 'completed') {
+          completed.add(i.applicationId);
+        }
+      });
+      setInterviewCompletedApps(completed);
     });
   }, []);
   const handleAction = (id: number, type: 'approve' | 'reject') => {
@@ -99,7 +107,13 @@ export function CoordinatorApplications() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img src={(animal?.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=100&q=80'} alt="" className="w-8 h-8 rounded-full object-cover mr-2" />
+                    {animal?.photos && animal.photos[0] ? (
+                      <img src={animal.photos[0]} alt="" className="w-8 h-8 rounded-full object-cover mr-2" />
+                    ) : (
+                      <span className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-semibold mr-2">
+                        {(animal?.name || 'Ж')[0]}
+                      </span>
+                    )}
                       <span className="text-sm text-gray-900">
                         {animal?.name || `Животное #${app.animalId}`}
                       </span>
@@ -133,7 +147,7 @@ export function CoordinatorApplications() {
                     <Link to={`/coordinator/applications/${app.id}`} className="p-1 text-gray-400 hover:text-amber-600" title="Страница заявки">
                       <FileText className="w-5 h-5" />
                     </Link>
-                    {app.status !== 'approved' && app.status !== 'rejected' && (
+                    {app.status === 'submitted' && !interviewCompletedApps.has(app.id) && (
                       <button
                         onClick={() => setScheduleFor(app.id)}
                         className="p-1 text-gray-400 hover:text-blue-600"

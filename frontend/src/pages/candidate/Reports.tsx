@@ -104,7 +104,13 @@ export function CandidateReports() {
               return (
                 <div key={report.id} className="bg-white rounded-xl shadow-sm border border-amber-200 p-6">
                   <div className="flex items-center mb-4">
-                    <img src={(animal?.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'} alt={animal?.name} className="w-12 h-12 rounded-full object-cover mr-4" />
+                    {animal?.photos && animal.photos[0] ? (
+                      <img src={animal.photos[0]} alt={animal?.name} className="w-12 h-12 rounded-full object-cover mr-4" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold mr-4">
+                        {(animal?.name || 'Ж')[0]}
+                      </div>
+                    )}
                     <div>
                       <h4 className="font-bold text-gray-900">
                         Отчёт по {animal?.name || report.animalName || 'питомцу'}

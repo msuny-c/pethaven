@@ -164,11 +164,17 @@ export function CandidateApplicationDetail() {
                 </div>
               </div>
               {animal && (
-                <img
-                  src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=140&q=80'}
-                  alt={animal.name}
-                  className="w-24 h-24 rounded-xl object-cover border border-gray-100"
-                />
+                animal.photos && animal.photos[0] ? (
+                  <img
+                    src={animal.photos[0]}
+                    alt={animal.name}
+                    className="w-24 h-24 rounded-xl object-cover border border-gray-100"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-2xl border border-gray-100">
+                    {(animal.name || 'Ж')[0]}
+                  </div>
+                )
               )}
             </div>
 

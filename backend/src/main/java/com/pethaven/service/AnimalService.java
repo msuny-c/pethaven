@@ -95,7 +95,8 @@ public class AnimalService {
                 response.description(),
                 response.status(),
                 null,
-                null
+                null,
+                response.photos()
         );
     }
 

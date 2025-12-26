@@ -74,7 +74,7 @@ export function CandidateReportDetail() {
 
   const commentAuthorName = `${report.authorFirstName || ''} ${report.authorLastName || ''}`.trim();
   const commentAuthorAvatar =
-    report.authorAvatar || 'https://i.pravatar.cc/80';
+    report.authorAvatar || '';
 
   return (
     <DashboardLayout
@@ -163,10 +163,16 @@ export function CandidateReportDetail() {
             {animal ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=120&q=80'}
-                    className="w-12 h-12 rounded-full object-cover border"
-                  />
+                  {animal.photos && animal.photos[0] ? (
+                    <img
+                      src={animal.photos[0]}
+                      className="w-12 h-12 rounded-full object-cover border"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border">
+                      {(animal.name || 'Ж')[0]}
+                    </div>
+                  )}
                   <div>
                     <div className="font-bold text-gray-900">{animal.name}</div>
                     <div className="text-sm text-gray-600">{animal.breed}</div>
@@ -187,10 +193,16 @@ export function CandidateReportDetail() {
                 <div className="font-semibold text-gray-900">Кандидат</div>
               </div>
               <div className="flex items-center gap-3">
-                <img
-                  src={user.avatarUrl || 'https://i.pravatar.cc/120'}
-                  className="w-12 h-12 rounded-full object-cover border"
-                />
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border">
+                    {(user.firstName || user.email || 'К')[0]}
+                  </div>
+                )}
                 <div>
                   <div className="font-bold text-gray-900">
                     {user.firstName} {user.lastName}
@@ -209,10 +221,16 @@ export function CandidateReportDetail() {
                 <div className="font-semibold text-gray-900">Координатор</div>
               </div>
               <div className="flex items-center gap-3">
-                <img
-                  src={coordinator.avatarUrl || 'https://i.pravatar.cc/120'}
-                  className="w-12 h-12 rounded-full object-cover border"
-                />
+                  {coordinator.avatarUrl ? (
+                    <img
+                      src={coordinator.avatarUrl}
+                      className="w-12 h-12 rounded-full object-cover border"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border">
+                      {(coordinator.firstName || coordinator.email || 'К')[0]}
+                    </div>
+                  )}
                 <div>
                   <div className="font-bold text-gray-900">
                     {coordinator.firstName} {coordinator.lastName}

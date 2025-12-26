@@ -66,96 +66,94 @@ export function CoordinatorInterviews() {
   };
 
   return <DashboardLayout title="Управление интервью">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
-          <div className="text-xs uppercase text-gray-500">Всего</div>
-          <div className="text-2xl font-bold text-gray-900">{interviews.length}</div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[840px]">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
+              <tr>
+                <th className="px-6 py-3">Дата / время</th>
+                <th className="px-6 py-3">Кандидат</th>
+                <th className="px-6 py-3">Животное</th>
+                <th className="px-6 py-3">Статус</th>
+                <th className="px-6 py-3 text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {interviews.map((interview) => {
+              const application = applications.find((a) => a.id === interview.applicationId);
+              const animal = animals.find((a) => a.id === application?.animalId);
+              const interviewDate = new Date(interview.scheduledDatetime);
+              const candidate = application ? users.find((u) => u.id === application.candidateId) : undefined;
+              const pill = statusPill(interview.status);
+              const canCancel = interview.status === 'scheduled' || interview.status === 'confirmed';
+              return <tr key={interview.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span>{interviewDate.toLocaleDateString()}</span>
+                        <Clock className="w-4 h-4 text-gray-400 ml-2" />
+                        <span>{interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <div className="text-sm text-gray-900">
+                          {candidate ? `${candidate.firstName} ${candidate.lastName}` : `Кандидат #${application?.candidateId}`}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <PawPrint className="w-4 h-4 text-gray-400" />
+                        <div className="text-sm text-gray-900">
+                          {animal?.name || `Животное #${application?.animalId}`}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${pill.className}`}>
+                        {pill.text}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => navigate(`/coordinator/interviews/${interview.id}`)}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-100"
+                        >
+                          <FileText className="w-4 h-4 mr-1" /> Детали
+                        </button>
+                        {interview.status === 'confirmed' && (
+                          <button
+                            onClick={() => handleComplete(interview.id)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" /> Завершить
+                          </button>
+                        )}
+                        {canCancel && (
+                          <button
+                            onClick={() => handleCancel(interview.id)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300"
+                          >
+                            <XCircle className="w-4 h-4 mr-1" /> Отменить
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>;
+            })}
+              {interviews.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-6 text-center text-sm text-gray-500">
+                  Интервью не запланированы
+                </td>
+              </tr>
+            )}
+            </tbody>
+          </table>
         </div>
-        <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
-          <div className="text-xs uppercase text-blue-600">Запланировано</div>
-          <div className="text-xl font-bold text-blue-800">{interviews.filter(i => i.status === 'scheduled' || i.status === 'confirmed').length}</div>
-        </div>
-        <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
-          <div className="text-xs uppercase text-green-600">Проведено</div>
-          <div className="text-xl font-bold text-green-800">{interviews.filter(i => i.status === 'completed').length}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {interviews.map(interview => {
-        const application = applications.find(a => a.id === interview.applicationId);
-        const animal = animals.find(a => a.id === application?.animalId);
-        const interviewDate = new Date(interview.scheduledDatetime);
-        const candidate = application ? users.find(u => u.id === application.candidateId) : undefined;
-        const pill = statusPill(interview.status);
-        return <div key={interview.id} className="bg-white border border-gray-100 rounded-xl shadow-sm p-5 flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${pill.className}`}>
-                    {pill.text}
-                  </span>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                    <span className="inline-flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" /> {interviewDate.toLocaleDateString()}
-                    </span>
-                    <span className="inline-flex items-center">
-                      <Clock className="w-4 h-4 mr-1" /> {interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate(`/coordinator/interviews/${interview.id}`)}
-                  className="text-sm text-amber-600 hover:text-amber-700 font-semibold inline-flex items-center gap-1"
-                >
-                  <FileText className="w-4 h-4" /> Детали
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                  <User className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {candidate ? `${candidate.firstName} ${candidate.lastName}` : `Кандидат #${application?.candidateId}`}
-                    </div>
-                    <div className="text-xs text-gray-500">{candidate?.email || ''}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                  <PawPrint className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">{animal?.name || 'Питомец'}</div>
-                    <div className="text-xs text-gray-500">{animal?.breed}</div>
-                  </div>
-                </div>
-              </div>
-
-              {(interview.status === 'scheduled' || interview.status === 'confirmed') && (
-                <div className="flex flex-wrap gap-2">
-                  {interview.status === 'confirmed' && (
-                    <button
-                      onClick={() => {
-                        setSelectedInterview(interview.id);
-                        setIsCompleteModalOpen(true);
-                      }}
-                      className="inline-flex items-center px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-1" /> Завершить
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setSelectedInterview(interview.id);
-                      setIsCancelModalOpen(true);
-                    }}
-                    className="inline-flex items-center px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-300"
-                  >
-                    <XCircle className="w-4 h-4 mr-1" /> Отменить
-                  </button>
-                </div>
-              )}
-            </div>;
-      })}
       </div>
 
       <InterviewCompleteModal isOpen={isCompleteModalOpen} onClose={() => setIsCompleteModalOpen(false)} onConfirm={onCompleteConfirm} />

@@ -5,7 +5,7 @@ import { Animal } from '../../types';
 interface AnimalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (animal: Partial<Animal>) => void;
+  onSave: (animal: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => Promise<{ ok: boolean; errors?: Record<string, string>; message?: string }>;
   initialData?: Animal;
 }
 export function AnimalModal({
@@ -14,7 +14,7 @@ export function AnimalModal({
   onSave,
   initialData
 }: AnimalModalProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'medical' | 'behavior' | 'photos'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'behavior' | 'photos'>('info');
   const [formData, setFormData] = useState<Partial<Animal>>(initialData || {
     name: '',
     species: 'dog',
@@ -31,6 +31,11 @@ export function AnimalModal({
     },
     photos: []
   });
+  const [mainPhoto, setMainPhoto] = useState<File | null>(null);
+  const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const statusLocked = initialData?.status === 'adopted';
   if (!isOpen) return null;
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
@@ -54,9 +59,6 @@ export function AnimalModal({
           <button onClick={() => setActiveTab('info')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'info' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             Основное
           </button>
-          <button onClick={() => setActiveTab('medical')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'medical' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            Медицина
-          </button>
           <button onClick={() => setActiveTab('behavior')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'behavior' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             Поведение
           </button>
@@ -76,6 +78,7 @@ export function AnimalModal({
                 ...formData,
                 name: e.target.value
               })} />
+                  {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -88,6 +91,7 @@ export function AnimalModal({
                     <option value="dog">Собака</option>
                     <option value="cat">Кошка</option>
                   </select>
+                  {errors.species && <p className="text-xs text-red-600 mt-1">{errors.species}</p>}
                 </div>
               </div>
 
@@ -121,6 +125,7 @@ export function AnimalModal({
                     <option value="male">Самец</option>
                     <option value="female">Самка</option>
                   </select>
+                  {errors.gender && <p className="text-xs text-red-600 mt-1">{errors.gender}</p>}
                 </div>
               </div>
 
@@ -145,6 +150,7 @@ export function AnimalModal({
                 {statusLocked && (
                   <p className="text-xs text-gray-500 mt-1">Статус «Пристроен» зафиксирован и не редактируется</p>
                 )}
+                {errors.status && <p className="text-xs text-red-600 mt-1">{errors.status}</p>}
               </div>
 
               <div>
@@ -156,10 +162,6 @@ export function AnimalModal({
               description: e.target.value
             })} />
               </div>
-            </div>}
-
-          {activeTab === 'medical' && <div className="space-y-4 text-sm text-gray-600">
-              Медицинские отметки и допуск к передаче выставляются ветеринаром после создания карточки.
             </div>}
 
           {activeTab === 'behavior' && <div className="space-y-6">
@@ -219,26 +221,105 @@ export function AnimalModal({
             </div>}
 
           {activeTab === 'photos' && <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-100 text-amber-800 text-sm p-4 rounded-lg flex items-start space-x-3">
-                <Upload className="w-5 h-5 mt-0.5" />
-                <p>
-                  Фото теперь загружаются напрямую в хранилище S3. Сохраните карточку, затем откройте страницу питомца и
-                  используйте блок «Фото питомца» для загрузки файлов (они автоматически появятся в карточке).
-                </p>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Основное фото
+                </label>
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer hover:border-amber-400 border-gray-200 bg-gray-50 px-6 py-6">
+                    <Upload className="w-6 h-6 text-amber-600 mb-2" />
+                    <span className="text-sm text-gray-700 text-center">
+                      Выберите главное изображение
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = (e.target.files && e.target.files[0]) || null;
+                        setMainPhoto(file);
+                      }}
+                    />
+                  </label>
+                </div>
+                {mainPhoto && (
+                  <div className="text-sm text-gray-700">
+                    {mainPhoto.name} <span className="text-xs text-gray-500">{Math.round(mainPhoto.size / 1024)} КБ</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Дополнительные фото
+                </label>
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer hover:border-amber-400 border-gray-200 bg-gray-50 px-6 py-6">
+                    <Upload className="w-6 h-6 text-amber-600 mb-2" />
+                    <span className="text-sm text-gray-700 text-center">
+                      Добавьте ещё фото (можно несколько)
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setExtraPhotos(files as File[]);
+                      }}
+                    />
+                  </label>
+                </div>
+                {extraPhotos.length > 0 && (
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    {extraPhotos.map((file) => (
+                      <li key={file.name} className="flex items-center justify-between">
+                        <span>{file.name}</span>
+                        <span className="text-xs text-gray-500">{Math.round(file.size / 1024)} КБ</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>}
         </div>
 
         <div className="p-6 border-t border-gray-100 flex justify-end space-x-3">
+          <div className="flex-1">
+            {submitError && <div className="text-sm text-red-600">{submitError}</div>}
+          </div>
           <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
             Отмена
           </button>
-          <button onClick={() => {
-          onSave(formData);
-          onClose();
-        }} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors flex items-center">
+          <button
+            onClick={async () => {
+              const localErrors: Record<string, string> = {};
+              if (!formData.name?.trim()) localErrors.name = 'Укажите имя';
+              if (!formData.species) localErrors.species = 'Выберите вид';
+              if (!formData.gender) localErrors.gender = 'Укажите пол';
+              if (!formData.status) localErrors.status = 'Выберите статус';
+              setErrors(localErrors);
+              if (Object.keys(localErrors).length > 0) return;
+              setSubmitting(true);
+              setSubmitError('');
+              const result = await onSave({ ...formData, mainPhoto, extraPhotos });
+              if (result?.errors) setErrors(result.errors);
+              if (result?.message) setSubmitError(result.message);
+              if (result?.ok) {
+                setMainPhoto(null);
+                setExtraPhotos([]);
+                setErrors({});
+                setSubmitError('');
+                onClose();
+              }
+              setSubmitting(false);
+            }}
+            disabled={submitting}
+            className="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors flex items-center disabled:opacity-60"
+          >
             <Save className="w-4 h-4 mr-2" />
-            Сохранить
+            {submitting ? 'Сохраняем...' : 'Сохранить'}
           </button>
         </div>
       </motion.div>

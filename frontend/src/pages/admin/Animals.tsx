@@ -4,7 +4,7 @@ import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Animal } from '../../types';
-import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal } from '../../services/api';
+import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal, uploadAnimalMedia } from '../../services/api';
 export function AdminAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,28 +29,42 @@ export function AdminAnimals() {
   };
 
   const filteredAnimals = animals.filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()) || (a.breed || '').toLowerCase().includes(searchTerm.toLowerCase()));
-  const handleSave = async (animalData: Partial<Animal>) => {
-    if (!animalData.name || !animalData.species) return;
+  const handleSave = async (animalData: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => {
+    if (!animalData.name || !animalData.species) return { ok: false, message: 'Заполните обязательные поля' };
     const payload: any = {
       name: animalData.name,
       species: animalData.species,
       breed: animalData.breed,
+      gender: animalData.gender || 'male',
       ageMonths: animalData.ageMonths || (animalData.age ? animalData.age * 12 : undefined),
       status: animalData.status
     };
     setSaving(true);
     try {
+      let saved;
       if (editingAnimal) {
-        await updateAnimal(editingAnimal.id, payload);
+        saved = await updateAnimal(editingAnimal.id, payload);
       } else {
-        await createAnimal(payload);
+        saved = await createAnimal(payload);
+      }
+      if (saved?.id) {
+        if (animalData.extraPhotos?.length) {
+          for (const file of animalData.extraPhotos) {
+            await uploadAnimalMedia(saved.id, file);
+          }
+        }
+        if (animalData.mainPhoto) {
+          await uploadAnimalMedia(saved.id, animalData.mainPhoto);
+        }
       }
       await refresh();
       setIsModalOpen(false);
       setEditingAnimal(undefined);
-    } catch (e) {
-      console.error('Save animal error', e);
+      return { ok: true };
+    } catch (err: any) {
+      console.error('Save animal error', err);
       setError('Не удалось сохранить карточку животного');
+      return { ok: false, message: err?.response?.data?.message || 'Ошибка сохранения' };
     } finally {
       setSaving(false);
     }
@@ -123,10 +137,19 @@ export function AdminAnimals() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredAnimals.map(animal => <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
+            {filteredAnimals.map(animal => {
+            const photoUrl = animal.photos && animal.photos[0];
+            const initial = animal.name ? animal.name.charAt(0).toUpperCase() : '#';
+            return <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <img src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'} alt="" className="w-10 h-10 rounded-full object-cover mr-3" />
+                    {photoUrl ? (
+                      <img src={photoUrl} alt="" className="w-10 h-10 rounded-full object-cover mr-3" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-3">
+                        {initial}
+                      </div>
+                    )}
                     <div>
                       <div className="font-medium text-gray-900">
                         {animal.name}
@@ -201,7 +224,8 @@ export function AdminAnimals() {
                     </button>
                   </div>
                 </td>
-              </tr>)}
+              </tr>;
+            })}
           </tbody>
         </table>
         </div>
