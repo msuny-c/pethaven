@@ -16,7 +16,7 @@ export function AnimalCard({
   // Determine link destination based on role
   const linkPath = primaryRole === 'candidate' ? `/candidate/animals/${animal.id}` : `/animals/${animal.id}`;
   const photo = animal.photos && animal.photos.length > 0 ? animal.photos[0] : 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=80';
-  const ageYears = animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1;
+  const ageText = animal.ageMonths != null ? `${animal.ageMonths} мес` : 'Возраст не указан';
   return <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
       <div className="relative h-64 overflow-hidden">
         <img src={photo} alt={animal.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
@@ -35,7 +35,7 @@ export function AnimalCard({
           </div>
           <div className="text-right">
             <span className="block text-lg font-bold text-amber-500">
-              ~{ageYears} лет
+              {ageText}
             </span>
             <span className="text-xs text-gray-400">
               {animal.gender === 'female' ? 'Девочка' : 'Мальчик'}
@@ -44,7 +44,7 @@ export function AnimalCard({
         </div>
 
         <p className="text-gray-600 text-sm mb-6 line-clamp-2">
-          {animal.description || animal.behavior?.notes || 'Описание уточняется'}
+          {animal.description || 'Описание уточняется'}
         </p>
 
         <Link to={linkPath} className="block w-full py-3 px-4 bg-gray-50 hover:bg-amber-50 text-gray-900 hover:text-amber-700 font-medium rounded-lg transition-colors text-center border border-gray-200 hover:border-amber-200 flex items-center justify-center">

@@ -91,7 +91,7 @@ export function VetAnimals() {
                     <div className="text-xs text-gray-500">{animal.breed}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
+                    {animal.ageMonths != null ? `${animal.ageMonths} мес` : '—'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">

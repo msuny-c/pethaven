@@ -14,6 +14,7 @@ public record AnimalResponse(
         String description,
         AnimalStatus status,
         Boolean pendingAdminReview,
+        String adminReviewComment,
         Boolean readyForAdoption,
         List<String> photos
 ) {

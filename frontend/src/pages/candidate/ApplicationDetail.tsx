@@ -12,6 +12,8 @@ import {
   declineInterview,
   getAgreements
 } from '../../services/api';
+import { useAppModal } from '../../contexts/AppModalContext';
+import { useAppModal } from '../../contexts/AppModalContext';
 
 export function CandidateApplicationDetail() {
   const { id } = useParams();
@@ -24,6 +26,7 @@ export function CandidateApplicationDetail() {
   const [cancelling, setCancelling] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [agreementConfirmed, setAgreementConfirmed] = useState(false);
+  const { showPrompt, showMessage } = useAppModal();
 
   useEffect(() => {
     if (!id) return;
@@ -93,7 +96,7 @@ export function CandidateApplicationDetail() {
       setInterviews((list) => list.map((i) => (i.id === upcomingInterview.id ? { ...i, status: 'confirmed' } : i)));
     } catch (e) {
       console.error(e);
-      alert('Не удалось подтвердить интервью');
+      await showMessage('Не удалось подтвердить интервью', 'Ошибка');
     } finally {
       setConfirming(false);
     }
@@ -101,14 +104,15 @@ export function CandidateApplicationDetail() {
 
   const handleCancel = async () => {
     if (!application) return;
-    const reason = prompt('Почему отменяете заявку?');
+    const reason = await showPrompt({ message: 'Почему отменяете заявку?', title: 'Отмена заявки', confirmLabel: 'Отменить', cancelLabel: 'Назад' });
+    if (reason === null) return;
     setCancelling(true);
     try {
       await cancelAdoptionApplication(application.id, reason || undefined);
       setApplication({ ...application, status: 'rejected', decisionComment: reason || 'Отменено кандидатом' });
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось отменить заявку';
-      alert(msg);
+      await showMessage(msg, 'Ошибка');
     } finally {
       setCancelling(false);
     }
@@ -122,7 +126,7 @@ export function CandidateApplicationDetail() {
       setInterviews((list) => list.map((i) => (i.id === upcomingInterview.id ? { ...i, status: 'cancelled' } : i)));
       setApplication({ ...application, status: 'rejected', decisionComment: 'Кандидат отклонил интервью' });
     } catch (e) {
-      alert('Не удалось отказаться от интервью');
+      await showMessage('Не удалось отказаться от интервью', 'Ошибка');
     } finally {
       setDeclining(false);
     }

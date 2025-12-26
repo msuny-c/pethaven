@@ -4,6 +4,8 @@ import com.pethaven.model.enums.AnimalStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public record AnimalUpdateRequest(
         @Size(max = 255) String name,
         @Size(max = 100) String species,

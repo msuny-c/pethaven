@@ -11,6 +11,7 @@ import java.util.Optional;
 public class SettingService {
     public static final String REPORT_OFFSET_DAYS = "report_offset_days";
     public static final String REPORT_FILL_DAYS = "report_fill_days";
+    public static final String SPECIES_LIST = "species_list";
 
     private final SystemSettingRepository repository;
 
@@ -26,12 +27,29 @@ public class SettingService {
         return repository.findById(key).map(SystemSettingEntity::getValue).orElse(defaultValue);
     }
 
+    public java.util.List<String> getList(String key) {
+        return repository.findById(key)
+                .map(SystemSettingEntity::getValue)
+                .map(this::splitList)
+                .orElseGet(java.util.List::of);
+    }
+
     @Transactional
     public void set(String key, String value) {
         SystemSettingEntity entity = repository.findById(key).orElseGet(SystemSettingEntity::new);
         entity.setKey(key);
         entity.setValue(value);
         repository.save(entity);
+    }
+
+    @Transactional
+    public void setList(String key, java.util.List<String> values) {
+        String normalized = values == null ? "" : values.stream()
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+        set(key, normalized);
     }
 
     public void setInt(String key, int value) {
@@ -54,5 +72,15 @@ public class SettingService {
         } catch (NumberFormatException e) {
             return defaultValue;
         }
+    }
+
+    private java.util.List<String> splitList(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return java.util.List.of();
+        }
+        return java.util.Arrays.stream(raw.split("[,\\n]"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
     }
 }

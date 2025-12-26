@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +46,9 @@ public class AnimalEntity {
 
     @Column(name = "pending_admin_review")
     private Boolean pendingAdminReview = Boolean.FALSE;
+
+    @Column(name = "admin_review_comment")
+    private String adminReviewComment;
 
     @OneToMany(mappedBy = "animal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore

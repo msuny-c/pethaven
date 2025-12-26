@@ -29,6 +29,7 @@ public interface AnimalMapper {
     @Mapping(target = "media", ignore = true)
     @Mapping(target = "pendingAdminReview", ignore = true)
     @Mapping(target = "readyForAdoption", ignore = true)
+    @Mapping(target = "adminReviewComment", ignore = true)
     AnimalEntity toEntity(AnimalCreateRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -61,4 +62,5 @@ public interface AnimalMapper {
                 .map(AnimalMediaEntity::getUrl)
                 .toList();
     }
+
 }

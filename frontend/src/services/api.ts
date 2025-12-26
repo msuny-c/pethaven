@@ -16,8 +16,8 @@ export async function getAnimals(): Promise<Animal[]> {
   return data;
 }
 
-export async function reviewAnimal(id: number, approved: boolean) {
-  await api.patch(`/animals/${id}/review`, null, { params: { approved } });
+export async function reviewAnimal(id: number, approved: boolean, comment?: string) {
+  await api.patch(`/animals/${id}/review`, null, { params: { approved, comment } });
 }
 
 export async function getAnimalSpecies(): Promise<string[]> {
@@ -43,6 +43,12 @@ export async function updateAnimal(id: number, animal: Partial<Animal>) {
   const { data } = await api.put<Animal>(`/animals/${id}`, animal);
   return data;
 }
+export async function addSpecies(name: string) {
+  await api.post('/animals/species', { name });
+}
+export async function deleteSpecies(name: string) {
+  await api.delete(`/animals/species/${encodeURIComponent(name)}`);
+}
 
 export async function deleteAnimal(id: number) {
   await api.delete(`/animals/${id}`);
@@ -60,6 +66,9 @@ export async function uploadAnimalMedia(id: number, file: File, description?: st
 
 export async function updateAnimalStatus(id: number, status: Animal['status']) {
   await api.patch(`/animals/${id}/status`, { status });
+}
+export async function requestAnimalReview(id: number) {
+  await api.post(`/animals/${id}/request-review`);
 }
 
 export async function addAnimalNote(id: number, note: string) {

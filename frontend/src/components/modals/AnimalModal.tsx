@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Save, Upload } from 'lucide-react';
+import { X, Save, Upload, ChevronDown } from 'lucide-react';
 import { Animal } from '../../types';
 interface AnimalModalProps {
   isOpen: boolean;
@@ -14,22 +14,16 @@ export function AnimalModal({
   onSave,
   initialData
 }: AnimalModalProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'behavior' | 'photos'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info');
   const [formData, setFormData] = useState<Partial<Animal>>(initialData || {
     name: '',
     species: 'dog',
     breed: '',
-    age: 0,
     gender: 'male',
-    status: 'quarantine',
+    status: 'available',
     description: '',
-    behavior: {
-      kids: false,
-      cats: false,
-      dogs: false,
-      notes: ''
-    },
-    photos: []
+    photos: [],
+    ageMonths: undefined
   });
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
@@ -37,6 +31,39 @@ export function AnimalModal({
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const statusLocked = initialData?.status === 'adopted';
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setActiveTab('info');
+    if (initialData) {
+      setFormData({
+        name: initialData.name,
+        species: initialData.species,
+        breed: initialData.breed,
+        gender: initialData.gender,
+        status: initialData.status,
+        description: initialData.description,
+        photos: initialData.photos,
+        ageMonths: initialData.ageMonths
+      });
+    } else {
+      setFormData({
+        name: '',
+        species: 'dog',
+        breed: '',
+        gender: 'male',
+        status: 'available',
+        description: '',
+        photos: [],
+        ageMonths: undefined
+      });
+    }
+    setMainPhoto(null);
+    setExtraPhotos([]);
+    setErrors({});
+    setSubmitError('');
+  }, [isOpen, initialData]);
+
   if (!isOpen) return null;
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <motion.div initial={{
@@ -59,9 +86,6 @@ export function AnimalModal({
           <button onClick={() => setActiveTab('info')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'info' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             Основное
           </button>
-          <button onClick={() => setActiveTab('behavior')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'behavior' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            Поведение
-          </button>
           <button onClick={() => setActiveTab('photos')} className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'photos' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             Фото
           </button>
@@ -69,72 +93,79 @@ export function AnimalModal({
 
         <div className="p-6 overflow-y-auto flex-1">
           {activeTab === 'info' && <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Имя
-                  </label>
-                  <input type="text" className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.name} onChange={e => setFormData({
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Имя
+                </label>
+                <input type="text" className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3" value={formData.name} onChange={e => setFormData({
                 ...formData,
                 name: e.target.value
-              })} />
-                  {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Вид
-                  </label>
-                  <select className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.species} onChange={e => setFormData({
+              })} placeholder="Например: Марсик" />
+                {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Вид
+                </label>
+                <div className="relative">
+                  <select className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 pr-10 appearance-none" value={formData.species} onChange={e => setFormData({
                 ...formData,
                 species: e.target.value as 'cat' | 'dog'
               })}>
                     <option value="dog">Собака</option>
                     <option value="cat">Кошка</option>
                   </select>
-                  {errors.species && <p className="text-xs text-red-600 mt-1">{errors.species}</p>}
+                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                {errors.species && <p className="text-xs text-red-600 mt-1">{errors.species}</p>}
               </div>
+            </div>
 
-              <div className="grid grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Порода
-                  </label>
-                  <input type="text" className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.breed} onChange={e => setFormData({
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Порода
+                </label>
+                <input type="text" className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3" value={formData.breed} onChange={e => setFormData({
                 ...formData,
                 breed: e.target.value
-              })} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Возраст
-                  </label>
-                  <input type="number" className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.age} onChange={e => setFormData({
+              })} placeholder="Например: дворняга" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Возраст (месяцев)
+                </label>
+                <input type="number" min={0} className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3" value={formData.ageMonths ?? ''} onChange={e => setFormData({
                 ...formData,
-                age: Number(e.target.value)
-              })} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Пол
-                  </label>
-                  <select className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.gender} onChange={e => setFormData({
+                ageMonths: Number(e.target.value)
+              })} placeholder="Укажите возраст в месяцах" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Пол
+                </label>
+                <div className="relative">
+                  <select className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 pr-10 appearance-none" value={formData.gender} onChange={e => setFormData({
                 ...formData,
                 gender: e.target.value as 'male' | 'female'
               })}>
                     <option value="male">Самец</option>
                     <option value="female">Самка</option>
                   </select>
-                  {errors.gender && <p className="text-xs text-red-600 mt-1">{errors.gender}</p>}
+                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                {errors.gender && <p className="text-xs text-red-600 mt-1">{errors.gender}</p>}
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Статус
-                </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Статус
+              </label>
+              <div className="relative">
                 <select
-                  className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
+                  className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50 pr-10 appearance-none"
                   value={formData.status}
                   disabled={statusLocked}
                   onChange={e => setFormData({
@@ -147,78 +178,24 @@ export function AnimalModal({
                   <option value="adopted">Усыновлен</option>
                   <option value="not_available">Недоступен</option>
                 </select>
-                {statusLocked && (
-                  <p className="text-xs text-gray-500 mt-1">Статус «Пристроен» зафиксирован и не редактируется</p>
-                )}
-                {errors.status && <p className="text-xs text-red-600 mt-1">{errors.status}</p>}
+                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
+              {statusLocked && (
+                <p className="text-xs text-gray-500 mt-1">Статус «Пристроен» зафиксирован и не редактируется</p>
+              )}
+              {errors.status && <p className="text-xs text-red-600 mt-1">{errors.status}</p>}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Описание
-                </label>
-                <textarea rows={4} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.description} onChange={e => setFormData({
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Описание
+              </label>
+              <textarea rows={4} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3 py-2" value={formData.description} onChange={e => setFormData({
               ...formData,
               description: e.target.value
-            })} />
-              </div>
-            </div>}
-
-          {activeTab === 'behavior' && <div className="space-y-6">
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.behavior?.kids} onChange={e => setFormData({
-                ...formData,
-                behavior: {
-                  ...formData.behavior!,
-                  kids: e.target.checked
-                }
-              })} />
-                  <span className="ml-3 text-sm font-medium text-gray-900">
-                    Ладит с детьми
-                  </span>
-                </label>
-
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.behavior?.cats} onChange={e => setFormData({
-                ...formData,
-                behavior: {
-                  ...formData.behavior!,
-                  cats: e.target.checked
-                }
-              })} />
-                  <span className="ml-3 text-sm font-medium text-gray-900">
-                    Ладит с кошками
-                  </span>
-                </label>
-
-                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500" checked={formData.behavior?.dogs} onChange={e => setFormData({
-                ...formData,
-                behavior: {
-                  ...formData.behavior!,
-                  dogs: e.target.checked
-                }
-              })} />
-                  <span className="ml-3 text-sm font-medium text-gray-900">
-                    Ладит с собаками
-                  </span>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Заметки о поведении
-                </label>
-                <textarea rows={4} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" value={formData.behavior?.notes} onChange={e => setFormData({
-              ...formData,
-              behavior: {
-                ...formData.behavior!,
-                notes: e.target.value
-              }
-            })} placeholder="Особенности характера, привычки..." />
-              </div>
-            </div>}
+            })} placeholder="Особенности, состояние, ключевые детали..." />
+            </div>
+          </div>}
 
           {activeTab === 'photos' && <div className="space-y-4">
               <div className="space-y-2">
@@ -299,6 +276,7 @@ export function AnimalModal({
               if (!formData.species) localErrors.species = 'Выберите вид';
               if (!formData.gender) localErrors.gender = 'Укажите пол';
               if (!formData.status) localErrors.status = 'Выберите статус';
+              if (formData.ageMonths != null && formData.ageMonths < 0) localErrors.ageMonths = 'Возраст не может быть отрицательным';
               setErrors(localErrors);
               if (Object.keys(localErrors).length > 0) return;
               setSubmitting(true);

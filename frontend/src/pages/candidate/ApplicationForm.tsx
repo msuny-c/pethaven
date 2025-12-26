@@ -105,7 +105,7 @@ export function CandidateApplicationForm() {
             <div>
               <h3 className="text-lg font-bold text-gray-900">{animal.name}</h3>
               <p className="text-sm text-gray-600">
-                {animal.breed} • ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
+                {animal.breed} • {animal.ageMonths != null ? `${animal.ageMonths} мес` : 'Возраст не указан'}
               </p>
             </div>
           </div>

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Edit2, StickyNote, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnimalModal } from '../../components/modals/AnimalModal';
+import { NotesModal } from '../../components/modals/NotesModal';
 import { Animal } from '../../types';
-import { createAnimal, getAnimals, updateAnimalStatus, uploadAnimalMedia } from '../../services/api';
+import { createAnimal, getAnimals, updateAnimalStatus, uploadAnimalMedia, updateAnimal, requestAnimalReview } from '../../services/api';
 
 const STATUS_OPTIONS: Array<{ value: Animal['status']; label: string }> = [
   { value: 'quarantine', label: 'Карантин' },
@@ -20,6 +21,9 @@ export function CoordinatorAnimals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [openStatusId, setOpenStatusId] = useState<number | null>(null);
+  const [editingAnimal, setEditingAnimal] = useState<Animal | undefined>(undefined);
+  const [notesAnimal, setNotesAnimal] = useState<Animal | undefined>(undefined);
+  const [adminComment, setAdminComment] = useState<string | null>(null);
 
   const loadAnimals = () => {
     getAnimals().then(setAnimals);
@@ -44,14 +48,17 @@ export function CoordinatorAnimals() {
         name: animalData.name || 'Без имени',
         species: animalData.species || 'dog',
         breed: animalData.breed,
-        ageMonths:
-          animalData.ageMonths ??
-          (animalData.age ? Math.max(1, Math.round(animalData.age * 12)) : undefined),
+        ageMonths: animalData.ageMonths ?? null,
         gender: animalData.gender || 'male',
         status: (animalData.status as Animal['status']) || 'quarantine',
         description: animalData.description
       };
-      const created = await createAnimal(payload);
+      let created = editingAnimal;
+      if (editingAnimal) {
+        created = await updateAnimal(editingAnimal.id, payload);
+      } else {
+        created = await createAnimal(payload);
+      }
       if (created?.id) {
         if (animalData.extraPhotos?.length) {
           for (const file of animalData.extraPhotos) {
@@ -63,6 +70,7 @@ export function CoordinatorAnimals() {
         }
       }
       await loadAnimals();
+      setEditingAnimal(undefined);
       setIsSaving(false);
       return { ok: true };
     } catch (err: any) {
@@ -124,6 +132,7 @@ export function CoordinatorAnimals() {
               <th className="px-6 py-3">Вид / Порода</th>
               <th className="px-6 py-3">Возраст</th>
               <th className="px-6 py-3">Статус</th>
+              <th className="px-6 py-3">Проверка</th>
               <th className="px-6 py-3 text-right">Действия</th>
             </tr>
           </thead>
@@ -160,16 +169,14 @@ export function CoordinatorAnimals() {
                   <div className="text-xs text-gray-500">{animal.breed}</div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
+                  {animal.ageMonths != null ? `${animal.ageMonths} мес` : '—'}
                 </td>
                 <td className="px-6 py-4">
                   <div className="space-y-2">
                     {isAdopted ? (
-                      <>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                          Пристроен
-                        </span>
-                      </>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        Пристроен
+                      </span>
                     ) : (
                       <select
                         className="rounded-lg border border-amber-200 bg-white text-sm text-gray-700 px-3 py-1.5"
@@ -183,17 +190,65 @@ export function CoordinatorAnimals() {
                         ))}
                       </select>
                     )}
-                    {animal.pendingAdminReview && (
-                      <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
-                        На проверке
-                      </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    {animal.pendingAdminReview ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100" title="На проверке у администратора">
+                        ⏳
+                      </span>
+                    ) : animal.adminReviewComment ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100" title="Отклонено/доработка">
+                        ✖
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-100" title="Утверждено">
+                        ✓
+                      </span>
+                    )}
+                    {animal.adminReviewComment && !animal.pendingAdminReview && (
+                      <button
+                        onClick={() => setAdminComment(animal.adminReviewComment || null)}
+                        className="text-gray-500 hover:text-amber-600"
+                        title="Комментарий администратора"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    )}
+                    {!animal.pendingAdminReview && !isAdopted && animal.adminReviewComment && (
+                      <button
+                        onClick={async () => {
+                          await requestAnimalReview(animal.id);
+                          loadAnimals();
+                        }}
+                        className="text-amber-600 hover:text-amber-700 text-xs font-semibold underline"
+                      >
+                        На проверку
+                      </button>
                     )}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-right text-sm text-gray-400">
-                  <Link to={`/coordinator/animals/${animal.id}`} className="text-amber-600 hover:underline">
-                    Открыть карточку
-                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingAnimal(animal);
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2 rounded-lg hover:bg-amber-50 text-amber-600"
+                      title="Редактировать"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setNotesAnimal(animal)}
+                      className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                      title="Полевые заметки"
+                    >
+                      <StickyNote className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             );
@@ -205,10 +260,34 @@ export function CoordinatorAnimals() {
 
       <AnimalModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAnimal(undefined);
+        }}
         onSave={handleSave}
-        initialData={undefined}
+        initialData={editingAnimal}
       />
+      {notesAnimal && (
+        <NotesModal animalId={notesAnimal.id} animalName={notesAnimal.name} onClose={() => setNotesAnimal(undefined)} />
+      )}
+      {adminComment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-bold text-gray-900">Комментарий администратора</h3>
+              <button onClick={() => setAdminComment(null)} className="text-gray-400 hover:text-gray-600">
+                ×
+              </button>
+            </div>
+            <p className="text-sm text-gray-700 whitespace-pre-line">{adminComment}</p>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setAdminComment(null)} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600">
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isSaving && (
         <div className="text-sm text-gray-500 mt-2">Сохраняем новое животное...</div>

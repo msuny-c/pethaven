@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Info, Check, X } from 'lucide-react';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Animal } from '../../types';
 import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal, uploadAnimalMedia } from '../../services/api';
+import { useAppModal } from '../../contexts/AppModalContext';
 export function AdminAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +14,7 @@ export function AdminAnimals() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showPrompt, showMessage } = useAppModal();
   useEffect(() => {
     refresh();
   }, []);
@@ -36,7 +38,7 @@ export function AdminAnimals() {
       species: animalData.species,
       breed: animalData.breed,
       gender: animalData.gender || 'male',
-      ageMonths: animalData.ageMonths || (animalData.age ? animalData.age * 12 : undefined),
+      ageMonths: animalData.ageMonths ?? null,
       status: animalData.status
     };
     setSaving(true);
@@ -133,6 +135,7 @@ export function AdminAnimals() {
               <th className="px-6 py-3">Вид / Порода</th>
               <th className="px-6 py-3">Возраст</th>
               <th className="px-6 py-3">Статус</th>
+              <th className="px-6 py-3">Проверка</th>
               <th className="px-6 py-3 text-right">Действия</th>
             </tr>
           </thead>
@@ -165,54 +168,76 @@ export function AdminAnimals() {
                   <div className="text-xs text-gray-500">{animal.breed}</div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : '—'} лет
+                  {animal.ageMonths != null ? `${animal.ageMonths} мес` : '—'}
                 </td>
                 <td className="px-6 py-4">
                   <div className="space-y-1">
-                    {animal.pendingAdminReview ? (
-                      <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 inline-flex">
-                        На проверке
-                      </div>
-                    ) : (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                     ${statusClass(animal.status)}`}>
-                        {translateStatus(animal.status)}
-                      </span>
-                    )}
+                      {translateStatus(animal.status)}
+                    </span>
                   </div>
+                </td>
+                <td className="px-6 py-4">
+                  {animal.pendingAdminReview ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          const comment = await showPrompt({ message: 'Комментарий (необязательно)', title: 'Утвердить карточку', confirmLabel: 'Утвердить', cancelLabel: 'Отмена' });
+                          try {
+                            await reviewAnimal(animal.id, true, comment || undefined);
+                            await refresh();
+                          } catch {
+                            setError('Не удалось утвердить карточку');
+                          }
+                        }}
+                        className="p-2 text-green-600 hover:text-green-700 rounded-lg hover:bg-green-50"
+                        title="Утвердить"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const comment = await showPrompt({ message: 'Укажите, что исправить', title: 'На доработку', confirmLabel: 'Отправить', cancelLabel: 'Отмена' });
+                          if (comment === null || comment.trim() === '') return;
+                          try {
+                            await reviewAnimal(animal.id, false, comment);
+                            await refresh();
+                          } catch {
+                            setError('Не удалось отправить на доработку');
+                          }
+                        }}
+                        className="p-2 text-amber-600 hover:text-amber-700 rounded-lg hover:bg-amber-50"
+                        title="На доработку"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {animal.adminReviewComment ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100" title="Отклонено/доработка">
+                          ✖
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-100" title="Утверждено">
+                          ✓
+                        </span>
+                      )}
+                      {animal.adminReviewComment && (
+                        <button
+                          onClick={() => showMessage(animal.adminReviewComment || 'Комментарий отсутствует', 'Комментарий администратора')}
+                          className="text-gray-500 hover:text-amber-600"
+                          title="Комментарий администратора"
+                        >
+                          <Info className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    {animal.pendingAdminReview && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await reviewAnimal(animal.id, true);
-                              await refresh();
-                            } catch {
-                              setError('Не удалось утвердить карточку');
-                            }
-                          }}
-                          className="text-green-600 hover:underline text-sm"
-                        >
-                          Утвердить
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await reviewAnimal(animal.id, false);
-                              await refresh();
-                            } catch {
-                              setError('Не удалось отправить на доработку');
-                            }
-                          }}
-                          className="text-amber-600 hover:underline text-sm"
-                        >
-                          На доработку
-                        </button>
-                      </>
-                    )}
                     <button onClick={() => {
                 setEditingAnimal(animal);
                 setIsModalOpen(true);

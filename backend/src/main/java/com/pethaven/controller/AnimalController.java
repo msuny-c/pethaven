@@ -13,6 +13,7 @@ import com.pethaven.model.enums.AnimalStatus;
 import com.pethaven.entity.AnimalEntity;
 import com.pethaven.service.AnimalService;
 import com.pethaven.service.ObjectStorageService;
+import com.pethaven.service.SettingService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/animals")
@@ -31,11 +33,13 @@ public class AnimalController {
     private final AnimalService animalService;
     private final ObjectStorageService storageService;
     private final AnimalMapper animalMapper;
+    private final SettingService settingService;
 
-    public AnimalController(AnimalService animalService, ObjectStorageService storageService, AnimalMapper animalMapper) {
+    public AnimalController(AnimalService animalService, ObjectStorageService storageService, AnimalMapper animalMapper, SettingService settingService) {
         this.animalService = animalService;
         this.storageService = storageService;
         this.animalMapper = animalMapper;
+        this.settingService = settingService;
     }
 
     @GetMapping
@@ -65,6 +69,40 @@ public class AnimalController {
     @GetMapping("/species")
     public List<String> species() {
         return animalService.getAvailableSpecies();
+    }
+
+    @PostMapping("/species")
+    public ResponseEntity<ApiMessage> addSpecies(@RequestBody Map<String, String> payload, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Только администратор может управлять видами"));
+        }
+        String name = payload.get("name");
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiMessage.of("Название обязательно"));
+        }
+        List<String> current = animalService.getAvailableSpecies();
+        if (current.stream().anyMatch(s -> s.equalsIgnoreCase(name.trim()))) {
+            return ResponseEntity.ok(ApiMessage.of("Вид уже существует"));
+        }
+        current = new java.util.ArrayList<>(current);
+        current.add(name.trim());
+        settingService.setList(com.pethaven.service.SettingService.SPECIES_LIST, current);
+        return ResponseEntity.ok(ApiMessage.of("Вид добавлен"));
+    }
+
+    @DeleteMapping("/species/{name}")
+    public ResponseEntity<ApiMessage> deleteSpecies(@PathVariable String name, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Только администратор может управлять видами"));
+        }
+        List<String> current = new java.util.ArrayList<>(animalService.getAvailableSpecies());
+        current.removeIf(s -> s.equalsIgnoreCase(name));
+        settingService.setList(com.pethaven.service.SettingService.SPECIES_LIST, current);
+        return ResponseEntity.ok(ApiMessage.of("Вид удалён"));
     }
 
     @GetMapping("/{id}")
@@ -102,6 +140,7 @@ public class AnimalController {
                 response.gender(),
                 response.description(),
                 response.status(),
+                null,
                 null,
                 null,
                 response.photos()
@@ -159,6 +198,7 @@ public class AnimalController {
     @PatchMapping("/{id}/review")
     public ResponseEntity<ApiMessage> review(@PathVariable Long id,
                                              @RequestParam boolean approved,
+                                             @RequestParam(required = false) String comment,
                                              Authentication authentication) {
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -166,10 +206,29 @@ public class AnimalController {
             return ResponseEntity.status(403).body(ApiMessage.of("Только администратор может утверждать карточки"));
         }
         try {
-            animalService.reviewAnimal(id, approved);
+            animalService.reviewAnimal(id, approved, comment);
             return ResponseEntity.ok(ApiMessage.of(approved ? "Карточка утверждена" : "Карточка отправлена на доработку, статус переключен в карантин"));
         } catch (java.util.NoSuchElementException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/request-review")
+    public ResponseEntity<ApiMessage> requestReview(@PathVariable Long id, Authentication authentication) {
+        boolean isCoordinator = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR"));
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isCoordinator && !isAdmin) {
+            return ResponseEntity.status(403).body(ApiMessage.of("Нет прав отправлять на проверку"));
+        }
+        try {
+            animalService.requestReview(id);
+            return ResponseEntity.ok(ApiMessage.of("Карточка отправлена на проверку администратору"));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(ApiMessage.of(e.getMessage()));
         }
     }
 

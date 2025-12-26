@@ -124,7 +124,7 @@ export function VetMedicalRecords() {
               </div>
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                Возраст: ~{animal.ageMonths ? Math.max(1, Math.round(animal.ageMonths / 12)) : 1} лет
+                Возраст: {animal.ageMonths != null ? `${animal.ageMonths} мес` : '—'}
               </div>
               <div className="pt-3 border-t border-gray-100">
                 <div className="text-xs text-gray-500 mb-2">Управление карантином</div>

@@ -34,6 +34,7 @@ public class AnimalService {
     private final PersonRepository personRepository;
     private final AnimalMapper animalMapper;
     private final AnimalNoteMapper animalNoteMapper;
+    private final SettingService settingService;
 
     public AnimalService(AnimalRepository animalRepository,
                          AnimalMediaRepository animalMediaRepository,
@@ -42,7 +43,8 @@ public class AnimalService {
                          com.pethaven.repository.MedicalRecordRepository medicalRecordRepository,
                          PersonRepository personRepository,
                          AnimalMapper animalMapper,
-                         AnimalNoteMapper animalNoteMapper) {
+                         AnimalNoteMapper animalNoteMapper,
+                         SettingService settingService) {
         this.animalRepository = animalRepository;
         this.animalMediaRepository = animalMediaRepository;
         this.animalNoteRepository = animalNoteRepository;
@@ -51,6 +53,7 @@ public class AnimalService {
         this.personRepository = personRepository;
         this.animalMapper = animalMapper;
         this.animalNoteMapper = animalNoteMapper;
+        this.settingService = settingService;
     }
 
     public List<AnimalResponse> getCatalog(String species, AnimalStatus status, boolean includePending, boolean hideInternalFlags, boolean onlyAvailable) {
@@ -73,6 +76,10 @@ public class AnimalService {
     }
 
     public List<String> getAvailableSpecies() {
+        List<String> fromSettings = settingService.getList(com.pethaven.service.SettingService.SPECIES_LIST);
+        if (fromSettings != null && !fromSettings.isEmpty()) {
+            return fromSettings;
+        }
         return animalRepository.findAvailableSpecies();
     }
 
@@ -94,6 +101,7 @@ public class AnimalService {
                 response.gender(),
                 response.description(),
                 response.status(),
+                null,
                 null,
                 null,
                 response.photos()
@@ -183,14 +191,16 @@ public class AnimalService {
         return animalMapper.toResponse(animalRepository.save(existing));
     }
 
-    public AnimalEntity reviewAnimal(Long id, boolean approved) {
+    public AnimalEntity reviewAnimal(Long id, boolean approved, String comment) {
         AnimalEntity entity = animalRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Animal not found: " + id));
         if (approved) {
             entity.setPendingAdminReview(Boolean.FALSE);
+            entity.setAdminReviewComment(null);
         } else {
-            entity.setPendingAdminReview(Boolean.TRUE);
+            entity.setPendingAdminReview(Boolean.FALSE);
             entity.setStatus(com.pethaven.model.enums.AnimalStatus.quarantine);
+            entity.setAdminReviewComment(comment);
         }
         AnimalEntity saved = animalRepository.save(entity);
         if (approved) {
@@ -201,6 +211,14 @@ public class AnimalService {
                             "Карточка подтверждена",
                             "Администратор утвердил карточку питомца #" + saved.getId()
             ));
+        } else {
+            personRepository.findActiveByRole(com.pethaven.model.enums.SystemRole.coordinator.name())
+                    .forEach(coord -> notificationService.push(
+                            coord.getId(),
+                            com.pethaven.model.enums.NotificationType.new_application,
+                            "Карточка отклонена",
+                            "Администратор отправил карточку питомца #" + saved.getId() + " на доработку"
+                    ));
         }
         return saved;
     }
@@ -221,5 +239,23 @@ public class AnimalService {
 
     public List<AnimalNoteResponse> getNotes(Long animalId) {
         return animalNoteMapper.toResponses(animalNoteRepository.findByAnimalIdOrderByCreatedAtDesc(animalId));
+    }
+
+    public void requestReview(Long animalId) {
+        AnimalEntity entity = animalRepository.findById(animalId)
+                .orElseThrow(() -> new NoSuchElementException("Animal not found: " + animalId));
+        if (Boolean.TRUE.equals(entity.getPendingAdminReview())) {
+            throw new IllegalStateException("Карточка уже на проверке");
+        }
+        if (entity.getStatus() == com.pethaven.model.enums.AnimalStatus.adopted) {
+            throw new IllegalStateException("Карточка пристроенного питомца не отправляется на проверку");
+        }
+        if (Boolean.FALSE.equals(entity.getPendingAdminReview()) && entity.getAdminReviewComment() == null) {
+            throw new IllegalStateException("Карточка уже утверждена администратором");
+        }
+        entity.setPendingAdminReview(Boolean.TRUE);
+        entity.setAdminReviewComment(null);
+        animalRepository.save(entity);
+        notifyAdminsPendingReview(entity);
     }
 }

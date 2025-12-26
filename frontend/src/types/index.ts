@@ -39,21 +39,15 @@ export interface Animal {
   name: string;
   species: 'cat' | 'dog';
   breed?: string;
-  age?: number;
   ageMonths?: number;
   gender?: 'male' | 'female';
   status: 'quarantine' | 'available' | 'reserved' | 'adopted' | 'not_available';
   pendingAdminReview?: boolean;
+  adminReviewComment?: string | null;
   readyForAdoption?: boolean;
   description?: string;
   medical?: {
     readyForAdoption?: boolean;
-  };
-  behavior?: {
-    kids?: boolean;
-    cats?: boolean;
-    dogs?: boolean;
-    notes?: string;
   };
   photos?: string[];
 }
