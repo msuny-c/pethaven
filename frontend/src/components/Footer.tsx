@@ -4,7 +4,7 @@ import { PawPrint } from 'lucide-react';
 export function Footer() {
   return <footer className="bg-gray-900 text-gray-300 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12 items-start">
           {/* Brand */}
           <div className="space-y-6">
             <Link to="/" className="flex items-center space-x-2 group">
@@ -22,25 +22,25 @@ export function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <div className="md:text-right md:ml-auto">
             <h3 className="text-white font-bold text-lg mb-6">Навигация</h3>
-            <ul className="space-y-4">
+            <ul className="space-y-4 md:space-y-3">
               <li>
-                <Link to="/animals" className="hover:text-amber-500 transition-colors flex items-center">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-                  Наши питомцы
+                <Link to="/animals" className="hover:text-amber-500 transition-colors inline-flex items-center justify-end gap-2">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                  <span>Наши питомцы</span>
                 </Link>
               </li>
               <li>
-                <Link to="/volunteer" className="hover:text-amber-500 transition-colors flex items-center">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-                  Стать волонтёром
+                <Link to="/volunteer" className="hover:text-amber-500 transition-colors inline-flex items-center justify-end gap-2">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                  <span>Стать волонтёром</span>
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-amber-500 transition-colors flex items-center">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-                  О приюте
+                <Link to="/about" className="hover:text-amber-500 transition-colors inline-flex items-center justify-end gap-2">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                  <span>О приюте</span>
                 </Link>
               </li>
             </ul>

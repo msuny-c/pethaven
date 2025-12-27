@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { uploadAvatar, updateMyProfile, deactivateSelf } from '../services/api';
 import { Upload, Mail, Shield, User, Phone, Save, Trash2, Lock } from 'lucide-react';
 import { useAppModal } from '../contexts/AppModalContext';
+import { PersonAvatar } from '../components/PersonAvatar';
 
 export function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -56,13 +57,7 @@ export function ProfilePage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 flex items-center space-x-4 border-b border-gray-100 bg-gray-50">
             <label className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-sm bg-amber-100 flex items-center justify-center cursor-pointer group">
-              {avatarPreview ? (
-                <img src={avatarPreview} alt={user.email} className="w-full h-full object-cover" />
-              ) : user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.email} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-10 h-10 text-amber-500" />
-              )}
+              <PersonAvatar src={avatarPreview || user.avatarUrl} name={displayName || user.email} sizeClass="w-full h-full" roundedClassName="rounded-full" />
               <div className="absolute inset-0 bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                 {avatarFile ? 'Сохраните' : uploading ? '...' : 'Обновить'}
               </div>

@@ -5,6 +5,7 @@ import { getAgreement, getAnimals, getApplicationById, getPostAdoptionReports, g
 import { Animal, PostAdoptionReport, ReportMedia } from '../../types';
 import { ArrowLeft, Calendar, PawPrint, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { PersonAvatar } from '../../components/PersonAvatar';
 
 export function CandidateReportDetail() {
   const { id } = useParams();
@@ -193,16 +194,7 @@ export function CandidateReportDetail() {
                 <div className="font-semibold text-gray-900">Кандидат</div>
               </div>
               <div className="flex items-center gap-3">
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    className="w-12 h-12 rounded-full object-cover border"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border">
-                    {(user.firstName || user.email || 'К')[0]}
-                  </div>
-                )}
+                <PersonAvatar src={user.avatarUrl} name={user.firstName || user.email} sizeClass="w-12 h-12" />
                 <div>
                   <div className="font-bold text-gray-900">
                     {user.firstName} {user.lastName}
@@ -221,16 +213,7 @@ export function CandidateReportDetail() {
                 <div className="font-semibold text-gray-900">Координатор</div>
               </div>
               <div className="flex items-center gap-3">
-                  {coordinator.avatarUrl ? (
-                    <img
-                      src={coordinator.avatarUrl}
-                      className="w-12 h-12 rounded-full object-cover border"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border">
-                      {(coordinator.firstName || coordinator.email || 'К')[0]}
-                    </div>
-                  )}
+                  <PersonAvatar src={coordinator.avatarUrl} name={coordinator.firstName || coordinator.email} sizeClass="w-12 h-12" />
                 <div>
                   <div className="font-bold text-gray-900">
                     {coordinator.firstName} {coordinator.lastName}

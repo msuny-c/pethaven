@@ -12,6 +12,7 @@ import {
   getUsers
 } from '../../services/api';
 import { ArrowLeft, Calendar, CheckCircle, FileDown, FileSignature, Mail, PawPrint, Phone, UserRound } from 'lucide-react';
+import { PersonAvatar } from '../../components/PersonAvatar';
 
 export function CoordinatorAgreementDetail() {
   const { id } = useParams();
@@ -197,17 +198,7 @@ export function CoordinatorAgreementDetail() {
               </p>
             </div>
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-center gap-3">
-              {candidate?.avatarUrl ? (
-                <img
-                  src={candidate.avatarUrl}
-                  alt={candidateName}
-                  className="w-12 h-12 rounded-full object-cover border border-white shadow-sm"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-                  {(candidateName[0] || 'К').toUpperCase()}
-                </div>
-              )}
+              <PersonAvatar src={candidate?.avatarUrl} name={candidateName} sizeClass="w-12 h-12" />
               <div>
                 <div className="text-xs uppercase text-gray-500 font-semibold">Кандидат</div>
                 <div className="text-sm font-bold text-gray-900 flex items-center gap-2">

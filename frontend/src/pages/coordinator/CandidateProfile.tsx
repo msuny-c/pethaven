@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { ArrowLeft, Mail, Phone, FileText, Calendar } from 'lucide-react';
+import { PersonAvatar } from '../../components/PersonAvatar';
 import { Application, Animal, UserProfile } from '../../types';
 import { getAnimals, getApplications, getUsers } from '../../services/api';
 
@@ -51,17 +52,12 @@ export function CandidateProfile() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="text-center mb-6">
-              {candidate.avatarUrl ? (
-                <img
-                  src={candidate.avatarUrl}
-                  alt={candidate.email}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-amber-100 object-cover"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-amber-100 bg-amber-100 text-amber-700 flex items-center justify-center text-2xl font-bold">
-                  {(candidate.firstName || candidate.email || 'К')[0]}
-                </div>
-              )}
+              <PersonAvatar
+                src={candidate.avatarUrl}
+                name={candidate.email}
+                sizeClass="w-24 h-24"
+                className="mx-auto mb-4 border-4 border-amber-100"
+              />
               <h2 className="text-xl font-bold text-gray-900">
                 {candidate.firstName} {candidate.lastName}
               </h2>

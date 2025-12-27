@@ -4,6 +4,7 @@ import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { getAgreement, getAnimals, getApplications, getPostAdoptionReports, getReportMedia, getUsers, updatePostAdoptionReport } from '../../services/api';
 import { Agreement, Animal, Application, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
 import { ArrowLeft, Calendar, FileText, PawPrint } from 'lucide-react';
+import { PersonAvatar } from '../../components/PersonAvatar';
 
 export function CoordinatorReportDetail() {
   const { id } = useParams();
@@ -255,20 +256,7 @@ export function CoordinatorReportDetail() {
             {candidate && application ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  {candidate.avatarUrl ? (
-                    <img
-                      src={candidate.avatarUrl}
-                      className="w-12 h-12 rounded-full object-cover border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const next = e.currentTarget.nextSibling as HTMLElement | null;
-                        if (next) next.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={`${candidate.avatarUrl ? 'hidden' : ''} w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold border leading-none`}>
-                    {(candidate.firstName || candidate.email || 'К')[0]}
-                  </div>
+                  <PersonAvatar src={candidate.avatarUrl} name={candidate.firstName || candidate.email} sizeClass="w-12 h-12" />
                   <div>
                     <div className="font-bold text-gray-900">
                       {candidate.firstName} {candidate.lastName}

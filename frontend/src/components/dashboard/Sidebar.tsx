@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LayoutDashboard, Users, PawPrint, FileText, Calendar, ClipboardList, Activity, LogOut, Home, Settings, FileCheck, User } from 'lucide-react';
+import { PersonAvatar } from '../PersonAvatar';
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
@@ -166,13 +167,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
       <div className="p-4">
         <div className="flex items-center space-x-3 mb-6 px-2">
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="User" className="w-10 h-10 rounded-full border-2 border-amber-500 object-cover" />
-          ) : (
-            <div className="w-10 h-10 rounded-full border-2 border-amber-500 bg-amber-100 text-amber-700 flex items-center justify-center font-semibold">
-              {(displayName || 'П')[0]}
-            </div>
-          )}
+          <PersonAvatar src={user?.avatarUrl} name={displayName} className="border-2 border-amber-500" />
           <div>
             <div className="font-medium text-sm">{displayName}</div>
             <div className="text-xs text-gray-400 capitalize">

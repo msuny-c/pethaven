@@ -116,7 +116,6 @@ export function CoordinatorPostAdoption() {
         <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <h3 className="font-bold text-gray-900">Отчёты усыновителей</h3>
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
