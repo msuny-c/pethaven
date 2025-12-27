@@ -4,6 +4,7 @@ import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, PawPrint } from 'lucide-react';
 import { Application, Animal, Agreement } from '../../types';
 import { getApplications, getAnimals, getAgreements } from '../../services/api';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 import { useAuth } from '../../contexts/AuthContext';
 export function CandidateApplications() {
   const { user } = useAuth();
@@ -54,13 +55,13 @@ export function CandidateApplications() {
           return <div key={app.id} className="p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start">
-                    {animal?.photos && animal.photos[0] ? (
-                      <img src={animal.photos[0]} alt={animal?.name} className="w-16 h-16 rounded-lg object-cover mr-4" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-4">
-                        {(animal?.name || 'Ж')[0]}
-                      </div>
-                    )}
+                    <AnimalAvatar
+                      src={animal?.photos?.[0]}
+                      name={animal?.name}
+                      sizeClass="w-16 h-16"
+                      roundedClassName="rounded-lg"
+                      className="mr-4"
+                    />
                       <div>
                         <div className="flex items-center mb-1">
                           <h3 className="text-lg font-bold text-gray-900 mr-3">

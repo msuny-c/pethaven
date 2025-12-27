@@ -5,25 +5,18 @@ import { Link } from 'react-router-dom';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { NotesModal } from '../../components/modals/NotesModal';
 import { Animal } from '../../types';
-import { createAnimal, getAnimals, updateAnimalStatus, uploadAnimalMedia, updateAnimal, requestAnimalReview } from '../../services/api';
-
-const STATUS_OPTIONS: Array<{ value: Animal['status']; label: string }> = [
-  { value: 'quarantine', label: 'Карантин' },
-  { value: 'available', label: 'Доступен' },
-  { value: 'reserved', label: 'Зарезервирован' },
-  { value: 'adopted', label: 'Пристроен' },
-  { value: 'not_available', label: 'Недоступен' }
-];
+import { createAnimal, getAnimals, uploadAnimalMedia, updateAnimal, requestAnimalReview } from '../../services/api';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 
 export function CoordinatorAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [openStatusId, setOpenStatusId] = useState<number | null>(null);
   const [editingAnimal, setEditingAnimal] = useState<Animal | undefined>(undefined);
   const [notesAnimal, setNotesAnimal] = useState<Animal | undefined>(undefined);
   const [adminComment, setAdminComment] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<Animal['status'] | 'all'>('all');
 
   const loadAnimals = () => {
     getAnimals().then(setAnimals);
@@ -34,12 +27,14 @@ export function CoordinatorAnimals() {
   }, []);
 
   const filteredAnimals = useMemo(() => {
-    return animals.filter(
-      (a) =>
+    return animals.filter((a) => {
+      const matchesSearch =
         a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (a.breed || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [animals, searchTerm]);
+        (a.breed || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [animals, searchTerm, statusFilter]);
 
   const handleSave = async (animalData: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => {
     setIsSaving(true);
@@ -91,17 +86,41 @@ export function CoordinatorAnimals() {
     }
   };
 
-  const handleStatusChange = async (id: number, status: Animal['status']) => {
-    await updateAnimalStatus(id, status);
-    setAnimals((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
-    setOpenStatusId(null);
+  const statusLabel = (status: Animal['status']) => {
+    switch (status) {
+      case 'available':
+        return 'Доступен';
+      case 'reserved':
+        return 'Зарезервирован';
+      case 'adopted':
+        return 'Пристроен';
+      case 'quarantine':
+        return 'Карантин';
+      default:
+        return 'Недоступен';
+    }
+  };
+
+  const statusClass = (status: Animal['status']) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-800';
+      case 'reserved':
+        return 'bg-amber-100 text-amber-800';
+      case 'adopted':
+        return 'bg-blue-100 text-blue-800';
+      case 'quarantine':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
     <DashboardLayout title="Управление животными">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -111,13 +130,27 @@ export function CoordinatorAnimals() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Добавить животное
-          </button>
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+            >
+              <option value="all">Все статусы</option>
+              <option value="available">Доступен</option>
+              <option value="reserved">Зарезервирован</option>
+              <option value="adopted">Пристроен</option>
+              <option value="quarantine">Карантин</option>
+              <option value="not_available">Недоступен</option>
+            </select>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить животное
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -135,23 +168,11 @@ export function CoordinatorAnimals() {
           <tbody className="divide-y divide-gray-100">
             {filteredAnimals.map((animal) => {
             const isAdopted = animal.status === 'adopted';
-            const photoUrl = animal.photos && animal.photos[0];
-            const initial = animal.name ? animal.name.charAt(0).toUpperCase() : '#';
             return (
               <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt={animal.name}
-                        className="w-10 h-10 rounded-full object-cover mr-3"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-3">
-                        {initial}
-                      </div>
-                    )}
+                    <AnimalAvatar src={animal.photos?.[0]} name={animal.name} className="mr-3" />
                     <div>
                       <div className="font-medium text-gray-900">{animal.name}</div>
                       <div className="text-xs text-gray-500">#{animal.id}</div>
@@ -168,25 +189,11 @@ export function CoordinatorAnimals() {
                   {animal.ageMonths != null ? `${animal.ageMonths} мес` : '—'}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="space-y-2">
-                    {isAdopted ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                        Пристроен
-                      </span>
-                    ) : (
-                      <select
-                        className="rounded-lg border border-amber-200 bg-white text-sm text-gray-700 px-3 py-1.5"
-                        value={animal.status}
-                        onChange={(e) => handleStatusChange(animal.id, e.target.value as Animal['status'])}
-                      >
-                        {STATUS_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusClass(animal.status)}`}
+                  >
+                    {statusLabel(animal.status)}
+                  </span>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">

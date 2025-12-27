@@ -58,6 +58,12 @@ export function AdminUsers() {
     if (!formData.firstName.trim()) localErrors.firstName = 'Укажите имя';
     if (!formData.lastName.trim()) localErrors.lastName = 'Укажите фамилию';
     if (!formData.email.trim()) localErrors.email = 'Укажите email';
+    if (formData.phoneNumber.trim()) {
+      const digits = formData.phoneNumber.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 15 || !/^[+]?[\d\s\-()]+$/.test(formData.phoneNumber)) {
+        localErrors.phoneNumber = 'Введите корректный телефон';
+      }
+    }
     if (!editingUser && !formData.password.trim()) localErrors.password = 'Пароль обязателен';
     setErrors(localErrors);
     if (Object.keys(localErrors).length > 0) return;

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -47,6 +48,21 @@ public class VolunteerController {
             }
         }
         return applicationService.list(uid);
+    }
+
+    @GetMapping("/applications/{id}")
+    public ResponseEntity<?> getApplication(@PathVariable Long id, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINATOR") || a.getAuthority().equals("ROLE_ADMIN"));
+        Long uid = null;
+        if (!isAdmin && authentication != null && authentication.getPrincipal() instanceof Long authId) {
+            uid = authId;
+        }
+        var opt = applicationService.getOne(id, uid);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(404).body(ApiMessage.of("Анкета не найдена"));
+        }
+        return ResponseEntity.ok(opt.get());
     }
 
     @PatchMapping("/applications/decision")

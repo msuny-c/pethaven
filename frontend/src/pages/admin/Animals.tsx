@@ -6,9 +6,11 @@ import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Animal } from '../../types';
 import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal, uploadAnimalMedia } from '../../services/api';
 import { useAppModal } from '../../contexts/AppModalContext';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 export function AdminAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<Animal['status'] | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAnimal, setEditingAnimal] = useState<Animal | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -30,7 +32,11 @@ export function AdminAnimals() {
     }
   };
 
-  const filteredAnimals = animals.filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()) || (a.breed || '').toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredAnimals = animals.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || (a.breed || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
   const handleSave = async (animalData: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => {
     if (!animalData.name || !animalData.species) return { ok: false, message: 'Заполните обязательные поля' };
     const payload: any = {
@@ -114,18 +120,32 @@ export function AdminAnimals() {
   };
   return <DashboardLayout title="Управление животными">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-xl">
+        <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input type="text" placeholder="Поиск по имени или породе..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input type="text" placeholder="Поиск по имени или породе..." className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
-          <button onClick={() => {
-            setEditingAnimal(undefined);
-            setIsModalOpen(true);
-          }} disabled={saving} className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-60">
-            <Plus className="w-4 h-4 mr-2" />
-            Добавить животное
-          </button>
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+            >
+              <option value="all">Все статусы</option>
+              <option value="available">Доступен</option>
+              <option value="reserved">Зарезервирован</option>
+              <option value="adopted">Пристроен</option>
+              <option value="quarantine">Карантин</option>
+              <option value="not_available">Недоступен</option>
+            </select>
+            <button onClick={() => {
+              setEditingAnimal(undefined);
+              setIsModalOpen(true);
+            }} disabled={saving} className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-60">
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить животное
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -147,13 +167,7 @@ export function AdminAnimals() {
             return <tr key={animal.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    {photoUrl ? (
-                      <img src={photoUrl} alt="" className="w-10 h-10 rounded-full object-cover mr-3" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-3">
-                        {initial}
-                      </div>
-                    )}
+                    <AnimalAvatar src={photoUrl} name={animal.name} className="mr-3" />
                     <div>
                       <div className="font-medium text-gray-900">
                         {animal.name}

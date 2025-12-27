@@ -8,6 +8,7 @@ import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
 import { About } from './pages/About';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { Catalog } from './pages/Catalog';
 import { AnimalProfile } from './pages/AnimalProfile';
 import { CandidateAnimalDetail } from './pages/candidate/AnimalDetail';
@@ -17,7 +18,6 @@ import { Volunteer } from './pages/Volunteer';
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminAnimals } from './pages/admin/Animals';
 import { AdminUsers } from './pages/admin/Users';
-import { AdminReports } from './pages/admin/Reports';
 import { AdminVolunteerApplications } from './pages/admin/VolunteerApplications';
 import { AdminSettings } from './pages/admin/Settings';
 // Coordinator Pages
@@ -29,10 +29,13 @@ import { CoordinatorTransfers } from './pages/coordinator/Transfers';
 import { CoordinatorPostAdoption } from './pages/coordinator/PostAdoption';
 import { CoordinatorReportDetail } from './pages/coordinator/ReportDetail';
 import { CoordinatorShiftManagement } from './pages/coordinator/ShiftManagement';
+import { CoordinatorShiftDetail } from './pages/coordinator/ShiftDetail';
 import { CoordinatorAnimals } from './pages/coordinator/Animals';
 import { CandidateProfile } from './pages/coordinator/CandidateProfile';
 import { CoordinatorApplicationDetail } from './pages/coordinator/ApplicationDetail';
 import { CoordinatorAgreementDetail } from './pages/coordinator/AgreementDetail';
+import { CoordinatorTaskManagement } from './pages/coordinator/TaskManagement';
+import { AdminVolunteerApplicationDetail } from './pages/admin/VolunteerApplicationDetail';
 // Vet Pages
 import { VetDashboard } from './pages/vet/Dashboard';
 import { VetAnimals } from './pages/vet/Animals';
@@ -43,7 +46,6 @@ import { VolunteerDashboard } from './pages/volunteer/Dashboard';
 import { VolunteerShifts } from './pages/volunteer/Shifts';
 import { VolunteerTasks } from './pages/volunteer/Tasks';
 import { VolunteerPostAdoptionReview } from './pages/volunteer/PostAdoptionReview';
-import { VolunteerReports } from './pages/volunteer/Reports';
 import { VolunteerPending } from './pages/volunteer/Pending';
 import { VolunteerAnimals } from './pages/volunteer/Animals';
 // Candidate Pages
@@ -72,7 +74,7 @@ function Layout({
   children: React.ReactNode;
 }) {
   const location = useLocation();
-  const isDashboard = location.pathname.includes('/admin') || location.pathname.includes('/coordinator') || location.pathname.includes('/veterinar') || location.pathname.includes('/volunteer') || location.pathname.includes('/candidate') || location.pathname === '/login' || location.pathname === '/profile';
+  const isDashboard = location.pathname.includes('/admin') || location.pathname.includes('/coordinator') || location.pathname.includes('/veterinar') || location.pathname.includes('/volunteer') || location.pathname.includes('/candidate') || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/profile';
   return <div className="flex flex-col min-h-screen font-sans text-gray-900">
       {!isDashboard && <Navigation />}
       <main className="flex-grow">{children}</main>
@@ -89,6 +91,7 @@ export function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/animals" element={<Catalog />} />
             <Route path="/animals/:id" element={<AnimalProfile />} />
             <Route path="/adopt/:id" element={<AdoptionForm />} />
@@ -99,8 +102,8 @@ export function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/animals" element={<AdminAnimals />} />
               <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/volunteers" element={<AdminVolunteerApplications />} />
+              <Route path="/admin/volunteers/:id" element={<AdminVolunteerApplicationDetail />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
             </Route>
 
@@ -117,6 +120,8 @@ export function App() {
               <Route path="/coordinator/animals" element={<CoordinatorAnimals />} />
               <Route path="/coordinator/animals/:id" element={<AnimalProfile />} />
               <Route path="/coordinator/shift-management" element={<CoordinatorShiftManagement />} />
+              <Route path="/coordinator/shifts/:id" element={<CoordinatorShiftDetail />} />
+              <Route path="/coordinator/tasks" element={<CoordinatorTaskManagement />} />
               <Route path="/coordinator/agreements/:id" element={<CoordinatorAgreementDetail />} />
               <Route path="/coordinator/candidate/:id" element={<CandidateProfile />} />
             </Route>
@@ -133,9 +138,7 @@ export function App() {
             <Route element={<ProtectedRoute allowedRoles={['volunteer']} />}>
               <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
               <Route path="/volunteer/shifts" element={<VolunteerShifts />} />
-              <Route path="/volunteer/tasks" element={<VolunteerTasks />} />
               <Route path="/volunteer/post-adoption" element={<VolunteerPostAdoptionReview />} />
-              <Route path="/volunteer/reports" element={<VolunteerReports />} />
               <Route path="/volunteer/animals" element={<VolunteerAnimals />} />
               <Route path="/volunteer/animals/:id" element={<AnimalProfile />} />
             </Route>
@@ -159,7 +162,7 @@ export function App() {
             </Route>
 
             {/* General profile for all roles */}
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'coordinator', 'veterinar', 'volunteer', 'candidate']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'coordinator', 'veterinar', 'volunteer', 'candidate']} allowVolunteerPending />}>
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Routes>

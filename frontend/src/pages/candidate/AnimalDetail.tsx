@@ -129,7 +129,7 @@ export function CandidateAnimalDetail() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-6">
             <div className="mb-6">
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${animal.status === 'available' ? 'bg-green-100 text-green-700' : animal.status === 'reserved' ? 'bg-amber-100 text-amber-700' : animal.status === 'quarantine' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                {animal.status === 'available' ? 'Доступен' : animal.status === 'reserved' ? 'Зарезервирован' : animal.status === 'quarantine' ? 'На карантине' : 'Усыновлён'}
+                {animal.status === 'available' ? 'Доступен' : animal.status === 'reserved' ? 'Зарезервирован' : animal.status === 'quarantine' ? 'На карантине' : 'Пристроен'}
               </span>
             </div>
 

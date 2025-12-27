@@ -1,5 +1,5 @@
 import { api } from './http';
-import { Animal, AnimalMedia, Application, ApplicationStatus, AuthUser, MedicalRecord, Notification, Shift, UserProfile, Task, PostAdoptionReport, Interview, Agreement, ShiftVolunteer, TaskShift, VolunteerApplication } from '../types';
+import { Animal, AnimalMedia, Application, ApplicationStatus, AuthUser, MedicalRecord, Notification, Shift, UserProfile, Task, PostAdoptionReport, Interview, Agreement, ShiftVolunteer, TaskShift, VolunteerApplication, VolunteerShift } from '../types';
 
 export async function login(email: string, password: string): Promise<AuthUser> {
   const { data } = await api.post<AuthUser>('/auth/login', { email, password });
@@ -166,6 +166,11 @@ export async function getShifts(): Promise<Shift[]> {
   return data;
 }
 
+export async function getMyShifts(): Promise<VolunteerShift[]> {
+  const { data } = await api.get<VolunteerShift[]>('/shifts/me');
+  return data;
+}
+
 export async function getShiftVolunteers(shiftId: number): Promise<ShiftVolunteer[]> {
   const { data } = await api.get<ShiftVolunteer[]>(`/shifts/${shiftId}/volunteers`);
   return data;
@@ -180,8 +185,47 @@ export async function signupShift(shiftId: number) {
   await api.post('/shifts/signup', { shiftId });
 }
 
+export async function updateShiftTask(
+  shiftId: number,
+  taskId: number,
+  payload: { progressNotes?: string; taskState?: 'open' | 'in_progress' | 'done'; workedHours?: number }
+) {
+  const body: any = { taskId, ...payload };
+  const { data } = await api.patch<TaskShift>(`/shifts/${shiftId}/tasks/${taskId}`, body);
+  return data;
+}
+
+export async function submitVolunteerShift(shiftId: number, payload: { workedHours?: number }) {
+  const { data } = await api.post(`/shifts/${shiftId}/submit`, payload);
+  return data;
+}
+
+export async function markAttendance(shiftId: number, volunteerId: number, status: ShiftVolunteer['attendanceStatus'], workedHours?: number) {
+  const { data } = await api.patch<ShiftVolunteer>(`/shifts/${shiftId}/attendance`, { volunteerId, status, workedHours });
+  return data;
+}
+
+export async function approveShift(shiftId: number, volunteerId: number, workedHours?: number, feedback?: string) {
+  const { data } = await api.post<ShiftVolunteer>(`/shifts/${shiftId}/approve`, { volunteerId, workedHours, feedback });
+  return data;
+}
+
 export async function assignTaskToShift(taskId: number, shiftId: number, progressNotes?: string) {
   const { data } = await api.post<TaskShift>('/shifts/tasks/assign', { taskId, shiftId, progressNotes });
+  return data;
+}
+
+export async function deleteShiftTask(shiftId: number, taskId: number) {
+  await api.delete(`/shifts/${shiftId}/tasks/${taskId}`);
+}
+
+export async function closeShift(shiftId: number) {
+  const { data } = await api.post(`/shifts/${shiftId}/close`, {});
+  return data;
+}
+
+export async function unsubscribeShift(shiftId: number, reason: string) {
+  const { data } = await api.post(`/shifts/${shiftId}/unsubscribe`, { reason });
   return data;
 }
 
@@ -232,6 +276,10 @@ export async function createTask(task: Partial<Task>) {
 export async function updateTask(taskId: number, task: Partial<Task>) {
   const { data } = await api.patch<Task>(`/tasks/${taskId}`, task);
   return data;
+}
+
+export async function deleteTask(taskId: number) {
+  await api.delete(`/tasks/${taskId}`);
 }
 
 export async function getPostAdoptionReports(): Promise<PostAdoptionReport[]> {
@@ -356,13 +404,18 @@ export async function bookInterviewSlot(slotId: number, applicationId: number) {
   await api.post('/adoptions/slots/book', { slotId, applicationId });
 }
 
-export async function submitVolunteerApplication(payload: { motivation: string; availability?: string; }) {
+export async function submitVolunteerApplication(payload: { motivation: string; availability?: string; firstName?: string; lastName?: string; email?: string; phone?: string }) {
   await api.post('/volunteers/applications', payload);
 }
 
 export async function getVolunteerApplications(status?: VolunteerApplication['status']): Promise<VolunteerApplication[]> {
   const query = status ? `?status=${status}` : '';
   const { data } = await api.get<VolunteerApplication[]>(`/volunteers/applications${query}`);
+  return data;
+}
+
+export async function getVolunteerApplication(id: number): Promise<VolunteerApplication> {
+  const { data } = await api.get<VolunteerApplication>(`/volunteers/applications/${id}`);
   return data;
 }
 

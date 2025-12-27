@@ -35,10 +35,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           label: 'Животные',
           icon: PawPrint
         }, {
-          path: '/admin/reports',
-          label: 'Отчеты',
-          icon: FileText
-        }, {
           path: '/admin/settings',
           label: 'Настройки',
           icon: Settings
@@ -72,6 +68,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           path: '/coordinator/animals',
           label: 'Животные',
           icon: PawPrint
+        }, {
+          path: '/coordinator/tasks',
+          label: 'Задачи',
+          icon: ClipboardList
         }, {
           path: '/coordinator/shift-management',
           label: 'Смены',
@@ -109,17 +109,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           label: 'Смены',
           icon: Calendar
         }, {
-          path: '/volunteer/tasks',
-          label: 'Задачи',
-          icon: ClipboardList
-        }, {
           path: '/volunteer/post-adoption',
           label: 'Постсопровождение',
           icon: Activity
-        }, {
-          path: '/volunteer/reports',
-          label: 'Отчёты',
-          icon: FileCheck
         }, {
           path: '/profile',
           label: 'Профиль',

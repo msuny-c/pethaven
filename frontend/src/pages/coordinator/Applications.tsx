@@ -5,6 +5,7 @@ import { Check, X, User, FileText, Calendar } from 'lucide-react';
 import { ApplicationReviewModal } from '../../components/modals/ApplicationReviewModal';
 import { Application, Animal, UserProfile } from '../../types';
 import { getApplications, getAnimals, getUsers, updateApplicationStatus, scheduleInterview, getAllInterviews } from '../../services/api';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 export function CoordinatorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
@@ -107,13 +108,7 @@ export function CoordinatorApplications() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                    {animal?.photos && animal.photos[0] ? (
-                      <img src={animal.photos[0]} alt="" className="w-8 h-8 rounded-full object-cover mr-2" />
-                    ) : (
-                      <span className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-semibold mr-2">
-                        {(animal?.name || 'Ж')[0]}
-                      </span>
-                    )}
+                      <AnimalAvatar src={animal?.photos?.[0]} name={animal?.name} sizeClass="w-8 h-8" className="mr-2" />
                       <span className="text-sm text-gray-900">
                         {animal?.name || `Животное #${app.animalId}`}
                       </span>

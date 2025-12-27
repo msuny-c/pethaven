@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record ShiftApprovalRequest(
         @NotNull @Min(1) Long volunteerId,
-        @Min(0) Integer workedHours
+        @Min(0) Integer workedHours,
+        String feedback
 ) {
 }

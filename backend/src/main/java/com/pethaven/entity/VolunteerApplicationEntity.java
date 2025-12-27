@@ -28,6 +28,10 @@ public class VolunteerApplicationEntity {
 
     private String motivation;
     private String availability;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "volunteer_application_status")

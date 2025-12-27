@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 export function Volunteer() {
   const navigate = useNavigate();
-  const { user, authenticate } = useAuth();
+  const { user, authenticate, primaryRole } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
@@ -43,7 +43,11 @@ export function Volunteer() {
       }
       await submitVolunteerApplication({
         motivation: form.motivation,
-        availability: form.availability
+        availability: form.availability,
+        firstName: form.firstName || user?.firstName,
+        lastName: form.lastName || user?.lastName,
+        email: form.email || user?.email,
+        phone: form.phone || user?.phoneNumber
       });
       setSent(true);
       setTimeout(() => navigate('/volunteer/pending'), 800);
@@ -108,9 +112,15 @@ export function Volunteer() {
             Волонтеры — это сердце нашего приюта. Без вашей помощи мы не смогли
             бы спасать столько жизней.
           </p>
-          <button onClick={() => document.getElementById('form')?.scrollIntoView({
-          behavior: 'smooth'
-        })} className="bg-amber-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-600 transition-colors">
+          <button onClick={() => {
+          if (user) {
+            navigate(primaryRole ? `/${primaryRole}/dashboard` : '/profile');
+            return;
+          }
+          document.getElementById('form')?.scrollIntoView({
+            behavior: 'smooth'
+          });
+        }} className="bg-amber-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-600 transition-colors">
             Заполнить анкету
           </button>
         </div>
@@ -162,22 +172,29 @@ export function Volunteer() {
       {/* Form */}
       <section id="form" className="py-24 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="bg-gray-900 p-8 text-center">
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Анкета волонтера
-                </h2>
-                <p className="text-gray-400">
-                  Заполните форму, и мы пригласим вас на ознакомительную встречу
-                </p>
-              </div>
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gray-900 p-8 text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Анкета волонтера
+              </h2>
+              <p className="text-gray-400">
+                Заполните форму, и мы пригласим вас на ознакомительную встречу
+              </p>
+            </div>
 
-            <form className="p-8 space-y-6" onSubmit={handleSubmit}>
-              {!user && <div className="text-sm text-gray-700 bg-amber-50 border border-amber-100 p-3 rounded-lg">
+            {user ? <div className="p-8 space-y-4 text-center">
+                <p className="text-gray-700 font-medium">
+                  Вы уже авторизованы. Подать или посмотреть заявку можно в личном кабинете.
+                </p>
+                <button onClick={() => navigate(primaryRole ? `/${primaryRole}/dashboard` : '/profile')} className="inline-flex items-center justify-center px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors">
+                  Перейти в кабинет
+                </button>
+              </div> : <form className="p-8 space-y-6" onSubmit={handleSubmit}>
+                <div className="text-sm text-gray-700 bg-amber-50 border border-amber-100 p-3 rounded-lg">
                   Мы создадим аккаунт волонтера и сразу подадим заявку. Функции волонтера станут доступны после одобрения администратором.
-                </div>}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {!user && <div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Имя
                     </label>
@@ -185,8 +202,8 @@ export function Volunteer() {
                   ...prev,
                   firstName: e.target.value
                 }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" required />
-                  </div>}
-                {!user && <div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Фамилия
                     </label>
@@ -194,8 +211,8 @@ export function Volunteer() {
                   ...prev,
                   lastName: e.target.value
                 }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" required />
-                  </div>}
-                {!user && <div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email
                     </label>
@@ -203,8 +220,8 @@ export function Volunteer() {
                   ...prev,
                   email: e.target.value
                 }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" required />
-                  </div>}
-                {!user && <div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Телефон
                     </label>
@@ -212,8 +229,8 @@ export function Volunteer() {
                   ...prev,
                   phone: e.target.value
                 }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" />
-                  </div>}
-                {!user && <div className="md:col-span-2">
+                  </div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Пароль для входа
                     </label>
@@ -222,52 +239,42 @@ export function Volunteer() {
                   password: e.target.value
                 }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" required />
                     <p className="text-xs text-gray-500 mt-1">Используется для входа в личный кабинет волонтера.</p>
-                  </div>}
-              </div>
+                  </div>
+                </div>
 
-              {user && <div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Телефон
+                    Удобные дни для посещения
                   </label>
-                  <input type="tel" value={form.phone} onChange={e => setForm(prev => ({
-                ...prev,
-                phone: e.target.value
-              }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" placeholder="Как с вами связаться" />
-                </div>}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Удобные дни для посещения
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
-                  {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => <label key={day} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" className="rounded text-amber-500 focus:ring-amber-500" onChange={e => {
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => <label key={day} className="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" className="rounded text-amber-500 focus:ring-amber-500" onChange={e => {
                 setForm(prev => {
                   const current = prev.availability ? prev.availability.split(',').map(v => v.trim()).filter(Boolean) : [];
                   const next = e.target.checked ? [...current, day] : current.filter(v => v !== day);
                   return { ...prev, availability: next.join(', ') };
                 });
               }} />
-                      <span className="text-gray-700">{day}</span>
-                    </label>)}
+                        <span className="text-gray-700">{day}</span>
+                      </label>)}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Опыт общения с животными
-                </label>
-                <textarea rows={3} value={form.motivation} onChange={e => setForm(prev => ({
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Опыт общения с животными
+                  </label>
+                  <textarea rows={3} value={form.motivation} onChange={e => setForm(prev => ({
               ...prev,
               motivation: e.target.value
             }))} className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500" required placeholder="Расскажите, почему хотите помогать, и ваш опыт" />
-              </div>
+                </div>
 
-              <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-amber-600 transition-colors shadow-lg disabled:opacity-60">
-                {submitting ? 'Отправляем...' : 'Отправить анкету'}
-              </button>
-              {sent && <p className="text-center text-green-600 text-sm">Анкета отправлена. Доступ откроется после одобрения.</p>}
-            </form>
+                <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-amber-600 transition-colors shadow-lg disabled:opacity-60">
+                  {submitting ? 'Отправляем...' : 'Отправить анкету'}
+                </button>
+                {sent && <p className="text-center text-green-600 text-sm">Анкета отправлена. Доступ откроется после одобрения.</p>}
+              </form>}
           </div>
         </div>
       </section>

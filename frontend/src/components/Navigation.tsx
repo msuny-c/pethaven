@@ -43,6 +43,9 @@ export function Navigation() {
                 {link.name}
               </Link>)}
 
+            {!isAuthenticated && <Link to="/register" className="text-sm font-medium text-gray-600 hover:text-amber-600 transition-colors">
+                Регистрация
+              </Link>}
             {isAuthenticated ? <Link to={getDashboardLink()} className="flex items-center text-sm font-medium text-gray-700 hover:text-amber-600 transition-colors">
                 <User className="w-4 h-4 mr-2" />
                 Кабинет
@@ -84,6 +87,9 @@ export function Navigation() {
                 Помочь приюту
               </Link>
               <div className="pt-4 border-t border-gray-100 mt-2">
+                {!isAuthenticated && <Link to="/register" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-amber-600">
+                    Регистрация кандидата
+                  </Link>}
                 {isAuthenticated ? <Link to={getDashboardLink()} onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-amber-600">
                     Личный кабинет
                   </Link> : <Link to="/login" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-amber-600">

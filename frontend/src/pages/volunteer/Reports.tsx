@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { FileText, Download, Trash2 } from 'lucide-react';
-import { getShifts } from '../../services/api';
-import { Shift } from '../../types';
+import { FileText, Download } from 'lucide-react';
+import { getMyShifts } from '../../services/api';
+import { VolunteerShift } from '../../types';
 
 export function VolunteerReports() {
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shifts, setShifts] = useState<VolunteerShift[]>([]);
 
   useEffect(() => {
-    getShifts().then(setShifts);
+    getMyShifts().then(setShifts);
   }, []);
 
   return (
@@ -24,31 +24,25 @@ export function VolunteerReports() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {shifts.map((shift) => (
-              <tr key={shift.id} className="border-b border-gray-100">
+            {shifts.filter((s) => s.submittedAt || s.approvedAt).map((shift) => (
+              <tr key={shift.shiftId} className="border-b border-gray-100">
                 <td className="px-6 py-3 font-medium">{shift.shiftDate}</td>
                 <td className="px-6 py-3 text-sm text-gray-600">{shift.shiftType}</td>
-                <td className="px-6 py-3 text-sm text-gray-600">Отчёт не добавлен</td>
+                <td className="px-6 py-3 text-sm text-gray-600">
+                  {shift.approvedAt ? 'Принят' : 'Отправлен'}
+                </td>
                 <td className="px-6 py-3 text-right space-x-2">
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center">
-                    <FileText className="w-4 h-4 mr-1" />
-                    Заполнить
-                  </button>
                   <button className="text-gray-500 hover:text-gray-700 text-sm font-medium inline-flex items-center">
                     <Download className="w-4 h-4 mr-1" />
                     Скачать
                   </button>
-                  <button className="text-red-500 hover:text-red-700 text-sm font-medium inline-flex items-center">
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Удалить
-                  </button>
                 </td>
               </tr>
             ))}
-            {shifts.length === 0 && (
+            {shifts.filter((s) => s.submittedAt || s.approvedAt).length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-6 text-center text-gray-500">
-                  Смен пока нет
+                  Отчётов пока нет
                 </td>
               </tr>
             )}

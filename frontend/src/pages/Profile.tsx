@@ -45,6 +45,11 @@ export function ProfilePage() {
   const formatRole = (role: string) => roleLabels[role] || role;
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
   const displayName = fullName || user.email;
+  const isValidPhone = (value: string) => {
+    if (!value.trim()) return true;
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15 && /^[+]?[\d\s\-()]+$/.test(value);
+  };
 
   return <DashboardLayout title="Профиль">
       <div className="max-w-2xl mx-auto">
@@ -115,6 +120,10 @@ export function ProfilePage() {
             <div className="flex justify-end pt-2">
                 <button
                   onClick={async () => {
+                    if (!isValidPhone(form.phoneNumber)) {
+                      alert('Введите корректный номер телефона');
+                      return;
+                    }
                     setSaving(true);
                     try {
                       const updated = await updateMyProfile(form);

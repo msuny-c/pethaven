@@ -105,9 +105,7 @@ export function AdminSettings() {
               />
             </label>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>

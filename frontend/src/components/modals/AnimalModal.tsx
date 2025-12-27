@@ -192,13 +192,13 @@ export function AnimalModal({
                   <option value="quarantine">Карантин</option>
                   <option value="available">Доступен</option>
                   <option value="reserved">Забронирован</option>
-                  <option value="adopted">Усыновлен</option>
+                <option value="adopted">Пристроен</option>
                   <option value="not_available">Недоступен</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               {statusLocked && (
-                <p className="text-xs text-gray-500 mt-1">Статус «Пристроен» зафиксирован и не редактируется</p>
+                <p className="text-xs text-gray-500 mt-1"></p>
               )}
               {errors.status && <p className="text-xs text-red-600 mt-1">{errors.status}</p>}
             </div>

@@ -11,4 +11,5 @@ import java.util.List;
 public interface TaskShiftRepository extends JpaRepository<TaskShiftEntity, TaskShiftId> {
     List<TaskShiftEntity> findByIdShiftId(Long shiftId);
     List<TaskShiftEntity> findByIdTaskId(Long taskId);
+    List<TaskShiftEntity> findByIdShiftIdIn(Iterable<Long> shiftIds);
 }

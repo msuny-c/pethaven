@@ -188,12 +188,36 @@ export interface ShiftVolunteer {
   shiftId: number;
   volunteerId: number;
   attendanceStatus: 'signed_up' | 'attended' | 'absent';
+  workedHours?: number;
+  submittedAt?: string;
+  approvedAt?: string;
+  cancelReason?: string;
 }
 
 export interface TaskShift {
   taskId: number;
   shiftId: number;
+  title?: string;
+  description?: string;
+  animalId?: number;
+  animalName?: string;
   progressNotes?: string;
+  taskState?: 'open' | 'in_progress' | 'done';
+  completedAt?: string;
+  completedBy?: number;
+  completedByName?: string;
+  workedHours?: number;
+}
+
+export interface VolunteerShift {
+  shiftId: number;
+  shiftDate: string;
+  shiftType: Shift['shiftType'];
+  attendanceStatus: ShiftVolunteer['attendanceStatus'];
+  workedHours?: number;
+  submittedAt?: string;
+  approvedAt?: string;
+  tasks: TaskShift[];
 }
 
 export interface VolunteerApplication {
@@ -201,6 +225,10 @@ export interface VolunteerApplication {
   personId: number;
   motivation: string;
   availability?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
   status: 'submitted' | 'under_review' | 'approved' | 'rejected';
   decisionComment?: string;
   createdAt?: string;

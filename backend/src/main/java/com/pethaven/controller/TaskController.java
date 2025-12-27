@@ -7,6 +7,7 @@ import com.pethaven.model.enums.TaskStatus;
 import com.pethaven.dto.ApiMessage;
 import com.pethaven.service.TaskService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -49,6 +51,12 @@ public class TaskController {
             return ResponseEntity.status(403).body(ApiMessage.of("Закрывать задачи может только волонтёр или администратор"));
         }
         return ResponseEntity.ok(taskService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        taskService.delete(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     private boolean canCloseTasks(Authentication authentication) {

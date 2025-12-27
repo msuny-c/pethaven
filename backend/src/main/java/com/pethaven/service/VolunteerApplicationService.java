@@ -5,6 +5,7 @@ import com.pethaven.dto.VolunteerDecisionRequest;
 import com.pethaven.entity.VolunteerApplicationEntity;
 import com.pethaven.model.enums.VolunteerApplicationStatus;
 import com.pethaven.repository.VolunteerApplicationRepository;
+import com.pethaven.repository.PersonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +15,12 @@ import java.util.List;
 public class VolunteerApplicationService {
 
     private final VolunteerApplicationRepository applicationRepository;
+    private final PersonRepository personRepository;
 
-    public VolunteerApplicationService(VolunteerApplicationRepository applicationRepository) {
+    public VolunteerApplicationService(VolunteerApplicationRepository applicationRepository,
+                                       PersonRepository personRepository) {
         this.applicationRepository = applicationRepository;
+        this.personRepository = personRepository;
     }
 
     @Transactional
@@ -28,7 +32,30 @@ public class VolunteerApplicationService {
                 java.util.List.of(VolunteerApplicationStatus.submitted, VolunteerApplicationStatus.under_review))) {
             throw new IllegalStateException("Активная анкета уже подана");
         }
-        return applicationRepository.submit(personId, request.motivation(), request.availability());
+        VolunteerApplicationEntity entity = new VolunteerApplicationEntity();
+        entity.setPersonId(personId);
+        entity.setMotivation(request.motivation());
+        entity.setAvailability(request.availability());
+        entity.setFirstName(request.firstName());
+        entity.setLastName(request.lastName());
+        entity.setEmail(request.email());
+        entity.setPhone(request.phone());
+        personRepository.findById(personId).ifPresent(person -> {
+            if (entity.getFirstName() == null || entity.getFirstName().isBlank()) {
+                entity.setFirstName(person.getFirstName());
+            }
+            if (entity.getLastName() == null || entity.getLastName().isBlank()) {
+                entity.setLastName(person.getLastName());
+            }
+            if (entity.getEmail() == null || entity.getEmail().isBlank()) {
+                entity.setEmail(person.getEmail());
+            }
+            if (entity.getPhone() == null || entity.getPhone().isBlank()) {
+                entity.setPhone(person.getPhoneNumber());
+            }
+        });
+        entity.setStatus(VolunteerApplicationStatus.submitted);
+        return applicationRepository.save(entity).getId();
     }
 
     public List<VolunteerApplicationEntity> list(Long personId) {
@@ -37,6 +64,13 @@ public class VolunteerApplicationService {
         } else {
             return applicationRepository.findAll();
         }
+    }
+
+    public java.util.Optional<VolunteerApplicationEntity> getOne(Long id, Long personId) {
+        if (personId != null) {
+            return applicationRepository.findById(id).filter(app -> app.getPersonId().equals(personId));
+        }
+        return applicationRepository.findById(id);
     }
 
     @Transactional

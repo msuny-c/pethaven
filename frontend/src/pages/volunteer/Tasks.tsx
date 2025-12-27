@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { CheckSquare } from 'lucide-react';
-import { getTasks } from '../../services/api';
-import { Task } from '../../types';
+import { getAnimals, getTasks } from '../../services/api';
+import { Animal, Task } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 export function VolunteerTasks() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [animals, setAnimals] = useState<Record<number, Animal>>({});
   useEffect(() => {
-    getTasks().then(setTasks);
+    const load = async () => {
+      const [taskList, animalList] = await Promise.all([getTasks(), getAnimals()]);
+      setTasks(taskList);
+      const map: Record<number, Animal> = {};
+      animalList.forEach((a) => (map[a.id] = a));
+      setAnimals(map);
+    };
+    load();
   }, []);
   return <DashboardLayout title="Мои задачи">
       <div className="space-y-6">
@@ -20,6 +28,9 @@ export function VolunteerTasks() {
               <div className="text-sm text-gray-500">
                 {task.description || 'Задача без описания'}
               </div>
+              {task.animalId && <div className="text-xs text-amber-600 mt-1">
+                  Питомец: {animals[task.animalId]?.name || `#${task.animalId}`}
+                </div>}
               <div className="text-xs text-gray-400 mt-1">
                 Статус: {task.status}
               </div>

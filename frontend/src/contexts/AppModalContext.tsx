@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 type ModalPayload =
   | { type: 'info'; title?: string; message: string; confirmLabel?: string }
@@ -22,7 +22,7 @@ export const AppModalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [resolver, setResolver] = useState<((value?: any) => void) | null>(null);
   const [promptValue, setPromptValue] = useState<string>('');
 
-  const showMessage = (message: string, title?: string) => {
+  const showMessage = useCallback((message: string, title?: string) => {
     return new Promise<void>((resolve) => {
       setModal({
         type: 'info',
@@ -32,9 +32,9 @@ export const AppModalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       setResolver(() => resolve);
     });
-  };
+  }, []);
 
-  const showConfirm = (opts: { message: string; title?: string; confirmLabel?: string; cancelLabel?: string }) => {
+  const showConfirm = useCallback((opts: { message: string; title?: string; confirmLabel?: string; cancelLabel?: string }) => {
     return new Promise<boolean>((resolve) => {
       setModal({
         type: 'confirm',
@@ -45,9 +45,9 @@ export const AppModalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       setResolver(() => resolve);
     });
-  };
+  }, []);
 
-  const showPrompt = (opts: { message: string; title?: string; confirmLabel?: string; cancelLabel?: string; defaultValue?: string; placeholder?: string }) => {
+  const showPrompt = useCallback((opts: { message: string; title?: string; confirmLabel?: string; cancelLabel?: string; defaultValue?: string; placeholder?: string }) => {
     return new Promise<string | null>((resolve) => {
       setModal({
         type: 'prompt',
@@ -61,7 +61,7 @@ export const AppModalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setPromptValue(opts.defaultValue || '');
       setResolver(() => resolve);
     });
-  };
+  }, []);
 
   const close = () => {
     setModal(null);
@@ -76,7 +76,7 @@ export const AppModalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => {
       window.alert = originalAlert;
     };
-  }, []);
+  }, [showMessage]);
 
   return (
     <AppModalContext.Provider value={{ showMessage, showConfirm, showPrompt }}>

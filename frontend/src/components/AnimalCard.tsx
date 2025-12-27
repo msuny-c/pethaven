@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Info } from 'lucide-react';
 import { Animal } from '../types';
@@ -9,6 +9,7 @@ interface AnimalCardProps {
 export function AnimalCard({
   animal
 }: AnimalCardProps) {
+  const [imageError, setImageError] = useState(false);
   const {
     user
   } = useAuth();
@@ -19,14 +20,19 @@ export function AnimalCard({
   const ageText = animal.ageMonths != null ? `${animal.ageMonths} мес` : 'Возраст не указан';
   return <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
       <div className="relative h-64 overflow-hidden bg-gray-100 flex items-center justify-center">
-        {photo ? (
-          <img src={photo} alt={animal.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+        {photo && !imageError ? (
+          <img
+            src={photo}
+            alt={animal.name}
+            onError={() => setImageError(true)}
+            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+          />
         ) : (
           <span className="text-sm text-gray-500">Фото отсутствует</span>
         )}
         <div className="absolute bottom-4 left-4">
           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm ${animal.status === 'available' ? 'bg-green-500 text-white' : animal.status === 'reserved' ? 'bg-amber-500 text-white' : 'bg-gray-500 text-white'}`}>
-            {animal.status === 'available' ? 'Ищет дом' : animal.status === 'reserved' ? 'Забронирован' : animal.status === 'quarantine' ? 'На карантине' : 'Усыновлен'}
+            {animal.status === 'available' ? 'Ищет дом' : animal.status === 'reserved' ? 'Забронирован' : animal.status === 'quarantine' ? 'На карантине' : 'Пристроен'}
           </span>
         </div>
       </div>

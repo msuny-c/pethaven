@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { getAnimal, submitApplication } from '../../services/api';
 import { Animal } from '../../types';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 export function CandidateApplicationForm() {
   const {
     id
@@ -95,13 +96,7 @@ export function CandidateApplicationForm() {
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="p-6 bg-amber-50 border-b border-amber-100 flex items-center">
-            {animal.photos && animal.photos[0] ? (
-              <img src={animal.photos[0]} alt={animal.name} className="w-16 h-16 rounded-full object-cover mr-4" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold mr-4">
-                {(animal.name || 'Ж')[0]}
-              </div>
-            )}
+            <AnimalAvatar src={animal.photos?.[0]} name={animal.name} sizeClass="w-16 h-16" className="mr-4" />
             <div>
               <h3 className="text-lg font-bold text-gray-900">{animal.name}</h3>
               <p className="text-sm text-gray-600">

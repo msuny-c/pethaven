@@ -48,6 +48,12 @@ public class ShiftVolunteerEntity {
     @Column(name = "signed_up_at")
     private OffsetDateTime signedUpAt;
 
+    @Column(name = "volunteer_feedback")
+    private String volunteerFeedback;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     @PrePersist
     void onCreate() {
         if (attendanceStatus == null) {

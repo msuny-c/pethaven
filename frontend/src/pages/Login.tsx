@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { PawPrint, LogIn, AtSign, Lock } from 'lucide-react';
+import { PawPrint, LogIn, AtSign, Lock, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const demoAccounts = [{
@@ -54,6 +54,10 @@ export function Login() {
 
   return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <button onClick={() => navigate('/')} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-800 mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          На главную
+        </button>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl mb-4 shadow-lg transform -rotate-6">
             <PawPrint className="w-10 h-10 text-white" />

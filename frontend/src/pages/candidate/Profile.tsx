@@ -18,8 +18,17 @@ export function CandidateProfile() {
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const isValidPhone = (value: string) => {
+    if (!value.trim()) return true;
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15 && /^[+]?[\d\s\-()]+$/.test(value);
+  };
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidPhone(formData.phoneNumber)) {
+      alert('Введите корректный номер телефона');
+      return;
+    }
     setSaving(true);
     updateMyProfile({
       firstName: formData.firstName,

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, Clock, Plus } from 'lucide-react';
-import { assignTaskToShift, createShift, getShifts, getTasks } from '../../services/api';
-import { Shift, Task } from '../../types';
+import { Link, useNavigate } from 'react-router-dom';
+import { createShift, getShifts, getShiftVolunteers } from '../../services/api';
+import { Shift } from '../../types';
 
 const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
   morning: 'Утро',
@@ -12,133 +13,55 @@ const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
 
 export function CoordinatorShiftManagement() {
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newShift, setNewShift] = useState<{ date: string; type: Shift['shiftType'] }>({
-    date: '',
-    type: 'morning'
-  });
+  const [closedMap, setClosedMap] = useState<Record<number, boolean>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newShift, setNewShift] = useState<{ date: string; type: Shift['shiftType'] }>({ date: '', type: 'morning' });
   const [saving, setSaving] = useState(false);
-  const [assignment, setAssignment] = useState<{ shiftId: string; taskId: string; notes: string }>({
-    shiftId: '',
-    taskId: '',
-    notes: ''
-  });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
-      const [shiftsData, tasksData] = await Promise.all([getShifts(), getTasks()]);
+      const shiftsData = await getShifts();
       setShifts(shiftsData);
-      setTasks(tasksData);
+      const statuses = await Promise.all(
+        shiftsData.map(async (s) => {
+          const vols = await getShiftVolunteers(s.id);
+          return { id: s.id, closed: vols.length > 0 && vols.every((v) => v.approvedAt) };
+        })
+      );
+      const statusMap: Record<number, boolean> = {};
+      statuses.forEach((item) => (statusMap[item.id] = item.closed));
+      setClosedMap(statusMap);
     };
     load();
   }, []);
 
-  const stats = useMemo(() => {
-    return {
-      total: shifts.length,
-      morning: shifts.filter((s) => s.shiftType === 'morning').length,
-      evening: shifts.filter((s) => s.shiftType === 'evening').length,
-      fullDay: shifts.filter((s) => s.shiftType === 'full_day').length
-    };
-  }, [shifts]);
+  const stats = useMemo(() => ({
+    total: shifts.length,
+    morning: shifts.filter((s) => s.shiftType === 'morning').length,
+    evening: shifts.filter((s) => s.shiftType === 'evening').length,
+    fullDay: shifts.filter((s) => s.shiftType === 'full_day').length
+  }), [shifts]);
 
-  const handleCreate = async () => {
-    if (!newShift.date) return;
+  const handleCreateShift = async () => {
+    if (!newShift.date) {
+      alert('Укажите дату смены');
+      return;
+    }
     setSaving(true);
-    await createShift({
-      shiftDate: newShift.date,
-      shiftType: newShift.type
-    });
-    const updated = await getShifts();
-    setShifts(updated);
-    setSaving(false);
-    setNewShift({ date: '', type: 'morning' });
+    try {
+      await createShift({ shiftDate: newShift.date, shiftType: newShift.type });
+      const updated = await getShifts();
+      setShifts(updated);
+      setCreateOpen(false);
+      setNewShift({ date: '', type: 'morning' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <DashboardLayout title="Управление сменами">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex items-center mb-3">
-          <Plus className="w-4 h-4 text-amber-500 mr-2" />
-          <h3 className="font-bold text-gray-900">Создать смену</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            type="date"
-            className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-4 py-2"
-            value={newShift.date}
-            onChange={(e) => setNewShift((prev) => ({ ...prev, date: e.target.value }))}
-          />
-          <select
-            className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-4 py-2"
-            value={newShift.type}
-            onChange={(e) => setNewShift((prev) => ({ ...prev, type: e.target.value as Shift['shiftType'] }))}
-          >
-            <option value="morning">Утро</option>
-            <option value="evening">Вечер</option>
-            <option value="full_day">Полный день</option>
-          </select>
-          <button
-            onClick={handleCreate}
-            disabled={saving}
-            className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
-          >
-            {saving ? 'Создание...' : 'Создать'}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex items-center mb-3">
-          <Plus className="w-4 h-4 text-amber-500 mr-2" />
-          <h3 className="font-bold text-gray-900">Назначить задачу на смену</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <select
-            className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-4 py-2"
-            value={assignment.shiftId}
-            onChange={(e) => setAssignment((prev) => ({ ...prev, shiftId: e.target.value }))}
-          >
-            <option value="">Смена</option>
-            {shifts.map((s) => (
-              <option key={s.id} value={s.id}>
-                #{s.id} — {s.shiftDate}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-4 py-2"
-            value={assignment.taskId}
-            onChange={(e) => setAssignment((prev) => ({ ...prev, taskId: e.target.value }))}
-          >
-            <option value="">Задача</option>
-            {tasks.map((t) => (
-              <option key={t.id} value={t.id}>
-                #{t.id} — {t.title}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Примечания"
-            className="rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-4 py-2"
-            value={assignment.notes}
-            onChange={(e) => setAssignment((prev) => ({ ...prev, notes: e.target.value }))}
-          />
-          <button
-            onClick={async () => {
-              if (!assignment.shiftId || !assignment.taskId) return;
-              await assignTaskToShift(Number(assignment.taskId), Number(assignment.shiftId), assignment.notes);
-              setAssignment({ shiftId: '', taskId: '', notes: '' });
-              alert('Задача назначена');
-            }}
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Назначить
-          </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
           <div className="text-sm text-amber-700 font-medium">Запланировано</div>
@@ -155,32 +78,117 @@ export function CoordinatorShiftManagement() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center">
-          <Calendar className="w-5 h-5 text-amber-500 mr-2" />
-          <div className="text-sm text-gray-600">Список смен</div>
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center">
+            <Calendar className="w-5 h-5 text-amber-500 mr-2" />
+            <div className="text-sm text-gray-600">Список смен</div>
+          </div>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Создать смену
+          </button>
         </div>
 
         <div className="divide-y divide-gray-100">
-          {shifts.map((shift) => (
-            <div key={shift.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="text-lg font-semibold text-gray-900">
-                  {new Date(shift.shiftDate).toLocaleDateString()}
+          {shifts.map((shift) => {
+            return (
+              <div key={shift.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div
+                  className="flex flex-wrap items-center justify-between gap-3 cursor-pointer"
+                  onClick={() => navigate(`/coordinator/shifts/${shift.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/coordinator/shifts/${shift.id}`);
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="text-lg font-semibold text-gray-900">
+                      {new Date(shift.shiftDate).toLocaleDateString()}
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 inline-flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {SHIFT_LABEL[shift.shiftType]}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${closedMap[shift.id] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {closedMap[shift.id] ? 'Закрыта' : 'Открыта'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/coordinator/shifts/${shift.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600"
+                    >
+                      Открыть
+                    </Link>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 inline-flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {SHIFT_LABEL[shift.shiftType]}
-                </span>
               </div>
-              <div className="text-sm text-gray-500">ID: {shift.id}</div>
-            </div>
-          ))}
+            );
+          })}
 
-          {shifts.length === 0 && (
-            <div className="p-8 text-center text-gray-500">Нет доступных смен</div>
-          )}
+          {shifts.length === 0 && <div className="p-8 text-center text-gray-500">Нет доступных смен</div>}
         </div>
       </div>
+
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-600" onClick={() => setCreateOpen(false)}>
+              ✕
+            </button>
+            <div className="flex items-center gap-2 mb-4">
+              <Plus className="w-4 h-4 text-amber-500" />
+              <div className="text-lg font-bold text-gray-900">Создать смену</div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Дата *</label>
+                <input
+                  type="date"
+                  className="w-full rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  value={newShift.date}
+                  onChange={(e) => setNewShift((prev) => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Тип смены</label>
+                <select
+                  className="w-full rounded-lg border-gray-300 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  value={newShift.type}
+                  onChange={(e) => setNewShift((prev) => ({ ...prev, type: e.target.value as Shift['shiftType'] }))}
+                >
+                  <option value="morning">Утро</option>
+                  <option value="evening">Вечер</option>
+                  <option value="full_day">Полный день</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setCreateOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-300"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleCreateShift}
+                  disabled={saving}
+                  className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {saving ? 'Сохраняем...' : 'Создать'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

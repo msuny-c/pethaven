@@ -43,4 +43,10 @@ public class TaskService {
         }
         return taskMapper.toResponse(taskRepository.save(task));
     }
+
+    public void delete(Long id) {
+        TaskEntity task = taskRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Task not found: " + id));
+        taskRepository.delete(task);
+    }
 }

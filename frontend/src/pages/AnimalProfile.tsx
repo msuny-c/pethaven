@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight, X as Close } from 'lucide-react';
 import { getAnimal, getAnimalMedia } from '../services/api';
 import { Animal, AnimalMedia } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export function AnimalProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [media, setMedia] = useState<AnimalMedia[]>([]);
   const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
@@ -61,10 +63,23 @@ export function AnimalProfile() {
       </div>;
   }
 
-  const statusText = animal.status === 'available' ? 'Доступен' : animal.status === 'reserved' ? 'Зарезервирован' : animal.status === 'quarantine' ? 'На карантине' : 'Усыновлён';
+  const statusText = animal.status === 'available' ? 'Доступен' : animal.status === 'reserved' ? 'Зарезервирован' : animal.status === 'quarantine' ? 'На карантине' : 'Пристроен';
   const statusClass = animal.status === 'available' ? 'bg-green-100 text-green-700' : animal.status === 'reserved' ? 'bg-amber-100 text-amber-700' : animal.status === 'quarantine' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700';
   const canApply = animal.status === 'available';
   const ready = animal.readyForAdoption || animal.medical?.readyForAdoption;
+  const isCandidate = user?.roles?.includes('candidate');
+  const showApplyButton = canApply && (!user || isCandidate);
+
+  const handleApplyClick = () => {
+    if (!animal) return;
+    if (!user) {
+      navigate('/register', { state: { redirectTo: `/candidate/apply/${animal.id}` } });
+      return;
+    }
+    if (isCandidate) {
+      navigate(`/candidate/apply/${animal.id}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -169,12 +184,12 @@ export function AnimalProfile() {
                 </div>
               </div>
 
-              {canApply && (
+              {showApplyButton && (
                 <button
-                  onClick={() => navigate(`/adopt/${animal.id}`)}
+                  onClick={handleApplyClick}
                   className="w-full bg-amber-500 text-white py-3 rounded-lg font-medium hover:bg-amber-600 transition-colors mb-3"
                 >
-                  Подать заявку
+                  {!user ? 'Зарегистрироваться' : 'Подать заявку из кабинета'}
                 </button>
               )}
             </div>
