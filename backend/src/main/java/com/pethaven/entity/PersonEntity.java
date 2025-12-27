@@ -81,7 +81,8 @@ public class PersonEntity {
             return avatarUrl;
         }
         if (avatarKey != null && id != null) {
-            return MediaLinkSupport.build("/avatars/" + id);
+            String suffix = "/avatars/" + id;
+            return MediaLinkSupport.build(avatarKey != null ? suffix + "?v=" + java.net.URLEncoder.encode(avatarKey, java.nio.charset.StandardCharsets.UTF_8) : suffix);
         }
         return null;
     }

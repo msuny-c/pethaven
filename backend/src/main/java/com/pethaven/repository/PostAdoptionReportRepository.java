@@ -43,7 +43,7 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
                     r.comment_author_id AS authorId,
                     p.first_name   AS authorFirstName,
                     p.last_name    AS authorLastName,
-                    COALESCE(p.avatar_url, CASE WHEN p.avatar_key IS NOT NULL THEN '/api/v1/media/avatars/' || p.person_id END) AS authorAvatar
+                    COALESCE(p.avatar_url, CASE WHEN p.avatar_key IS NOT NULL THEN '/api/v1/media/avatars/' || p.person_id || '?v=' || p.avatar_key END) AS authorAvatar
             FROM post_adoption_report r
                      JOIN agreement ag ON ag.agreement_id = r.agreement_id
                      JOIN adoption_application aa ON aa.application_id = ag.application_id
@@ -68,17 +68,13 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
                     r.comment_author_id AS authorId,
                     p.first_name   AS authorFirstName,
                     p.last_name    AS authorLastName,
-                    COALESCE(p.avatar_url, CASE WHEN p.avatar_key IS NOT NULL THEN '/api/v1/media/avatars/' || p.person_id END) AS authorAvatar
+                    COALESCE(p.avatar_url, CASE WHEN p.avatar_key IS NOT NULL THEN '/api/v1/media/avatars/' || p.person_id || '?v=' || p.avatar_key END) AS authorAvatar
             FROM post_adoption_report r
                      JOIN agreement ag ON ag.agreement_id = r.agreement_id
                      JOIN adoption_application aa ON aa.application_id = ag.application_id
                      LEFT JOIN animal an ON an.animal_id = aa.animal_id
                      LEFT JOIN person p ON p.person_id = r.comment_author_id
             WHERE aa.candidate_id = :candidateId
-              AND (
-                r.status IN ('submitted', 'reviewed', 'overdue')
-                OR (r.status = 'pending' AND r.due_date <= CURRENT_DATE)
-              )
             ORDER BY r.due_date
             """, nativeQuery = true)
     List<PostAdoptionReportProjection> findVisibleDetailedByCandidate(Long candidateId);
@@ -90,6 +86,8 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
             )
             """, nativeQuery = true)
     boolean existsByAgreementIdAndStatus(Long agreementId, String status);
+
+    boolean existsByAgreementId(Long agreementId);
 
     @Query(value = """
             SELECT r.report_id        AS id,
@@ -115,4 +113,13 @@ public interface PostAdoptionReportRepository extends JpaRepository<PostAdoption
             LIMIT 1
             """, nativeQuery = true)
     Long findCandidateIdByReportId(Long reportId);
+
+    @Query(value = """
+            SELECT aa.candidate_id
+            FROM agreement ag
+            JOIN adoption_application aa ON aa.application_id = ag.application_id
+            WHERE ag.agreement_id = :agreementId
+            LIMIT 1
+            """, nativeQuery = true)
+    Long findCandidateIdByAgreement(Long agreementId);
 }

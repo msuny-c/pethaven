@@ -15,6 +15,7 @@ public record AdoptionApplicationResponse(
         String passportUrl,
         ApplicationStatus status,
         String decisionComment,
+        String cancellationReason,
         Long processedBy,
         OffsetDateTime createdAt
 ) {

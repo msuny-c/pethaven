@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -36,9 +34,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        Optional<AuthResponse> response = authService.login(request);
-        return response.<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(401).body(ApiMessage.of("Неверные учетные данные")));
+        AuthService.LoginResult result = authService.login(request);
+        if (result.auth() != null) {
+            return ResponseEntity.ok(result.auth());
+        }
+        int status = result.blocked() ? 403 : 401;
+        return ResponseEntity.status(status).body(ApiMessage.of(result.error() != null ? result.error() : "Неверные учетные данные"));
     }
 
 }

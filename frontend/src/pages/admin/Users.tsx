@@ -12,6 +12,7 @@ export function AdminUsers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -53,7 +54,13 @@ export function AdminUsers() {
   };
 
   const handleSave = async () => {
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || (!editingUser && !formData.password.trim())) return;
+    const localErrors: Record<string, string> = {};
+    if (!formData.firstName.trim()) localErrors.firstName = 'Укажите имя';
+    if (!formData.lastName.trim()) localErrors.lastName = 'Укажите фамилию';
+    if (!formData.email.trim()) localErrors.email = 'Укажите email';
+    if (!editingUser && !formData.password.trim()) localErrors.password = 'Пароль обязателен';
+    setErrors(localErrors);
+    if (Object.keys(localErrors).length > 0) return;
     setCreating(true);
     try {
       if (editingUser) {
@@ -77,6 +84,7 @@ export function AdminUsers() {
       }
       setIsModalOpen(false);
       setEditingUser(null);
+      setErrors({});
       setFormData({
         email: '',
         password: '',
@@ -118,6 +126,7 @@ export function AdminUsers() {
                 phoneNumber: '',
                 role: 'coordinator'
               });
+              setErrors({});
               setIsModalOpen(true);
             }}
             className="inline-flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600"
@@ -165,7 +174,7 @@ export function AdminUsers() {
                   </select>
                 </td>
                 <td className="px-6 py-4">
-                  <button onClick={() => handleActiveToggle(user.id, !isActive)} className="flex items-center text-sm text-gray-700">
+                  <button onClick={() => handleActiveToggle(user.id, !isActive)} className="flex items-center text-sm text-gray-700 w-32 justify-start">
                     {isActive ? (
                       <>
                         <ToggleRight className="w-5 h-5 text-green-500 mr-2" /> Активен
@@ -189,6 +198,7 @@ export function AdminUsers() {
                         phoneNumber: user.phoneNumber || '',
                         role: primaryRole as Role
                       });
+                      setErrors({});
                       setIsModalOpen(true);
                     }}
                     className="text-gray-400 hover:text-blue-600 mx-2"
@@ -229,29 +239,32 @@ export function AdminUsers() {
                 <label className="text-sm text-gray-600">Имя</label>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  className={`mt-1 w-full rounded-lg border px-3 py-2 focus:ring-amber-500 focus:border-amber-500 ${errors.firstName ? 'border-red-300' : 'border-gray-200'}`}
                   value={formData.firstName}
                   onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))}
                 />
+                {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>}
               </div>
               <div>
                 <label className="text-sm text-gray-600">Фамилия</label>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                  className={`mt-1 w-full rounded-lg border px-3 py-2 focus:ring-amber-500 focus:border-amber-500 ${errors.lastName ? 'border-red-300' : 'border-gray-200'}`}
                   value={formData.lastName}
                   onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))}
                 />
+                {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>}
               </div>
               <div>
                 <label className="text-sm text-gray-600">Email</label>
                 <input
                   type="email"
                   disabled={!!editingUser}
-                  className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
+                  className={`mt-1 w-full rounded-lg border px-3 py-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50 ${errors.email ? 'border-red-300' : 'border-gray-200'}`}
                   value={formData.email}
                   onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 />
+                {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
               </div>
               <div>
                 <label className="text-sm text-gray-600">Телефон</label>
@@ -267,10 +280,11 @@ export function AdminUsers() {
                   <label className="text-sm text-gray-600">Пароль</label>
                   <input
                     type="password"
-                    className="mt-1 w-full rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                    className={`mt-1 w-full rounded-lg border px-3 py-2 focus:ring-amber-500 focus:border-amber-500 ${errors.password ? 'border-red-300' : 'border-gray-200'}`}
                     value={formData.password}
                     onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
                   />
+                  {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
                 </div>
               )}
               <div>

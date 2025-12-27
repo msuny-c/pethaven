@@ -78,30 +78,7 @@ export function AdminDashboard() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            Статус системы
-          </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">База данных</span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                Online
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Файловое хранилище</span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                45% занято
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">API Сервер</span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                99.9% Uptime
-              </span>
-            </div>
-          </div>
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-center justify-between">
+          <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-center justify-between">
             <div>
               <div className="font-semibold text-amber-800">Заявки волонтёров</div>
               <div className="text-sm text-amber-700">Проверьте анкеты и назначьте наставника</div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Calendar, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, Clock, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   getAgreement,
@@ -21,6 +21,7 @@ export function CoordinatorPostAdoption() {
   const [users, setUsers] = useState<Record<number, UserProfile>>({});
   const [mediaMap, setMediaMap] = useState<Record<number, ReportMedia[]>>({});
   const [selected, setSelected] = useState<PostAdoptionReport | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'submitted' | 'reviewed' | 'overdue'>('submitted');
 
   useEffect(() => {
     const load = async () => {
@@ -73,10 +74,15 @@ export function CoordinatorPostAdoption() {
   const stats = useMemo(() => {
     return {
       pending: reports.filter((r) => r.status === 'pending').length,
-      submitted: reports.filter((r) => r.status === 'submitted' || r.status === 'reviewed').length,
+      submitted: reports.filter((r) => r.status === 'submitted').length,
       overdue: reports.filter((r) => r.status === 'overdue').length
     };
   }, [reports]);
+
+  const filteredReports = useMemo(() => {
+    if (statusFilter === 'all') return reports;
+    return reports.filter((r) => r.status === statusFilter);
+  }, [reports, statusFilter]);
 
   return (
     <DashboardLayout title="Постсопровождение">
@@ -89,12 +95,12 @@ export function CoordinatorPostAdoption() {
           <div className="text-3xl font-bold text-amber-900">{stats.pending}</div>
         </div>
 
-        <div className="bg-green-50 border border-green-100 rounded-xl p-6">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-green-600">Получено</span>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <span className="text-sm font-medium text-gray-600">Не проверено</span>
+            <CheckCircle className="w-5 h-5 text-gray-500" />
           </div>
-          <div className="text-3xl font-bold text-green-900">{stats.submitted}</div>
+          <div className="text-3xl font-bold text-gray-900">{stats.submitted}</div>
         </div>
 
         <div className="bg-red-50 border border-red-100 rounded-xl p-6">
@@ -107,8 +113,22 @@ export function CoordinatorPostAdoption() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <h3 className="font-bold text-gray-900">Отчёты усыновителей</h3>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
+            >
+              <option value="submitted">Не проверено</option>
+              <option value="pending">Ожидается</option>
+              <option value="overdue">Просрочено</option>
+              <option value="reviewed">Проверено</option>
+              <option value="all">Все</option>
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-left min-w-[720px]">
@@ -122,7 +142,7 @@ export function CoordinatorPostAdoption() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {reports.map((report) => {
+            {filteredReports.map((report) => {
               const agreement = agreements[report.agreementId];
               const application = agreement
                 ? applications.find((a) => a.id === agreement.applicationId)
@@ -136,14 +156,17 @@ export function CoordinatorPostAdoption() {
                 <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img
-                        src={
-                          (animal?.photos && animal.photos[0]) ||
-                          'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                        }
-                        alt={animal?.name}
-                        className="w-10 h-10 rounded-full object-cover mr-3"
-                      />
+                      {animal?.photos?.[0] ? (
+                        <img
+                          src={animal.photos[0]}
+                          alt={animal?.name}
+                          className="w-10 h-10 rounded-full object-cover mr-3"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-[11px] font-semibold mr-3">
+                          Фото нет
+                        </div>
+                      )}
                       <div>
                         <div className="font-medium text-gray-900">
                           {animal?.name || `Животное #${application?.animalId || '—'}`}
@@ -172,8 +195,8 @@ export function CoordinatorPostAdoption() {
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     report.status === 'reviewed'
                       ? 'bg-emerald-100 text-emerald-700'
-                      : report.status === 'submitted'
-                        ? 'bg-green-100 text-green-800'
+                    : report.status === 'submitted'
+                        ? 'bg-gray-100 text-gray-700'
                         : isOverdue
                           ? 'bg-red-100 text-red-800'
                           : 'bg-amber-100 text-amber-800'
@@ -182,7 +205,7 @@ export function CoordinatorPostAdoption() {
                   {report.status === 'reviewed'
                     ? 'Проверен'
                     : report.status === 'submitted'
-                      ? 'Получено'
+                      ? 'Не проверено'
                       : isOverdue
                         ? 'Просрочено'
                         : 'Ожидается'}
@@ -201,7 +224,7 @@ export function CoordinatorPostAdoption() {
         })}
           </tbody>
         </table>
-      {reports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
+      {filteredReports.length === 0 && <div className="p-8 text-center text-gray-500">Нет отчётов</div>}
         </div>
       </div>
       {selected && (

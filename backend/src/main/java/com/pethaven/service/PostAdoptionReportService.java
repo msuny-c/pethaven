@@ -47,6 +47,41 @@ public class PostAdoptionReportService {
     }
 
     public List<PostAdoptionReportDto> listForCandidate(Long candidateId) {
+        int offsetDays = Math.max(0, settingService.getReportOffsetDays());
+        int fillDays = settingService.getReportFillDays();
+
+        // Подготовка: если нет ожидающих отчётов и интервал прошёл, создаём новый.
+        java.util.List<com.pethaven.entity.PostAdoptionReportEntity> raw = reportRepository.findByCandidate(candidateId);
+        java.util.Map<Long, com.pethaven.entity.PostAdoptionReportEntity> lastByAgreement = new java.util.HashMap<>();
+        java.util.Set<Long> hasPending = new java.util.HashSet<>();
+        for (com.pethaven.entity.PostAdoptionReportEntity r : raw) {
+            if (r.getStatus() == ReportStatus.pending || r.getStatus() == ReportStatus.overdue) {
+                hasPending.add(r.getAgreementId());
+            }
+            com.pethaven.entity.PostAdoptionReportEntity last = lastByAgreement.get(r.getAgreementId());
+            if (last == null || (r.getDueDate() != null && last.getDueDate() != null && r.getDueDate().isAfter(last.getDueDate()))) {
+                lastByAgreement.put(r.getAgreementId(), r);
+            }
+        }
+        java.time.LocalDate today = java.time.LocalDate.now();
+        lastByAgreement.forEach((agreementId, last) -> {
+            if (hasPending.contains(agreementId)) {
+                return;
+            }
+            if (last.getDueDate() == null) {
+                return;
+            }
+            java.time.LocalDate availableFrom = last.getDueDate().minusDays(fillDays).plusDays(offsetDays);
+            java.time.LocalDate nextDue = last.getDueDate().plusDays(offsetDays);
+            if (!availableFrom.isAfter(today)) {
+                com.pethaven.entity.PostAdoptionReportEntity next = new com.pethaven.entity.PostAdoptionReportEntity();
+                next.setAgreementId(agreementId);
+                next.setDueDate(nextDue);
+                next.setStatus(nextDue.isBefore(today) ? ReportStatus.overdue : ReportStatus.pending);
+                reportRepository.save(next);
+            }
+        });
+
         return reportRepository.findVisibleDetailedByCandidate(candidateId)
                 .stream()
                 .map(PostAdoptionReportDto::fromProjection)
@@ -57,13 +92,27 @@ public class PostAdoptionReportService {
         return reportMapper.toResponses(reportRepository.findAll());
     }
 
+    public boolean hasReportsForAgreement(Long agreementId) {
+        return agreementId != null && reportRepository.existsByAgreementId(agreementId);
+    }
+
     public PostAdoptionReportResponse create(PostAdoptionReportRequest request) {
         if (request.agreementId() == null || request.dueDate() == null) {
             throw new IllegalArgumentException("agreementId и dueDate обязательны для создания отчёта");
         }
         PostAdoptionReportEntity entity = new PostAdoptionReportEntity();
         applyRequest(entity, request);
-        return reportMapper.toResponse(reportRepository.save(entity));
+        PostAdoptionReportEntity saved = reportRepository.save(entity);
+        Long candidateId = reportRepository.findCandidateIdByAgreement(request.agreementId());
+        if (candidateId != null) {
+            notificationService.push(
+                    candidateId,
+                    com.pethaven.model.enums.NotificationType.report_due,
+                    "Новый отчёт",
+                    "Заполните отчёт по договору #" + request.agreementId()
+            );
+        }
+        return reportMapper.toResponse(saved);
     }
 
     public PostAdoptionReportResponse update(Long id, PostAdoptionReportRequest request, Long authorId) {
@@ -137,23 +186,26 @@ public class PostAdoptionReportService {
     }
 
     private void scheduleNext(PostAdoptionReportEntity submittedReport) {
-        if (submittedReport.getAgreementId() == null) {
+        if (submittedReport.getAgreementId() == null || submittedReport.getDueDate() == null) {
             return;
         }
-        boolean hasPending = reportRepository.existsByAgreementIdAndStatus(submittedReport.getAgreementId(), ReportStatus.pending.name());
+        boolean hasPending = reportRepository.existsByAgreementIdAndStatus(submittedReport.getAgreementId(), ReportStatus.pending.name())
+                || reportRepository.existsByAgreementIdAndStatus(submittedReport.getAgreementId(), ReportStatus.overdue.name());
         if (hasPending) {
             return;
         }
-        int offsetDays = settingService.getReportOffsetDays();
+        int offsetDays = Math.max(0, settingService.getReportOffsetDays());
         int fillDays = settingService.getReportFillDays();
-        int total = Math.max(1, offsetDays + fillDays);
         PostAdoptionReportEntity next = new PostAdoptionReportEntity();
         next.setAgreementId(submittedReport.getAgreementId());
-        LocalDate baseDate = submittedReport.getDueDate() != null
-                ? submittedReport.getDueDate()
-                : (submittedReport.getSubmittedDate() != null ? submittedReport.getSubmittedDate() : LocalDate.now());
-        next.setDueDate(baseDate.plusDays(total));
-        next.setStatus(ReportStatus.pending);
+        LocalDate today = LocalDate.now();
+        LocalDate availableFrom = submittedReport.getDueDate().minusDays(fillDays).plusDays(offsetDays);
+        if (availableFrom.isAfter(today)) {
+            return;
+        }
+        LocalDate nextDue = submittedReport.getDueDate().plusDays(offsetDays);
+        next.setDueDate(nextDue);
+        next.setStatus(nextDue.isBefore(today) ? ReportStatus.overdue : ReportStatus.pending);
         reportRepository.save(next);
     }
 

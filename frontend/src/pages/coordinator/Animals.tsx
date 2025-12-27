@@ -98,20 +98,9 @@ export function CoordinatorAnimals() {
   };
 
   return (
-    <DashboardLayout
-      title="Управление животными"
-      actions={
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить животное
-        </button>
-      }
-    >
+    <DashboardLayout title="Управление животными">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -122,6 +111,13 @@ export function CoordinatorAnimals() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить животное
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -236,14 +232,14 @@ export function CoordinatorAnimals() {
                         setEditingAnimal(animal);
                         setIsModalOpen(true);
                       }}
-                      className="p-2 rounded-lg hover:bg-amber-50 text-amber-600"
+                      className="p-2 rounded-lg text-gray-500"
                       title="Редактировать"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setNotesAnimal(animal)}
-                      className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                      className="p-2 rounded-lg text-gray-500"
                       title="Полевые заметки"
                     >
                       <StickyNote className="w-4 h-4" />

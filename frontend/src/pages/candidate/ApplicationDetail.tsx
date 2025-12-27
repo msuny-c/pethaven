@@ -13,7 +13,6 @@ import {
   getAgreements
 } from '../../services/api';
 import { useAppModal } from '../../contexts/AppModalContext';
-import { useAppModal } from '../../contexts/AppModalContext';
 
 export function CandidateApplicationDetail() {
   const { id } = useParams();
@@ -109,7 +108,12 @@ export function CandidateApplicationDetail() {
     setCancelling(true);
     try {
       await cancelAdoptionApplication(application.id, reason || undefined);
-      setApplication({ ...application, status: 'rejected', decisionComment: reason || 'Отменено кандидатом' });
+      setApplication({
+        ...application,
+        status: 'cancelled',
+        cancellationReason: reason || 'Отменено кандидатом',
+        decisionComment: undefined
+      });
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось отменить заявку';
       await showMessage(msg, 'Ошибка');
@@ -201,7 +205,16 @@ export function CandidateApplicationDetail() {
 
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase">Статус</h3>
-                {application.decisionComment && (
+                {application.status === 'cancelled' && (
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-gray-900 font-medium mb-2">
+                      <Info className="w-4 h-4 text-amber-500" />
+                      Причина отмены
+                    </div>
+                    <p className="text-sm text-gray-700">{application.cancellationReason || 'Не указана'}</p>
+                  </div>
+                )}
+                {application.decisionComment && application.status !== 'cancelled' && (
                   <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-900 font-medium mb-2">
                       <Info className="w-4 h-4 text-amber-500" />

@@ -3,7 +3,7 @@ import { AnimalCard } from '../components/AnimalCard';
 import { FilterBar } from '../components/FilterBar';
 import { FilterState } from '../types';
 import { motion } from 'framer-motion';
-import { SearchX, Search } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import { getAnimals } from '../services/api';
 import { Animal } from '../types';
 export function Catalog() {
@@ -37,27 +37,15 @@ export function Catalog() {
   return <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white py-12 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Наши питомцы
           </h1>
-          <p className="text-gray-600 max-w-2xl">
-            Здесь вы можете найти верного друга. Используйте фильтры, чтобы
-            подобрать питомца, который идеально впишется в вашу жизнь.
+          <p className="text-gray-600 max-w-2xl mb-6">
+            Здесь вы можете найти верного друга. Используйте поиск и фильтры, чтобы подобрать питомца, который идеально впишется в вашу жизнь.
           </p>
-          <div className="mt-6 max-w-xl relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск по имени или породе..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            />
-          </div>
+          <FilterBar filters={filters} setFilters={setFilters} query={query} onQueryChange={setQuery} />
         </div>
       </div>
-
-      <FilterBar filters={filters} setFilters={setFilters} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {filteredAnimals.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

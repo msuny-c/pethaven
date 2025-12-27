@@ -154,14 +154,17 @@ export function CoordinatorAgreementDetail() {
             </div>
           </div>
           {animal && (
-            <img
-              src={
-                (animal.photos && animal.photos[0]) ||
-                'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=160&q=80'
-              }
-              alt={animal.name}
-              className="w-20 h-20 rounded-xl object-cover border border-gray-100"
-            />
+            animal.photos?.[0] ? (
+              <img
+                src={animal.photos[0]}
+                alt={animal.name}
+                className="w-20 h-20 rounded-xl object-cover border border-gray-100"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500">
+                Фото нет
+              </div>
+            )
           )}
         </div>
 

@@ -15,11 +15,15 @@ export function AnimalCard({
   const primaryRole = user?.roles?.[0];
   // Determine link destination based on role
   const linkPath = primaryRole === 'candidate' ? `/candidate/animals/${animal.id}` : `/animals/${animal.id}`;
-  const photo = animal.photos && animal.photos.length > 0 ? animal.photos[0] : 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=80';
+  const photo = animal.photos && animal.photos.length > 0 ? animal.photos[0] : null;
   const ageText = animal.ageMonths != null ? `${animal.ageMonths} мес` : 'Возраст не указан';
   return <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
-      <div className="relative h-64 overflow-hidden">
-        <img src={photo} alt={animal.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+      <div className="relative h-64 overflow-hidden bg-gray-100 flex items-center justify-center">
+        {photo ? (
+          <img src={photo} alt={animal.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <span className="text-sm text-gray-500">Фото отсутствует</span>
+        )}
         <div className="absolute bottom-4 left-4">
           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm ${animal.status === 'available' ? 'bg-green-500 text-white' : animal.status === 'reserved' ? 'bg-amber-500 text-white' : 'bg-gray-500 text-white'}`}>
             {animal.status === 'available' ? 'Ищет дом' : animal.status === 'reserved' ? 'Забронирован' : animal.status === 'quarantine' ? 'На карантине' : 'Усыновлен'}

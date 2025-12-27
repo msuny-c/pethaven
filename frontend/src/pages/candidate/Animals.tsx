@@ -4,7 +4,6 @@ import { AnimalCard } from '../../components/AnimalCard';
 import { getAnimals } from '../../services/api';
 import { Animal, FilterState } from '../../types';
 import { FilterBar } from '../../components/FilterBar';
-import { Search } from 'lucide-react';
 export function CandidateAnimals() {
   const [availableAnimals, setAvailableAnimals] = useState<Animal[]>([]);
   const [filters, setFilters] = useState<FilterState>({ species: 'all', age: 'all' });
@@ -31,19 +30,7 @@ export function CandidateAnimals() {
   });
 
   return <DashboardLayout title="Каталог животных">
-      <div className="mb-4">
-        <div className="max-w-xl relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Поиск по имени или породе..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-          />
-        </div>
-        <FilterBar filters={filters} setFilters={setFilters} />
-      </div>
+      <FilterBar filters={filters} setFilters={setFilters} query={query} onQueryChange={setQuery} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(animal => <AnimalCard key={animal.id} animal={animal} />)}
       </div>

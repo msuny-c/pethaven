@@ -156,14 +156,17 @@ export function CoordinatorTransfers() {
                 <div key={transfer.id} className="p-6 space-y-3 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start space-x-4">
-                      <img
-                        src={
-                          (animal?.photos && animal.photos[0]) ||
-                          'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                        }
-                        alt={animal?.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
+                      {animal?.photos?.[0] ? (
+                        <img
+                          src={animal.photos[0]}
+                          alt={animal?.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs">
+                          Фото нет
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center mb-1 flex-wrap gap-2">
                           <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>
@@ -255,14 +258,17 @@ export function CoordinatorTransfers() {
                 <div key={agreement.id} className="p-6 space-y-3 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start space-x-4">
-                      <img
-                        src={
-                          (animal?.photos && animal.photos[0]) ||
-                          'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                        }
-                        alt={animal?.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
+                      {animal?.photos?.[0] ? (
+                        <img
+                          src={animal.photos[0]}
+                          alt={animal?.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs">
+                          Фото нет
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center mb-1 flex-wrap gap-2">
                           <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>
@@ -310,15 +316,6 @@ export function CoordinatorTransfers() {
                   </div>
 
                   <div className="flex flex-col md:flex-row md:items-center gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500">Дата подписания</label>
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setSignedDates((prev) => ({ ...prev, [app.id]: e.target.value }))}
-                        className="w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
-                      />
-                    </div>
                     <button
                       onClick={() => handleConfirmAgreement(agreement)}
                       disabled={!agreement.signedUrl || confirmingId === agreement.id}
@@ -352,14 +349,17 @@ export function CoordinatorTransfers() {
               return (
                 <div key={agreement.id} className="p-6 flex items-start justify-between hover:bg-gray-50">
                   <div className="flex items-start space-x-4">
-                    <img
-                      src={
-                        (animal?.photos && animal.photos[0]) ||
-                        'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                      }
-                      alt={animal?.name}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
+                    {animal?.photos?.[0] ? (
+                      <img
+                        src={animal.photos[0]}
+                        alt={animal?.name}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-xs font-semibold">
+                        Фото нет
+                      </div>
+                    )}
                     <div>
                       <div className="flex items-center mb-1">
                         <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>

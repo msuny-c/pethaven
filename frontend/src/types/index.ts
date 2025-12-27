@@ -85,6 +85,7 @@ export interface Application {
   status: ApplicationStatus;
   notes?: string;
   decisionComment?: string;
+  cancellationReason?: string;
   processedBy?: number;
   date?: string;
   details?: {

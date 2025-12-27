@@ -160,6 +160,11 @@ public class AdoptionService {
             if (actorId != null) {
                 entity.setProcessedBy(actorId);
             }
+            if (request.status() == ApplicationStatus.cancelled) {
+                entity.setCancellationReason(request.decisionComment());
+            } else {
+                entity.setCancellationReason(null);
+            }
             adoptionRepository.save(entity);
             if (request.status() == ApplicationStatus.approved) {
                 animalRepository.findById(entity.getAnimalId()).ifPresent(animal -> {
@@ -190,7 +195,8 @@ public class AdoptionService {
             throw new org.springframework.security.access.AccessDeniedException("Нельзя отменить чужую заявку");
         }
         app.setStatus(ApplicationStatus.cancelled);
-        app.setDecisionComment((reason == null || reason.isBlank()) ? "Отменено кандидатом" : "Отменено кандидатом: " + reason);
+        app.setCancellationReason((reason == null || reason.isBlank()) ? "Отменено кандидатом" : reason.trim());
+        app.setDecisionComment(null);
         adoptionRepository.save(app);
         animalRepository.findById(app.getAnimalId()).ifPresent(animal -> {
             if (animal.getStatus() == com.pethaven.model.enums.AnimalStatus.reserved) {
@@ -441,6 +447,14 @@ public class AdoptionService {
         String key = storageService.uploadAgreementTemplate(agreement.getId(), template);
         agreement.setTemplateStorageKey(key);
         agreementRepository.save(agreement);
+        personRepository.findById(app.getCandidateId()).ifPresent(candidate ->
+                notificationService.push(
+                        candidate.getId(),
+                        com.pethaven.model.enums.NotificationType.new_application,
+                        "Договор готов к подписи",
+                        "Для заявки №" + app.getId() + " сформирован договор, подпишите его"
+                )
+        );
         return agreement;
     }
 
@@ -496,14 +510,16 @@ public class AdoptionService {
                 )
         );
 
-        postAdoptionReportService.create(new PostAdoptionReportRequest(
-                agreementId,
-                java.time.LocalDate.now().plusDays(settingService.getReportOffsetDays()),
-                null,
-                null,
-                null,
-                ReportStatus.pending
-        ));
+        if (!postAdoptionReportService.hasReportsForAgreement(agreementId)) {
+            postAdoptionReportService.create(new PostAdoptionReportRequest(
+                    agreementId,
+                    java.time.LocalDate.now().plusDays(settingService.getReportFillDays()),
+                    null,
+                    null,
+                    null,
+                    ReportStatus.pending
+            ));
+        }
         return agreement;
     }
 

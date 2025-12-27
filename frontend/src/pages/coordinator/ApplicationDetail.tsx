@@ -170,11 +170,17 @@ export function CoordinatorApplicationDetail() {
                 </div>
               </div>
               {animal && (
-                <img
-                  src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=140&q=80'}
-                  alt={animal.name}
-                  className="w-24 h-24 rounded-xl object-cover border border-gray-100"
-                />
+                animal.photos?.[0] ? (
+                  <img
+                    src={animal.photos[0]}
+                    alt={animal.name}
+                    className="w-24 h-24 rounded-xl object-cover border border-gray-100"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500">
+                    Фото нет
+                  </div>
+                )
               )}
             </div>
 
@@ -188,9 +194,19 @@ export function CoordinatorApplicationDetail() {
                     <Field label="Жилищные условия" value={application.housing || application.details?.housing} />
                   </div>
                 </div>
+                {application.status === 'cancelled' && (
+                  <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Причина отмены</h3>
+                    <p className="text-sm text-gray-700">{application.cancellationReason || 'Не указана'}</p>
+                  </div>
+                )}
                 <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Комментарий координатора</h3>
-                  <p className="text-sm text-gray-700">{application.decisionComment || 'Комментариев нет'}</p>
+                  <p className="text-sm text-gray-700">
+                    {application.status === 'cancelled'
+                      ? 'Комментариев нет'
+                      : application.decisionComment || 'Комментариев нет'}
+                  </p>
                 </div>
               </div>
 

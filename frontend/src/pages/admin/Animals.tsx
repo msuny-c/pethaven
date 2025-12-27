@@ -112,19 +112,20 @@ export function AdminAnimals() {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  return <DashboardLayout title="Управление животными" actions={<button onClick={() => {
-    setEditingAnimal(undefined);
-    setIsModalOpen(true);
-  }} disabled={saving} className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-60">
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить животное
-        </button>}>
+  return <DashboardLayout title="Управление животными">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-xl">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input type="text" placeholder="Поиск по имени или породе..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
+          <button onClick={() => {
+            setEditingAnimal(undefined);
+            setIsModalOpen(true);
+          }} disabled={saving} className="flex items-center bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-60">
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить животное
+          </button>
         </div>
 
         <div className="overflow-x-auto">

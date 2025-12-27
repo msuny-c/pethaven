@@ -61,30 +61,30 @@ public class AuthService {
         Set<SystemRole> roles = Set.of(targetRole);
         TokenService.TokenPair pair = tokenService.issueTokens(saved.getId(), saved.getEmail(), roles);
         return new AuthResponse(saved.getId(), saved.getEmail(), saved.getFirstName(), saved.getLastName(), saved.getPhoneNumber(),
-                roles, pair.accessToken(), saved.getAvatarUrl());
+                roles, pair.accessToken(), avatarUrl(saved));
     }
 
-    public Optional<AuthResponse> login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
         Optional<PersonEntity> personOpt = personRepository.findByEmail(request.email());
         if (personOpt.isEmpty()) {
-            return Optional.empty();
+            return LoginResult.error("Неверные учетные данные", false);
         }
         PersonEntity person = personOpt.get();
         if (Boolean.FALSE.equals(person.getActive())) {
-            return Optional.empty();
+            return LoginResult.error("Учётная запись заблокирована", true);
         }
         if (!passwordEncoder.matches(request.password(), person.getPasswordHash())) {
-            return Optional.empty();
+            return LoginResult.error("Неверные учетные данные", false);
         }
         if (person.getRoles().isEmpty()) {
-            return Optional.empty();
+            return LoginResult.error("Неверные учетные данные", false);
         }
         Set<SystemRole> roles = person.getRoles().stream()
                 .map(RoleEntity::getName)
                 .map(SystemRole::valueOf)
                 .collect(Collectors.toSet());
         TokenService.TokenPair pair = tokenService.issueTokens(person.getId(), person.getEmail(), roles);
-        return Optional.of(new AuthResponse(
+        return LoginResult.success(new AuthResponse(
                 person.getId(),
                 person.getEmail(),
                 person.getFirstName(),
@@ -92,7 +92,21 @@ public class AuthService {
                 person.getPhoneNumber(),
                 roles,
                 pair.accessToken(),
-                person.getAvatarUrl()
+                avatarUrl(person)
         ));
+    }
+
+    public record LoginResult(AuthResponse auth, String error, boolean blocked) {
+        public static LoginResult success(AuthResponse auth) {
+            return new LoginResult(auth, null, false);
+        }
+
+        public static LoginResult error(String error, boolean blocked) {
+            return new LoginResult(null, error, blocked);
+        }
+    }
+
+    private String avatarUrl(PersonEntity person) {
+        return person != null ? person.avatarUrlPublic() : null;
     }
 }

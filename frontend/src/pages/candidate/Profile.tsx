@@ -16,6 +16,8 @@ export function CandidateProfile() {
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -23,7 +25,24 @@ export function CandidateProfile() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       phoneNumber: formData.phoneNumber
-    }).then((updated) => {
+    }).then(async (updated) => {
+      if (avatarFile) {
+        setUploading(true);
+        try {
+          const avatarUpdated = await uploadAvatar(avatarFile);
+          const cacheBusted = avatarUpdated.avatarUrl
+            ? `${avatarUpdated.avatarUrl}${avatarUpdated.avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+            : null;
+          updateUser({ avatarUrl: cacheBusted || undefined });
+          setAvatarFile(null);
+          if (avatarPreview) {
+            URL.revokeObjectURL(avatarPreview);
+          }
+          setAvatarPreview(cacheBusted);
+        } finally {
+          setUploading(false);
+        }
+      }
       updateUser({
         firstName: updated.firstName,
         lastName: updated.lastName,
@@ -36,33 +55,34 @@ export function CandidateProfile() {
   };
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    setUploading(true);
-    try {
-      const updated = await uploadAvatar(e.target.files[0]);
-      updateUser({ avatarUrl: updated.avatarUrl });
-    } catch {
-      alert('Не удалось загрузить аватар');
-    } finally {
-      setUploading(false);
-    }
+    const file = e.target.files[0];
+    setAvatarFile(file);
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return preview;
+    });
   };
   return <DashboardLayout title="Мой профиль">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center">
-            <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-2xl font-bold border-4 border-white shadow-sm mr-6">
-              {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.email} className="w-full h-full rounded-full object-cover" /> : <User className="w-10 h-10" />}
-            </div>
+            <label className="relative w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-2xl font-bold border-4 border-white shadow-sm mr-6 cursor-pointer group overflow-hidden">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt={user?.email} className="w-full h-full rounded-full object-cover" />
+              ) : user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.email} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <User className="w-10 h-10" />
+              )}
+              <div className="absolute inset-0 bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                {uploading ? '...' : 'Обновить'}
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            </label>
             <div>
               <h2 className="text-xl font-bold text-gray-900">{user?.email}</h2>
               <p className="text-gray-500">Кандидат</p>
-            </div>
-            <div className="ml-auto">
-              <label className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer">
-                <Upload className="w-4 h-4 mr-2" />
-                {uploading ? 'Загрузка...' : 'Обновить аватар'}
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              </label>
             </div>
           </div>
 

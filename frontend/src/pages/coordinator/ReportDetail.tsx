@@ -115,7 +115,7 @@ export function CoordinatorReportDetail() {
                   report.status === 'reviewed'
                     ? 'bg-emerald-100 text-emerald-700'
                     : report.status === 'submitted'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-gray-100 text-gray-700'
                       : report.status === 'overdue'
                         ? 'bg-red-100 text-red-700'
                         : 'bg-amber-100 text-amber-700'
@@ -124,7 +124,7 @@ export function CoordinatorReportDetail() {
                 {report.status === 'reviewed'
                   ? 'Проверен'
                   : report.status === 'submitted'
-                    ? 'Получено'
+                    ? 'Не проверено'
                     : report.status === 'overdue'
                       ? 'Просрочен'
                       : 'Ожидается'}
@@ -197,7 +197,7 @@ export function CoordinatorReportDetail() {
                   disabled={saving}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 disabled:opacity-50"
                 >
-                  Пометить как получено
+                  Пометить как не проверено
                 </button>
               )}
               <button
@@ -220,10 +220,16 @@ export function CoordinatorReportDetail() {
             {animal ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={(animal.photos && animal.photos[0]) || 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=120&q=80'}
-                    className="w-12 h-12 rounded-full object-cover border"
-                  />
+                  {animal.photos?.[0] ? (
+                    <img
+                      src={animal.photos[0]}
+                      className="w-12 h-12 rounded-full object-cover border"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs border">
+                      Фото нет
+                    </div>
+                  )}
                   <div>
                     <div className="font-bold text-gray-900">{animal.name}</div>
                     <div className="text-sm text-gray-600">{animal.breed}</div>

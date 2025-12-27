@@ -47,6 +47,9 @@ public class AdoptionApplicationEntity {
     @Column(name = "decision_comment")
     private String decisionComment;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
     @Column(name = "processed_by")
     private Long processedBy;
 

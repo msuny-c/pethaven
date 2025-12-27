@@ -102,14 +102,17 @@ export function CandidateProfile() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center">
                           {animal && (
-                            <img
-                              src={
-                                (animal.photos && animal.photos[0]) ||
-                                'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=200&q=80'
-                              }
-                              alt={animal.name}
-                              className="w-12 h-12 rounded-lg object-cover mr-3"
-                            />
+                            animal.photos?.[0] ? (
+                              <img
+                                src={animal.photos[0]}
+                                alt={animal.name}
+                                className="w-12 h-12 rounded-lg object-cover mr-3"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-xs font-semibold mr-3">
+                                Фото нет
+                              </div>
+                            )
                           )}
                           <div>
                             <div className="font-medium text-gray-900">{animal?.name}</div>
