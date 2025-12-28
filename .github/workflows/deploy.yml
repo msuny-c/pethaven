@@ -136,7 +136,16 @@ jobs:
           mkdir -p "$APP_DIR" "$MINIO_DIR/bin" "$MINIO_DIR/data" "$MINIO_DIR/logs"
           echo "Using MINIO_DIR=$MINIO_DIR"
 
-          MINIO_BIN=$(command -v minio)
+          MINIO_BIN=$(command -v minio || true)
+          if [ -z "$MINIO_BIN" ] && [ -x "$MINIO_DIR/bin/minio" ]; then
+            MINIO_BIN="$MINIO_DIR/bin/minio"
+          fi
+          if [ -z "$MINIO_BIN" ]; then
+            echo "MinIO binary not found on PATH or in $MINIO_DIR/bin" >&2
+            exit 1
+          fi
+
+          MINIO_PID_FILE="$MINIO_DIR/minio.pid"
 
           ENV_FILE="$MINIO_DIR/minio.env"
           if [ -f "$ENV_FILE" ]; then
@@ -159,13 +168,28 @@ jobs:
           export MINIO_ROOT_USER="${MINIO_ACCESS_KEY:-minioadmin}"
           export MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY:-minioadmin}"
 
-          if pgrep -f "$MINIO_BIN server" >/dev/null; then
+          is_minio_running() {
+            if [ -f "$MINIO_PID_FILE" ]; then
+              local pid
+              pid=$(cat "$MINIO_PID_FILE")
+              if kill -0 "$pid" 2>/dev/null; then
+                return 0
+              fi
+            fi
+            pgrep -f "minio server $MINIO_DIR/data" >/dev/null 2>&1
+          }
+
+          if is_minio_running; then
             echo "MinIO already running"
           else
-            nohup "$MINIO_BIN" server "$MINIO_DIR/data" \
+            nohup setsid "$MINIO_BIN" server "$MINIO_DIR/data" \
               --address ":${MINIO_PORT}" \
               --console-address ":${MINIO_CONSOLE_PORT}" \
-              > "$MINIO_DIR/logs/minio.log" 2>&1 &
+              > "$MINIO_DIR/logs/minio.log" 2>&1 < /dev/null &
+            echo $! > "$MINIO_PID_FILE"
+            if command -v disown >/dev/null 2>&1; then
+              disown || true
+            fi
             echo "Started MinIO on ports ${MINIO_PORT} (api) / ${MINIO_CONSOLE_PORT} (console)"
           fi
 
