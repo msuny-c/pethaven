@@ -30,7 +30,8 @@ export function AnimalProfile() {
 
   const mediaPhotos = media.map((m) => m.url || m.fileUrl).filter(Boolean) as string[];
   const basePhoto = (animal?.photos && animal.photos[0]) || null;
-  const photoList = [basePhoto, ...mediaPhotos].filter(Boolean) as string[];
+  const photoCandidates = [basePhoto, ...mediaPhotos].filter((src): src is string => Boolean(src));
+  const photoList = Array.from(new Set(photoCandidates));
 
   useEffect(() => {
     if (photoList.length < 2 || lightbox.open) return;
