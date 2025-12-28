@@ -2,6 +2,7 @@ package com.pethaven.config;
 
 import com.pethaven.security.JwtAuthFilter;
 import com.pethaven.model.enums.SystemRole;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
 public class SecurityConfig {
@@ -30,6 +32,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**", "/api/v1/openapi/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/manifest.json", "/robots.txt").permitAll()
+                        .requestMatchers(SPA_REQUESTS).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/animals/**").permitAll()
                         .requestMatchers("/api/v1/settings/**").hasRole(SystemRole.admin.name().toUpperCase())
@@ -96,5 +99,20 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private static final RequestMatcher SPA_REQUESTS = request -> {
+        if (!HttpMethod.GET.matches(request.getMethod())) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        return isSpaPath(path);
+    };
+
+    private static boolean isSpaPath(String path) {
+        return !(path.equals("/api") || path.startsWith("/api/")
+                || path.equals("/ws") || path.startsWith("/ws/")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs"));
     }
 }
