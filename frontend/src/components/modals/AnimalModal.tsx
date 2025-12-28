@@ -32,6 +32,7 @@ export function AnimalModal({
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const statusLocked = initialData?.status === 'adopted';
+  const isCreate = !initialData;
   const [speciesOptions, setSpeciesOptions] = useState<string[]>(['dog', 'cat']);
 
   React.useEffect(() => {
@@ -148,15 +149,20 @@ export function AnimalModal({
                 ...formData,
                 breed: e.target.value
               })} placeholder="Например: дворняга" />
+                {errors.breed && <p className="text-xs text-red-600 mt-1">{errors.breed}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Возраст (месяцев)
                 </label>
-                <input type="number" min={0} className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3" value={formData.ageMonths ?? ''} onChange={e => setFormData({
-                ...formData,
-                ageMonths: Number(e.target.value)
-              })} placeholder="Укажите возраст в месяцах" />
+                <input type="number" min={0} className="w-full h-11 rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 px-3" value={formData.ageMonths ?? ''} onChange={e => {
+                const value = e.target.value;
+                setFormData({
+                  ...formData,
+                  ageMonths: value === '' ? undefined : Number(value)
+                });
+              }} placeholder="Укажите возраст в месяцах" />
+                {errors.ageMonths && <p className="text-xs text-red-600 mt-1">{errors.ageMonths}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -211,6 +217,7 @@ export function AnimalModal({
               ...formData,
               description: e.target.value
             })} placeholder="Особенности, состояние, ключевые детали..." />
+              {errors.description && <p className="text-xs text-red-600 mt-1">{errors.description}</p>}
             </div>
           </div>}
 
@@ -291,9 +298,15 @@ export function AnimalModal({
               const localErrors: Record<string, string> = {};
               if (!formData.name?.trim()) localErrors.name = 'Укажите имя';
               if (!formData.species) localErrors.species = 'Выберите вид';
+              if (isCreate && !formData.breed?.trim()) localErrors.breed = 'Укажите породу';
               if (!formData.gender) localErrors.gender = 'Укажите пол';
               if (!formData.status) localErrors.status = 'Выберите статус';
-              if (formData.ageMonths != null && formData.ageMonths < 0) localErrors.ageMonths = 'Возраст не может быть отрицательным';
+              if (isCreate && (formData.ageMonths == null || Number.isNaN(formData.ageMonths))) {
+                localErrors.ageMonths = 'Укажите возраст';
+              } else if (formData.ageMonths != null && formData.ageMonths < 0) {
+                localErrors.ageMonths = 'Возраст не может быть отрицательным';
+              }
+              if (isCreate && !formData.description?.trim()) localErrors.description = 'Добавьте описание';
               setErrors(localErrors);
               if (Object.keys(localErrors).length > 0) return;
               setSubmitting(true);

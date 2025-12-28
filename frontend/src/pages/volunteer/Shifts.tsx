@@ -14,6 +14,7 @@ const hoursByType: Record<VolunteerShift['shiftType'], number> = {
 
 export function VolunteerShifts() {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [shifts, setShifts] = useState<VolunteerShift[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,8 +37,14 @@ export function VolunteerShifts() {
     load();
   }, [user]);
 
-  const totalShiftHours = (shift: VolunteerShift) =>
-    shift.tasks.filter((t) => t.taskState === 'done').reduce((sum, t) => sum + (t.workedHours || 0), 0);
+  const totalShiftHours = (shift: VolunteerShift) => {
+    if (!userId) {
+      return 0;
+    }
+    return shift.tasks
+      .filter((t) => t.taskState === 'done' && t.completedBy === userId)
+      .reduce((sum, t) => sum + (t.workedHours || 0), 0);
+  };
 
   const stats = useMemo(() => {
     const totalHours = shifts.reduce((acc, s) => acc + totalShiftHours(s), 0);
@@ -47,7 +54,7 @@ export function VolunteerShifts() {
       approved: shifts.filter((s) => s.approvedAt).length,
       totalHours
     };
-  }, [shifts]);
+  }, [shifts, userId]);
 
   const hasShiftStarted = (shiftDate: string) => {
     const start = new Date(shiftDate);

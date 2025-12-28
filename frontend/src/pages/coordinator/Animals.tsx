@@ -40,13 +40,13 @@ export function CoordinatorAnimals() {
     setIsSaving(true);
     try {
       const payload = {
-        name: animalData.name || 'Без имени',
-        species: animalData.species || 'dog',
-        breed: animalData.breed,
+        name: animalData.name?.trim(),
+        species: animalData.species,
+        breed: animalData.breed?.trim(),
         ageMonths: animalData.ageMonths ?? null,
-        gender: animalData.gender || 'male',
-        status: (animalData.status as Animal['status']) || 'quarantine',
-        description: animalData.description
+        gender: animalData.gender,
+        status: animalData.status as Animal['status'],
+        description: animalData.description?.trim()
       };
       const hasNewMedia = Boolean(animalData.mainPhoto || (animalData.extraPhotos && animalData.extraPhotos.length));
       let created = editingAnimal;
@@ -80,7 +80,14 @@ export function CoordinatorAnimals() {
         Object.entries(validation).forEach(([key, messages]) => {
           const msg = messages && messages[0];
           if (!msg) return;
-          const humanKey = key === 'name' ? 'Имя' : key === 'species' ? 'Вид' : key === 'gender' ? 'Пол' : key === 'ageMonths' ? 'Возраст' : key;
+          const humanKey = key === 'name' ? 'Имя'
+            : key === 'species' ? 'Вид'
+            : key === 'breed' ? 'Порода'
+            : key === 'gender' ? 'Пол'
+            : key === 'status' ? 'Статус'
+            : key === 'ageMonths' ? 'Возраст'
+            : key === 'description' ? 'Описание'
+            : key;
           const humanMsg = msg === 'must not be blank' ? 'Поле обязательно' : msg === 'must not be null' ? 'Поле обязательно' : msg;
           errors[key] = `${humanKey}: ${humanMsg}`;
         });

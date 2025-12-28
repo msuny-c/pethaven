@@ -40,12 +40,13 @@ export function AdminAnimals() {
   const handleSave = async (animalData: Partial<Animal> & { mainPhoto?: File | null; extraPhotos?: File[] }) => {
     if (!animalData.name || !animalData.species) return { ok: false, message: 'Заполните обязательные поля' };
     const payload: any = {
-      name: animalData.name,
+      name: animalData.name?.trim(),
       species: animalData.species,
-      breed: animalData.breed,
-      gender: animalData.gender || 'male',
+      breed: animalData.breed?.trim(),
+      gender: animalData.gender,
       ageMonths: animalData.ageMonths ?? null,
-      status: animalData.status
+      status: animalData.status,
+      description: animalData.description?.trim()
     };
     const hasNewMedia = Boolean(animalData.mainPhoto || (animalData.extraPhotos && animalData.extraPhotos.length));
     setSaving(true);
