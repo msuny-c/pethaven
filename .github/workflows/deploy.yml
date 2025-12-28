@@ -182,14 +182,11 @@ jobs:
           if is_minio_running; then
             echo "MinIO already running"
           else
-            nohup setsid "$MINIO_BIN" server "$MINIO_DIR/data" \
+            nohup "$MINIO_BIN" server "$MINIO_DIR/data" \
               --address ":${MINIO_PORT}" \
               --console-address ":${MINIO_CONSOLE_PORT}" \
               > "$MINIO_DIR/logs/minio.log" 2>&1 < /dev/null &
             echo $! > "$MINIO_PID_FILE"
-            if command -v disown >/dev/null 2>&1; then
-              disown || true
-            fi
             echo "Started MinIO on ports ${MINIO_PORT} (api) / ${MINIO_CONSOLE_PORT} (console)"
           fi
 
