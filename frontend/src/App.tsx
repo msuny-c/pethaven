@@ -45,7 +45,6 @@ import { VetProfileView } from './pages/vet/ProfileView';
 import { VolunteerDashboard } from './pages/volunteer/Dashboard';
 import { VolunteerShifts } from './pages/volunteer/Shifts';
 import { VolunteerTasks } from './pages/volunteer/Tasks';
-import { VolunteerPostAdoptionReview } from './pages/volunteer/PostAdoptionReview';
 import { VolunteerPending } from './pages/volunteer/Pending';
 import { VolunteerAnimals } from './pages/volunteer/Animals';
 // Candidate Pages
@@ -138,7 +137,6 @@ export function App() {
             <Route element={<ProtectedRoute allowedRoles={['volunteer']} />}>
               <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
               <Route path="/volunteer/shifts" element={<VolunteerShifts />} />
-              <Route path="/volunteer/post-adoption" element={<VolunteerPostAdoptionReview />} />
               <Route path="/volunteer/animals" element={<VolunteerAnimals />} />
               <Route path="/volunteer/animals/:id" element={<AnimalProfile />} />
             </Route>

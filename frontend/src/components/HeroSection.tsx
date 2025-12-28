@@ -42,9 +42,6 @@ export function HeroSection() {
               <Link to="/volunteer" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-gray-700 bg-white border-2 border-gray-200 rounded-full hover:border-amber-500 hover:text-amber-600 transition-all">
                 Стать волонтёром
               </Link>
-              <Link to="/register" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-amber-600 bg-amber-50 border-2 border-amber-100 rounded-full hover:border-amber-400 hover:bg-amber-100 transition-all">
-                Зарегистрироваться как кандидат
-              </Link>
             </div>
 
             <div className="mt-12 flex items-center gap-8 text-gray-500 text-sm font-medium">

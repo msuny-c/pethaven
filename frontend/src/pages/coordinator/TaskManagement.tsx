@@ -51,7 +51,7 @@ export function CoordinatorTaskManagement() {
   const stats = useMemo(() => {
     return {
       open: tasks.filter((t) => t.status === 'open').length,
-      progress: tasks.filter((t) => t.status === 'in_progress').length,
+      progress: tasks.filter((t) => t.status === 'assigned').length,
       done: tasks.filter((t) => t.status === 'completed').length
     };
   }, [tasks]);
@@ -65,17 +65,15 @@ export function CoordinatorTaskManagement() {
         ? 'Назначена'
         : task.status === 'completed' || allDone
           ? 'Готово'
-          : task.status === 'in_progress'
-            ? 'В работе'
+          : task.status === 'assigned'
+            ? 'Назначена'
             : 'Открыта';
     const cls =
       value === 'Готово'
         ? 'bg-green-100 text-green-700'
         : value === 'Назначена'
           ? 'bg-blue-100 text-blue-700'
-          : value === 'В работе'
-            ? 'bg-amber-100 text-amber-700'
-            : 'bg-gray-100 text-gray-700';
+          : 'bg-gray-100 text-gray-700';
     return { value, cls, allDone };
   };
 
@@ -136,8 +134,8 @@ export function CoordinatorTaskManagement() {
           <div className="text-3xl font-bold text-blue-900">{stats.open}</div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">
-          <div className="text-sm font-medium text-amber-600 mb-2">В работе</div>
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">
+          <div className="text-sm font-medium text-amber-600 mb-2">Назначено</div>
           <div className="text-3xl font-bold text-amber-900">{stats.progress}</div>
         </div>
 

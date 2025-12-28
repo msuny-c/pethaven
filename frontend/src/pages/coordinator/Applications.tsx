@@ -6,6 +6,7 @@ import { ApplicationReviewModal } from '../../components/modals/ApplicationRevie
 import { Application, Animal, UserProfile } from '../../types';
 import { getApplications, getAnimals, getUsers, updateApplicationStatus, scheduleInterview, getAllInterviews } from '../../services/api';
 import { AnimalAvatar } from '../../components/AnimalAvatar';
+import { PersonAvatar } from '../../components/PersonAvatar';
 export function CoordinatorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [animalMap, setAnimalMap] = useState<Record<number, Animal>>({});
@@ -93,9 +94,7 @@ export function CoordinatorApplications() {
             return <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <Link to={`/coordinator/candidate/${app.candidateId}`} className="group flex items-center">
-                      <div className="p-2 bg-gray-100 rounded-full mr-3 group-hover:bg-amber-100 transition-colors">
-                        <User className="w-4 h-4 text-gray-500 group-hover:text-amber-600" />
-                      </div>
+                      <PersonAvatar src={user?.avatarUrl} name={user ? `${user.firstName} ${user.lastName}` : undefined} sizeClass="w-9 h-9" className="mr-3" />
                       <div>
                         <div className="font-medium text-gray-900 group-hover:text-amber-600 transition-colors">
                           {(user?.firstName || user?.lastName) ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim() : `Кандидат #${app.candidateId}`}

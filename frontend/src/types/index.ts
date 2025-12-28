@@ -129,7 +129,7 @@ export interface Task {
   title: string;
   description?: string;
   animalId?: number;
-  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'open' | 'assigned' | 'completed' | 'cancelled';
   estimatedShifts?: number;
   dueDate?: string;
   updatedAt?: string;

@@ -5,7 +5,9 @@ import { InterviewCompleteModal } from '../../components/modals/InterviewComplet
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { getAllInterviews, getApplications, getAnimals, getUsers, updateInterview } from '../../services/api';
 import { Application, Animal, Interview, UserProfile } from '../../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { PersonAvatar } from '../../components/PersonAvatar';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 export function CoordinatorInterviews() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -68,12 +70,12 @@ export function CoordinatorInterviews() {
   return <DashboardLayout title="Управление интервью">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[840px]">
+          <table className="w-full text-left min-w-[900px]">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
               <tr>
-                <th className="px-6 py-3">Дата / время</th>
                 <th className="px-6 py-3">Кандидат</th>
                 <th className="px-6 py-3">Животное</th>
+                <th className="px-6 py-3">Дата / время</th>
                 <th className="px-6 py-3">Статус</th>
                 <th className="px-6 py-3 text-right">Действия</th>
               </tr>
@@ -84,31 +86,48 @@ export function CoordinatorInterviews() {
               const animal = animals.find((a) => a.id === application?.animalId);
               const interviewDate = new Date(interview.scheduledDatetime);
               const candidate = application ? users.find((u) => u.id === application.candidateId) : undefined;
+              const interviewer = users.find((u) => u.id === interview.interviewerId);
               const pill = statusPill(interview.status);
               const canCancel = interview.status === 'scheduled' || interview.status === 'confirmed';
               return <tr key={interview.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-3">
+                        <Link to={`/coordinator/candidate/${application?.candidateId || ''}`} className="flex items-center gap-3 group">
+                          <PersonAvatar src={candidate?.avatarUrl} name={candidate ? `${candidate.firstName} ${candidate.lastName}` : undefined} sizeClass="w-9 h-9" />
+                          <div className="text-sm">
+                            <div className="font-semibold text-gray-900 group-hover:text-amber-700">
+                              {candidate ? `${candidate.firstName} ${candidate.lastName}` : `Кандидат #${application?.candidateId}`}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {candidate?.email || application?.details?.email || 'Email не указан'}
+                            </div>
+                          </div>
+                        </Link>
+                        {interviewer && (
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <PersonAvatar src={interviewer.avatarUrl} name={`${interviewer.firstName} ${interviewer.lastName}`} sizeClass="w-7 h-7" />
+                            <div>
+                              <div className="font-medium text-gray-800">Интервьюер</div>
+                              <div>{`${interviewer.firstName} ${interviewer.lastName}`.trim() || interviewer.email}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <AnimalAvatar src={animal?.photos?.[0]} name={animal?.name} sizeClass="w-9 h-9" />
+                        <div className="text-sm text-gray-900">
+                          {animal?.name || `Животное #${application?.animalId}`}
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span>{interviewDate.toLocaleDateString()}</span>
                         <Clock className="w-4 h-4 text-gray-400 ml-2" />
                         <span>{interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <div className="text-sm text-gray-900">
-                          {candidate ? `${candidate.firstName} ${candidate.lastName}` : `Кандидат #${application?.candidateId}`}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <PawPrint className="w-4 h-4 text-gray-400" />
-                        <div className="text-sm text-gray-900">
-                          {animal?.name || `Животное #${application?.animalId}`}
-                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">

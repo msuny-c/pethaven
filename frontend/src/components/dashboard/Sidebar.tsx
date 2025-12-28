@@ -103,16 +103,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           icon: LayoutDashboard
         }, {
           path: '/volunteer/animals',
-          label: 'Питомцы',
+          label: 'Животные',
           icon: PawPrint
         }, {
           path: '/volunteer/shifts',
           label: 'Смены',
           icon: Calendar
-        }, {
-          path: '/volunteer/post-adoption',
-          label: 'Постсопровождение',
-          icon: Activity
         }, {
           path: '/profile',
           label: 'Профиль',

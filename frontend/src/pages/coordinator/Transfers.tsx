@@ -13,6 +13,8 @@ import {
   getUsers
 } from '../../services/api';
 import { Agreement, Animal, Application, UserProfile } from '../../types';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
+import { PersonAvatar } from '../../components/PersonAvatar';
 
 export function CoordinatorTransfers() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -130,7 +132,7 @@ export function CoordinatorTransfers() {
           Готовы к договору
         </button>
         <button onClick={() => setActiveTab('progress')} className={`px-4 py-2 rounded-lg text-sm font-semibold border ${activeTab === 'progress' ? 'bg-amber-500 text-white border-amber-500' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-          В работе
+          Назначены
         </button>
         <button onClick={() => setActiveTab('done')} className={`px-4 py-2 rounded-lg text-sm font-semibold border ${activeTab === 'done' ? 'bg-amber-500 text-white border-amber-500' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
           Завершены
@@ -156,17 +158,7 @@ export function CoordinatorTransfers() {
                 <div key={transfer.id} className="p-6 space-y-3 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start space-x-4">
-                      {animal?.photos?.[0] ? (
-                        <img
-                          src={animal.photos[0]}
-                          alt={animal?.name}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs">
-                          Фото нет
-                        </div>
-                      )}
+                      <AnimalAvatar src={animal?.photos?.[0]} name={animal?.name} sizeClass="w-16 h-16" roundedClassName="rounded-lg" />
                       <div>
                         <div className="flex items-center mb-1 flex-wrap gap-2">
                           <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>
@@ -182,11 +174,9 @@ export function CoordinatorTransfers() {
                         </div>
                         <div className="text-sm text-gray-600 mb-2">
                           Кандидат:{' '}
-                          <span className="font-medium">
-                            {candidate
-                              ? `${candidate.firstName} ${candidate.lastName}`
-                              : `#${transfer.candidateId}`}
-                          </span>
+                          <Link to={`/coordinator/candidate/${transfer.candidateId}`} className="font-medium text-blue-600 hover:text-blue-700">
+                            {candidate ? `${candidate.firstName} ${candidate.lastName}` : `#${transfer.candidateId}`}
+                          </Link>
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <Calendar className="w-4 h-4 mr-1" />
@@ -258,17 +248,7 @@ export function CoordinatorTransfers() {
                 <div key={agreement.id} className="p-6 space-y-3 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start space-x-4">
-                      {animal?.photos?.[0] ? (
-                        <img
-                          src={animal.photos[0]}
-                          alt={animal?.name}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs">
-                          Фото нет
-                        </div>
-                      )}
+                      <AnimalAvatar src={animal?.photos?.[0]} name={animal?.name} sizeClass="w-16 h-16" roundedClassName="rounded-lg" />
                       <div>
                         <div className="flex items-center mb-1 flex-wrap gap-2">
                           <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>
@@ -281,9 +261,9 @@ export function CoordinatorTransfers() {
                         </div>
                         <div className="text-sm text-gray-600 mb-2">
                           Кандидат:{' '}
-                          <span className="font-medium">
+                          <Link to={`/coordinator/candidate/${app.candidateId}`} className="font-medium text-blue-600 hover:text-blue-700">
                             {candidate ? `${candidate.firstName} ${candidate.lastName}` : `#${app.candidateId}`}
-                          </span>
+                          </Link>
                         </div>
                       </div>
                       </div>
@@ -349,17 +329,7 @@ export function CoordinatorTransfers() {
               return (
                 <div key={agreement.id} className="p-6 flex items-start justify-between hover:bg-gray-50">
                   <div className="flex items-start space-x-4">
-                    {animal?.photos?.[0] ? (
-                      <img
-                        src={animal.photos[0]}
-                        alt={animal?.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-xs font-semibold">
-                        Фото нет
-                      </div>
-                    )}
+                    <AnimalAvatar src={animal?.photos?.[0]} name={animal?.name} sizeClass="w-16 h-16" roundedClassName="rounded-lg" />
                     <div>
                       <div className="flex items-center mb-1">
                         <h3 className="font-bold text-gray-900 mr-3">{animal?.name}</h3>
@@ -370,9 +340,9 @@ export function CoordinatorTransfers() {
                       </div>
                       <div className="text-sm text-gray-600 mb-1">
                         Усыновитель:{' '}
-                        <span className="font-medium">
+                        <Link to={`/coordinator/candidate/${app.candidateId}`} className="font-medium text-blue-600 hover:text-blue-700">
                           {candidate ? `${candidate.firstName} ${candidate.lastName}` : `#${app.candidateId}`}
-                        </span>
+                        </Link>
                       </div>
                       <div className="text-xs text-gray-500">
                         Подтверждено: {agreement.confirmedAt ? new Date(agreement.confirmedAt).toLocaleDateString() : '—'}

@@ -15,6 +15,7 @@ import {
   getInterviews
 } from '../../services/api';
 import { ArrowLeft, Calendar, PawPrint, Mail, Phone, User, Check, X, CalendarPlus, FileText, FileDown, AlertCircle } from 'lucide-react';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function CoordinatorApplicationDetail() {
@@ -155,10 +156,10 @@ export function CoordinatorApplicationDetail() {
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>{status.text}</span>
                 </div>
                 <div className="flex flex-wrap items-center text-sm text-gray-500 gap-4">
-                  <div className="flex items-center">
+                  <Link to={`/coordinator/candidate/${application.candidateId}`} className="flex items-center text-blue-600 hover:text-blue-700">
                     <User className="w-4 h-4 mr-1" />
                     {candidateName}
-                  </div>
+                  </Link>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
                     {application.createdAt ? new Date(application.createdAt).toLocaleString() : '—'}
@@ -170,17 +171,7 @@ export function CoordinatorApplicationDetail() {
                 </div>
               </div>
               {animal && (
-                animal.photos?.[0] ? (
-                  <img
-                    src={animal.photos[0]}
-                    alt={animal.name}
-                    className="w-24 h-24 rounded-xl object-cover border border-gray-100"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500">
-                    Фото нет
-                  </div>
-                )
+                <AnimalAvatar src={animal.photos?.[0]} name={animal.name} sizeClass="w-24 h-24" roundedClassName="rounded-xl" />
               )}
             </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { getAnimalNotes, addAnimalNote } from '../../services/api';
+import { PersonAvatar } from '../PersonAvatar';
 
 interface NotesModalProps {
   animalId: number | null;
@@ -9,7 +10,17 @@ interface NotesModalProps {
 }
 
 export function NotesModal({ animalId, animalName, onClose }: NotesModalProps) {
-  const [notes, setNotes] = useState<{ id: number; animalId: number; authorId: number; authorName?: string; authorAvatar?: string; note: string; createdAt: string }[]>([]);
+  const [notes, setNotes] = useState<{
+    id: number;
+    animalId: number;
+    authorId: number;
+    authorFirstName?: string;
+    authorLastName?: string;
+    authorAvatar?: string;
+    authorName?: string;
+    note: string;
+    createdAt: string;
+  }[]>([]);
   const [noteText, setNoteText] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,15 +57,16 @@ export function NotesModal({ animalId, animalName, onClose }: NotesModalProps) {
             notes.map((n) => (
               <div key={n.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
                 <div className="flex items-center gap-2 mb-1">
-                  {n.authorAvatar ? (
-                    <img src={n.authorAvatar} alt={n.authorName || ''} className="w-6 h-6 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-semibold">
-                      {(n.authorName || 'П')[0]}
-                    </div>
-                  )}
+                  <PersonAvatar
+                    src={n.authorAvatar}
+                    name={[n.authorFirstName, n.authorLastName].filter(Boolean).join(' ') || n.authorName || `#${n.authorId}`}
+                    sizeClass="w-6 h-6"
+                  />
                   <div className="text-xs text-gray-600">
-                    <span className="font-semibold">{n.authorName || `#${n.authorId}`}</span> •{' '}
+                    <span className="font-semibold">
+                      {[n.authorFirstName, n.authorLastName].filter(Boolean).join(' ') || n.authorName || `#${n.authorId}`}
+                    </span>{' '}
+                    •{' '}
                     {new Date(n.createdAt).toLocaleString()}
                   </div>
                 </div>

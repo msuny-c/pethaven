@@ -9,8 +9,8 @@ import com.pethaven.dto.AnimalUpdateRequest;
 import com.pethaven.entity.AnimalEntity;
 import com.pethaven.entity.AnimalMediaEntity;
 import com.pethaven.entity.AnimalNoteEntity;
+import com.pethaven.entity.PersonEntity;
 import com.pethaven.mapper.AnimalMapper;
-import com.pethaven.mapper.AnimalNoteMapper;
 import com.pethaven.model.enums.AnimalStatus;
 import com.pethaven.repository.AnimalMediaRepository;
 import com.pethaven.repository.AnimalRepository;
@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.NoSuchElementException;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class AnimalService {
@@ -33,7 +36,6 @@ public class AnimalService {
     private final com.pethaven.repository.MedicalRecordRepository medicalRecordRepository;
     private final PersonRepository personRepository;
     private final AnimalMapper animalMapper;
-    private final AnimalNoteMapper animalNoteMapper;
     private final SettingService settingService;
 
     public AnimalService(AnimalRepository animalRepository,
@@ -43,7 +45,6 @@ public class AnimalService {
                          com.pethaven.repository.MedicalRecordRepository medicalRecordRepository,
                          PersonRepository personRepository,
                          AnimalMapper animalMapper,
-                         AnimalNoteMapper animalNoteMapper,
                          SettingService settingService) {
         this.animalRepository = animalRepository;
         this.animalMediaRepository = animalMediaRepository;
@@ -52,7 +53,6 @@ public class AnimalService {
         this.medicalRecordRepository = medicalRecordRepository;
         this.personRepository = personRepository;
         this.animalMapper = animalMapper;
-        this.animalNoteMapper = animalNoteMapper;
         this.settingService = settingService;
     }
 
@@ -179,7 +179,9 @@ public class AnimalService {
         entity.setAnimalId(animal.getId());
         entity.setAuthorId(authorId);
         entity.setNote(note.trim());
-        return animalNoteMapper.toResponse(animalNoteRepository.save(entity));
+        AnimalNoteEntity saved = animalNoteRepository.save(entity);
+        PersonEntity author = authorId != null ? personRepository.findById(authorId).orElse(null) : null;
+        return toNoteResponse(saved, author);
     }
 
     public AnimalResponse updateMedical(Long id, AnimalMedicalUpdateRequest payload) {
@@ -238,7 +240,31 @@ public class AnimalService {
     }
 
     public List<AnimalNoteResponse> getNotes(Long animalId) {
-        return animalNoteMapper.toResponses(animalNoteRepository.findByAnimalIdOrderByCreatedAtDesc(animalId));
+        List<AnimalNoteEntity> entities = animalNoteRepository.findByAnimalIdOrderByCreatedAtDesc(animalId);
+        Map<Long, PersonEntity> authors = entities.stream()
+                .map(AnimalNoteEntity::getAuthorId)
+                .filter(id -> id != null)
+                .distinct()
+                .map(personRepository::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toMap(PersonEntity::getId, Function.identity()));
+        return entities.stream()
+                .map(e -> toNoteResponse(e, authors.get(e.getAuthorId())))
+                .toList();
+    }
+
+    private AnimalNoteResponse toNoteResponse(AnimalNoteEntity entity, PersonEntity author) {
+        return new AnimalNoteResponse(
+                entity.getId(),
+                entity.getAnimalId(),
+                entity.getAuthorId(),
+                author != null ? author.getFirstName() : null,
+                author != null ? author.getLastName() : null,
+                author != null ? author.avatarUrlPublic() : null,
+                entity.getNote(),
+                entity.getCreatedAt()
+        );
     }
 
     public void requestReview(Long animalId) {

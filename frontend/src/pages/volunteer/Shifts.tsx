@@ -72,6 +72,10 @@ export function VolunteerShifts() {
       const shift = shifts.find((s) => s.shiftId === shiftId);
       const locked = shift?.approvedAt;
       if (locked) return;
+      if (shift && !hasShiftStarted(shift.shiftDate)) {
+        alert('Статусы задач можно менять только после начала смены');
+        return;
+      }
       if (next === 'done') {
         if (shift && !hasShiftStarted(shift.shiftDate)) {
           alert('Смену можно закрывать только после её начала');
@@ -111,7 +115,7 @@ export function VolunteerShifts() {
   const statusPill = (shift: VolunteerShift) => {
     if (shift.approvedAt) return { text: 'Закрыта', className: 'bg-green-100 text-green-700' };
     if (shift.attendanceStatus === 'absent') return { text: 'Отписан', className: 'bg-red-100 text-red-700' };
-    return { text: 'В работе', className: 'bg-amber-100 text-amber-700' };
+    return { text: 'Записан', className: 'bg-amber-100 text-amber-700' };
   };
 
   return (
@@ -158,10 +162,6 @@ export function VolunteerShifts() {
         <div className="p-4 rounded-xl border border-amber-100 bg-amber-50">
           <div className="text-sm text-amber-700 font-medium">Всего смен</div>
           <div className="text-3xl font-bold text-amber-900">{stats.total}</div>
-        </div>
-        <div className="p-4 rounded-xl border border-blue-100 bg-blue-50">
-          <div className="text-sm text-blue-700 font-medium">Отправлено</div>
-          <div className="text-3xl font-bold text-blue-900">{stats.submitted}</div>
         </div>
         <div className="p-4 rounded-xl border border-green-100 bg-green-50">
           <div className="text-sm text-green-700 font-medium">Часы</div>
@@ -216,35 +216,41 @@ export function VolunteerShifts() {
                       Задачи пока не назначены.
                     </div>
                   )}
-                  {shift.tasks.length > 0 && (
-                    <div className="space-y-3">
-                      {shift.tasks.map((task) => (
-                        <div key={task.taskId} className="border border-gray-100 rounded-lg p-3">
-                          <div className="flex items-center justify-between gap-3">
+              {shift.tasks.length > 0 && (
+                <div className="space-y-3">
+                  {shift.tasks.map((task) => (
+                    <div key={task.taskId} className="border border-gray-100 rounded-lg p-3">
+                      <div className="flex items-center justify-between gap-3">
                             <div className="flex-1">
                               <div className="font-semibold text-gray-900">{task.title || `Задача #${task.taskId}`}</div>
                               {task.animalName && <div className="text-xs text-gray-500">Питомец: {task.animalName}</div>}
                               {task.description && <div className="text-sm text-gray-600 mt-1">{task.description}</div>}
-                              {task.taskState === 'in_progress' && task.completedByName && (
-                                <div className="text-xs text-amber-700 mt-1">В работе: {task.completedByName}</div>
-                              )}
+                {task.taskState === 'in_progress' && task.completedByName && (
+                  <div className="text-xs text-amber-700 mt-1">В работе: {task.completedByName}</div>
+                )}
                               {task.taskState === 'done' && task.completedByName && (
                                 <div className="text-xs text-green-700 mt-1">Выполнил: {task.completedByName}</div>
                               )}
                             </div>
                             {shift.attendanceStatus !== 'absent' && (
                               <div className="flex items-center gap-2">
-                                <select
-                                  className="rounded border-gray-300 text-sm"
-                                  value={task.taskState || 'open'}
-                                  disabled={submitted || locked}
-                                  onChange={(e) => updateTaskState(shift.shiftId, task, e.target.value as TaskShift['taskState'])}
-                                >
-                                  <option value="open">Открыта</option>
-                                  <option value="in_progress">В работе</option>
-                                  <option value="done">Готово</option>
-                                </select>
-                                {task.taskState === 'done' && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                                {hasShiftStarted(shift.shiftDate) ? (
+                                  <>
+                                    <select
+                                      className="rounded border-gray-300 text-sm"
+                                      value={task.taskState || 'open'}
+                                      disabled={submitted || locked}
+                                      onChange={(e) => updateTaskState(shift.shiftId, task, e.target.value as TaskShift['taskState'])}
+                                    >
+                                      <option value="open">Открыта</option>
+                                      <option value="in_progress">В работе</option>
+                                      <option value="done">Готово</option>
+                                    </select>
+                                    {task.taskState === 'done' && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-gray-500">Доступно после начала смены</span>
+                                )}
                               </div>
                             )}
                           </div>

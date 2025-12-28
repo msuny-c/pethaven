@@ -132,7 +132,7 @@ export function CoordinatorAnimals() {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <select
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
+              className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
             >
@@ -233,13 +233,13 @@ export function CoordinatorAnimals() {
                   </div>
                 </td>
                 <td className="px-6 py-4 text-right text-sm text-gray-400">
-                  <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => {
                         setEditingAnimal(animal);
                         setIsModalOpen(true);
                       }}
-                      className="p-2 rounded-lg text-gray-500"
+                      className="text-gray-400 hover:text-blue-600"
                       title="Редактировать"
                     >
                       <Edit2 className="w-4 h-4" />

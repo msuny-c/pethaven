@@ -13,6 +13,7 @@ import {
 } from '../../services/api';
 import { ArrowLeft, Calendar, CheckCircle, FileDown, FileSignature, Mail, PawPrint, Phone, UserRound } from 'lucide-react';
 import { PersonAvatar } from '../../components/PersonAvatar';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 
 export function CoordinatorAgreementDetail() {
   const { id } = useParams();
@@ -25,6 +26,7 @@ export function CoordinatorAgreementDetail() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<'template' | 'signed' | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [confirmDate, setConfirmDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const loadData = async () => {
     if (!id) return;
@@ -34,6 +36,7 @@ export function CoordinatorAgreementDetail() {
       setAgreement(agr);
       const app = await getApplicationById(agr.applicationId);
       setApplication(app);
+      setConfirmDate(new Date().toISOString().slice(0, 10));
       const [pet, users] = await Promise.all([getAnimal(app.animalId), getUsers().catch(() => [])]);
       setAnimal(pet);
       setCandidate(Array.isArray(users) ? users.find((u) => u.id === app.candidateId) || null : null);
@@ -155,17 +158,7 @@ export function CoordinatorAgreementDetail() {
             </div>
           </div>
           {animal && (
-            animal.photos?.[0] ? (
-              <img
-                src={animal.photos[0]}
-                alt={animal.name}
-                className="w-20 h-20 rounded-xl object-cover border border-gray-100"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500">
-                Фото нет
-              </div>
-            )
+            <AnimalAvatar src={animal.photos?.[0]} name={animal.name} sizeClass="w-20 h-20" roundedClassName="rounded-xl" />
           )}
         </div>
 
@@ -201,10 +194,10 @@ export function CoordinatorAgreementDetail() {
               <PersonAvatar src={candidate?.avatarUrl} name={candidateName} sizeClass="w-12 h-12" />
               <div>
                 <div className="text-xs uppercase text-gray-500 font-semibold">Кандидат</div>
-                <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Link to={`/coordinator/candidate/${application.candidateId}`} className="text-sm font-bold text-gray-900 flex items-center gap-2 hover:text-amber-700">
                   <UserRound className="w-4 h-4 text-gray-400" />
                   {candidateName}
-                </div>
+                </Link>
                 <div className="text-sm text-gray-600 flex items-center gap-2">
                   <Phone className="w-4 h-4 text-gray-400" />
                   {candidate?.phoneNumber || application.details?.phone || 'Телефон не указан'}

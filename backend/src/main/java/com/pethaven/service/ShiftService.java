@@ -16,6 +16,7 @@ import com.pethaven.entity.ShiftVolunteerId;
 import com.pethaven.entity.PersonEntity;
 import com.pethaven.model.enums.AttendanceStatus;
 import com.pethaven.model.enums.ShiftType;
+import com.pethaven.model.enums.TaskStatus;
 import com.pethaven.mapper.ShiftMapper;
 import com.pethaven.repository.AnimalRepository;
 import com.pethaven.repository.PersonRepository;
@@ -165,13 +166,16 @@ public class ShiftService {
         TaskShiftEntity entity = new TaskShiftEntity();
         entity.setId(new TaskShiftId(request.taskId(), request.shiftId()));
         entity.setProgressNotes(request.progressNotes());
-        return taskShiftRepository.save(entity);
+        TaskShiftEntity saved = taskShiftRepository.save(entity);
+        refreshTaskStatus(request.taskId());
+        return saved;
     }
 
     public void removeTask(Long shiftId, Long taskId) {
         TaskShiftEntity assignment = taskShiftRepository.findById(new TaskShiftId(taskId, shiftId))
                 .orElseThrow(() -> new NoSuchElementException("Задача или смена не найдены"));
         taskShiftRepository.delete(assignment);
+        refreshTaskStatus(taskId);
     }
 
     public ShiftVolunteerEntity unsubscribe(Long shiftId, Long volunteerId, String reason) {
@@ -222,6 +226,7 @@ public class ShiftService {
             assignment.setWorkedHours(request.workedHours());
         }
         TaskShiftEntity saved = taskShiftRepository.save(assignment);
+        refreshTaskStatus(taskId);
         return toViews(List.of(saved)).stream().findFirst().orElseThrow();
     }
 
@@ -326,6 +331,25 @@ public class ShiftService {
                 })
                 .sorted(Comparator.comparing(VolunteerShiftResponse::shiftDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
+    }
+
+    private void refreshTaskStatus(Long taskId) {
+        TaskEntity task = taskRepository.findById(taskId).orElse(null);
+        if (task == null || task.getStatus() == TaskStatus.cancelled) {
+            return;
+        }
+        List<TaskShiftEntity> assignments = taskShiftRepository.findByIdTaskId(taskId);
+        TaskStatus nextStatus;
+        if (assignments.isEmpty()) {
+            nextStatus = TaskStatus.open;
+        } else {
+            boolean allDone = assignments.stream().allMatch(a -> "done".equalsIgnoreCase(a.getTaskState()));
+            nextStatus = allDone ? TaskStatus.completed : TaskStatus.assigned;
+        }
+        if (task.getStatus() != nextStatus) {
+            task.setStatus(nextStatus);
+            taskRepository.save(task);
+        }
     }
 
     private Map<Long, List<ShiftTaskView>> tasksByShiftId(Collection<Long> shiftIds) {

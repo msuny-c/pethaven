@@ -77,7 +77,16 @@ export async function addAnimalNote(id: number, note: string) {
 
 export async function getAnimalNotes(id: number) {
   const { data } = await api.get(`/animals/${id}/notes`);
-  return data as { id: number; animalId: number; authorId: number; note: string; createdAt: string }[];
+  return data as {
+    id: number;
+    animalId: number;
+    authorId: number;
+    authorFirstName?: string;
+    authorLastName?: string;
+    authorAvatar?: string;
+    note: string;
+    createdAt: string;
+  }[];
 }
 
 export async function updateAnimalMedical(id: number, payload: { readyForAdoption?: boolean }) {

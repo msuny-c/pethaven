@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { ArrowLeft, Mail, Phone, FileText, Calendar } from 'lucide-react';
 import { PersonAvatar } from '../../components/PersonAvatar';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 import { Application, Animal, UserProfile } from '../../types';
 import { getAnimals, getApplications, getUsers } from '../../services/api';
 
@@ -98,17 +99,13 @@ export function CandidateProfile() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center">
                           {animal && (
-                            animal.photos?.[0] ? (
-                              <img
-                                src={animal.photos[0]}
-                                alt={animal.name}
-                                className="w-12 h-12 rounded-lg object-cover mr-3"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-lg bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-xs font-semibold mr-3">
-                                Фото нет
-                              </div>
-                            )
+                            <AnimalAvatar
+                              src={animal.photos?.[0]}
+                              name={animal.name}
+                              sizeClass="w-12 h-12"
+                              roundedClassName="rounded-lg"
+                              className="mr-3"
+                            />
                           )}
                           <div>
                             <div className="font-medium text-gray-900">{animal?.name}</div>

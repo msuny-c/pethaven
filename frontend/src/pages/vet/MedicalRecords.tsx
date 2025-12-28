@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
-import { Plus, Calendar, Stethoscope, PawPrint, User, Heart, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, Stethoscope, PawPrint, User, Heart, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { MedicalRecord, Animal } from '../../types';
 import { createMedicalRecord, getAnimal, getMedicalRecords, updateAnimalMedical, updateAnimalStatus } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
 
 export function VetMedicalRecords() {
   const { animalId } = useParams();
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [animalName, setAnimalName] = useState<string>('');
   const [animalBreed, setAnimalBreed] = useState<string>('');
-  const [animalPhoto, setAnimalPhoto] = useState<string>('');
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { primaryRole, user } = useAuth();
@@ -19,6 +19,7 @@ export function VetMedicalRecords() {
   const [statusSaving, setStatusSaving] = useState<Animal['status'] | null>(null);
   const [readyLocally, setReadyLocally] = useState(false);
   const [newRecord, setNewRecord] = useState({ procedure: '', description: '', nextDueDate: '' });
+  const [recordModalOpen, setRecordModalOpen] = useState(false);
 
   useEffect(() => {
     if (animalId) {
@@ -30,7 +31,6 @@ export function VetMedicalRecords() {
           setAnimal(animal);
           setAnimalName(animal.name);
           setAnimalBreed(animal.breed || '');
-          setAnimalPhoto((animal.photos && animal.photos[0]) || '');
           setReadyLocally(!!(animal.readyForAdoption || animal.medical?.readyForAdoption));
         }
         const recs = await getMedicalRecords(idNum);
@@ -89,13 +89,7 @@ export function VetMedicalRecords() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center mb-6">
-            {animalPhoto ? (
-              <img src={animalPhoto} alt={animalName} className="w-20 h-20 rounded-xl object-cover mr-4" />
-            ) : (
-              <div className="w-20 h-20 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xl mr-4">
-                {(animalName || 'Ж')[0]}
-              </div>
-            )}
+            <AnimalAvatar src={animal?.photos?.[0]} name={animalName} sizeClass="w-20 h-20" roundedClassName="rounded-xl" className="mr-4" />
             <div>
               <h3 className="text-xl font-bold text-gray-900">{animalName}</h3>
               <p className="text-sm text-gray-500">{animalBreed}</p>
@@ -191,46 +185,53 @@ export function VetMedicalRecords() {
         </div>
 
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-4 border-b border-gray-100">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-bold text-gray-900">История процедур</h3>
+            <button
+              onClick={() => setRecordModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить процедуру
+            </button>
           </div>
 
-            <div className="p-6">
-              {records.length > 0 ? (
-                <div className="space-y-4">
-                  {records.map((record) => (
-                    <div key={record.id} className="p-4 border border-gray-100 rounded-lg flex items-start space-x-4">
-                      <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">
-                        <Stethoscope className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-gray-900">{record.procedure}</h4>
-                            <p className="text-sm text-gray-600">{record.description}</p>
-                            {record.vetId && (
-                              <button
-                                onClick={() => {
-                                  const target = user && user.id === record.vetId ? '/profile' : `/veterinar/profile/${record.vetId}`;
-                                  window.open(target, '_self');
-                                }}
-                                className="text-xs text-amber-700 hover:underline font-semibold inline-flex items-center gap-1"
-                              >
-                                <User className="w-3 h-3" />
-                                {record.vetFirstName || record.vetLastName ? `${record.vetFirstName || ''} ${record.vetLastName || ''}`.trim() : `Ветеринар #${record.vetId}`}
-                              </button>
-                            )}
-                          </div>
-                          {record.nextDueDate && (
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              Следующая дата: {record.nextDueDate}
-                            </div>
+          <div className="p-6">
+            {records.length > 0 ? (
+              <div className="space-y-4">
+                {records.map((record) => (
+                  <div key={record.id} className="p-4 border border-gray-100 rounded-lg flex items-start space-x-4">
+                    <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">
+                      <Stethoscope className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-gray-900">{record.procedure}</h4>
+                          <p className="text-sm text-gray-600">{record.description}</p>
+                          {record.vetId && (
+                            <button
+                              onClick={() => {
+                                const target = user && user.id === record.vetId ? '/profile' : `/veterinar/profile/${record.vetId}`;
+                                window.open(target, '_self');
+                              }}
+                              className="text-xs text-amber-700 hover:underline font-semibold inline-flex items-center gap-1"
+                            >
+                              <User className="w-3 h-3" />
+                              {record.vetFirstName || record.vetLastName ? `${record.vetFirstName || ''} ${record.vetLastName || ''}`.trim() : `Ветеринар #${record.vetId}`}
+                            </button>
                           )}
                         </div>
+                        {record.nextDueDate && (
+                          <div className="text-sm text-gray-500 flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Следующая дата: {record.nextDueDate}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-gray-500">Записей пока нет</p>

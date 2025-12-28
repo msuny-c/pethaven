@@ -12,6 +12,8 @@ import {
 } from '../../services/api';
 import { updatePostAdoptionReport } from '../../services/api';
 import { Agreement, Animal, Application, PostAdoptionReport, ReportMedia, UserProfile } from '../../types';
+import { AnimalAvatar } from '../../components/AnimalAvatar';
+import { PersonAvatar } from '../../components/PersonAvatar';
 
 export function CoordinatorPostAdoption() {
   const [reports, setReports] = useState<PostAdoptionReport[]>([]);
@@ -133,8 +135,8 @@ export function CoordinatorPostAdoption() {
         <table className="w-full text-left min-w-[720px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
             <tr>
-              <th className="px-6 py-3">Животное</th>
               <th className="px-6 py-3">Усыновитель</th>
+              <th className="px-6 py-3">Животное</th>
               <th className="px-6 py-3">Срок сдачи</th>
               <th className="px-6 py-3">Статус</th>
               <th className="px-6 py-3 text-right">Действия</th>
@@ -154,33 +156,38 @@ export function CoordinatorPostAdoption() {
               return (
                 <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      {animal?.photos?.[0] ? (
-                        <img
-                          src={animal.photos[0]}
-                          alt={animal?.name}
-                          className="w-10 h-10 rounded-full object-cover mr-3"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-amber-50 border border-dashed border-amber-200 text-amber-600 flex items-center justify-center text-[11px] font-semibold mr-3">
-                          Фото нет
+                    <div className="flex items-center gap-3">
+                      <PersonAvatar
+                        src={adopter?.avatarUrl}
+                        name={adopter ? `${adopter.firstName} ${adopter.lastName}` : undefined}
+                        sizeClass="w-10 h-10"
+                      />
+                      <div className="text-sm text-gray-900">
+                        {adopter
+                          ? `${adopter.firstName} ${adopter.lastName}`
+                          : application
+                            ? `Кандидат #${application.candidateId}`
+                            : '—'}
+                        <div className="text-xs text-gray-500">
+                          {adopter?.email || application?.details?.email || 'Email не указан'}
                         </div>
-                      )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <AnimalAvatar
+                        src={animal?.photos?.[0]}
+                        name={animal?.name}
+                        sizeClass="w-10 h-10"
+                        className="mr-3"
+                      />
                       <div>
                         <div className="font-medium text-gray-900">
                           {animal?.name || `Животное #${application?.animalId || '—'}`}
                         </div>
                         <div className="text-xs text-gray-500">{animal?.breed}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {adopter
-                        ? `${adopter.firstName} ${adopter.lastName}`
-                        : application
-                          ? `Кандидат #${application.candidateId}`
-                          : '—'}
                     </div>
                   </td>
                   <td className="px-6 py-4">

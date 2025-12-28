@@ -98,7 +98,7 @@ export function AdminVolunteerApplicationDetail() {
                 : status === 'rejected'
                   ? 'Отклонена'
                   : status === 'under_review'
-                    ? 'В работе'
+                    ? 'Назначена'
                     : 'Отправлена'}
             </span>
           </div>

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { Calendar, Clock, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createShift, getShifts, getShiftVolunteers } from '../../services/api';
+import { createShift, getShifts, getShiftVolunteers, getShiftTasks } from '../../services/api';
 import { Shift } from '../../types';
 
 const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
@@ -14,34 +14,46 @@ const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
 export function CoordinatorShiftManagement() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [closedMap, setClosedMap] = useState<Record<number, boolean>>({});
+  const [volCountMap, setVolCountMap] = useState<Record<number, number>>({});
+  const [taskCountMap, setTaskCountMap] = useState<Record<number, number>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [newShift, setNewShift] = useState<{ date: string; type: Shift['shiftType'] }>({ date: '', type: 'morning' });
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const load = async () => {
-      const shiftsData = await getShifts();
-      setShifts(shiftsData);
-      const statuses = await Promise.all(
-        shiftsData.map(async (s) => {
-          const vols = await getShiftVolunteers(s.id);
-          return { id: s.id, closed: vols.length > 0 && vols.every((v) => v.approvedAt) };
-        })
-      );
-      const statusMap: Record<number, boolean> = {};
-      statuses.forEach((item) => (statusMap[item.id] = item.closed));
-      setClosedMap(statusMap);
-    };
-    load();
-  }, []);
+  const loadData = async () => {
+    const shiftsData = await getShifts();
+    setShifts(shiftsData);
+    const volunteerData = await Promise.all(
+      shiftsData.map(async (s) => {
+        const vols = await getShiftVolunteers(s.id);
+        return { id: s.id, vols };
+      })
+    );
+    const tasksData = await Promise.all(
+      shiftsData.map(async (s) => {
+        const tasks = await getShiftTasks(s.id);
+        return { id: s.id, tasks };
+      })
+    );
+    const statusMap: Record<number, boolean> = {};
+    const volMap: Record<number, number> = {};
+    const taskMap: Record<number, number> = {};
+    volunteerData.forEach((item) => {
+      statusMap[item.id] = item.vols.length > 0 && item.vols.every((v) => v.approvedAt);
+      volMap[item.id] = item.vols.filter((v) => v.attendanceStatus !== 'absent').length;
+    });
+    tasksData.forEach((item) => {
+      taskMap[item.id] = item.tasks.length;
+    });
+    setClosedMap(statusMap);
+    setVolCountMap(volMap);
+    setTaskCountMap(taskMap);
+  };
 
-  const stats = useMemo(() => ({
-    total: shifts.length,
-    morning: shifts.filter((s) => s.shiftType === 'morning').length,
-    evening: shifts.filter((s) => s.shiftType === 'evening').length,
-    fullDay: shifts.filter((s) => s.shiftType === 'full_day').length
-  }), [shifts]);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleCreateShift = async () => {
     if (!newShift.date) {
@@ -51,8 +63,7 @@ export function CoordinatorShiftManagement() {
     setSaving(true);
     try {
       await createShift({ shiftDate: newShift.date, shiftType: newShift.type });
-      const updated = await getShifts();
-      setShifts(updated);
+      await loadData();
       setCreateOpen(false);
       setNewShift({ date: '', type: 'morning' });
     } finally {
@@ -62,21 +73,6 @@ export function CoordinatorShiftManagement() {
 
   return (
     <DashboardLayout title="Управление сменами">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
-          <div className="text-sm text-amber-700 font-medium">Запланировано</div>
-          <div className="text-3xl font-bold text-amber-900">{stats.total}</div>
-        </div>
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
-          <div className="text-sm text-blue-700 font-medium">Утренние</div>
-          <div className="text-3xl font-bold text-blue-900">{stats.morning}</div>
-        </div>
-        <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-          <div className="text-sm text-purple-700 font-medium">Вечер/день</div>
-          <div className="text-3xl font-bold text-purple-900">{stats.evening + stats.fullDay}</div>
-        </div>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center">
@@ -92,49 +88,55 @@ export function CoordinatorShiftManagement() {
           </button>
         </div>
 
-        <div className="divide-y divide-gray-100">
-          {shifts.map((shift) => {
-            return (
-              <div key={shift.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div
-                  className="flex flex-wrap items-center justify-between gap-3 cursor-pointer"
-                  onClick={() => navigate(`/coordinator/shifts/${shift.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate(`/coordinator/shifts/${shift.id}`);
-                    }
-                  }}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="text-lg font-semibold text-gray-900">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[820px]">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-medium">
+              <tr>
+                <th className="px-6 py-3">Дата</th>
+                <th className="px-6 py-3">Тип</th>
+                <th className="px-6 py-3">Задач</th>
+                <th className="px-6 py-3">Волонтёров</th>
+                <th className="px-6 py-3">Статус</th>
+                <th className="px-6 py-3 text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {shifts.map((shift) => {
+                return (
+                  <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">
                       {new Date(shift.shiftDate).toLocaleDateString()}
-                    </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 inline-flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {SHIFT_LABEL[shift.shiftType]}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${closedMap[shift.id] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {closedMap[shift.id] ? 'Закрыта' : 'Открыта'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to={`/coordinator/shifts/${shift.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600"
-                    >
-                      Открыть
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {shifts.length === 0 && <div className="p-8 text-center text-gray-500">Нет доступных смен</div>}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{SHIFT_LABEL[shift.shiftType]}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{taskCountMap[shift.id] ?? '—'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{volCountMap[shift.id] ?? '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${closedMap[shift.id] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {closedMap[shift.id] ? 'Закрыта' : 'Открыта'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/coordinator/shifts/${shift.id}`}
+                          className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600"
+                        >
+                          Открыть
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {shifts.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                    Нет доступных смен
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

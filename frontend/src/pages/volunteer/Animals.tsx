@@ -61,12 +61,12 @@ export function VolunteerAnimals() {
           <input
             type="text"
             placeholder="Поиск по имени или породе"
-            className="w-full md:w-1/2 rounded-lg border-gray-200 px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full md:w-1/2 rounded-lg border-gray-200 px-3 py-2 h-10 focus:ring-amber-500 focus:border-amber-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <select
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
+            className="rounded-lg border border-gray-200 px-3 py-2 h-10 text-sm text-gray-700 focus:ring-amber-500 focus:border-amber-500"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >

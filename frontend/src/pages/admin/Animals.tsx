@@ -251,14 +251,14 @@ export function AdminAnimals() {
                   )}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end">
                     <button onClick={() => {
                 setEditingAnimal(animal);
                 setIsModalOpen(true);
-              }} className="text-gray-400 hover:text-blue-600">
+              }} className="text-gray-400 hover:text-blue-600 mx-2">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setDeleteId(animal.id)} className="text-gray-400 hover:text-red-600">
+                    <button onClick={() => setDeleteId(animal.id)} className="text-gray-400 hover:text-red-600 mx-2">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
