@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight, X as Close } from 'lucide-react';
-import { getAnimal, getAnimalMedia } from '../services/api';
-import { Animal, AnimalMedia } from '../types';
+import { getAnimal } from '../services/api';
+import { Animal } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 export function AnimalProfile() {
@@ -10,7 +10,6 @@ export function AnimalProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [animal, setAnimal] = useState<Animal | null>(null);
-  const [media, setMedia] = useState<AnimalMedia[]>([]);
   const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -18,19 +17,15 @@ export function AnimalProfile() {
   useEffect(() => {
     if (!id) return;
     const animalId = Number(id);
-    Promise.all([
-      getAnimal(animalId).catch(() => null),
-      getAnimalMedia(animalId).catch(() => [])
-    ]).then(([a, m]) => {
-      setAnimal(a);
-      setMedia(m);
-      setLoading(false);
-    });
+    getAnimal(animalId)
+      .catch(() => null)
+      .then((a) => {
+        setAnimal(a);
+        setLoading(false);
+      });
   }, [id]);
 
-  const mediaPhotos = media.map((m) => m.url || m.fileUrl).filter(Boolean) as string[];
-  const basePhoto = (animal?.photos && animal.photos[0]) || null;
-  const photoCandidates = [basePhoto, ...mediaPhotos].filter((src): src is string => Boolean(src));
+  const photoCandidates = (animal?.photos || []).filter((src): src is string => Boolean(src));
   const photoList = Array.from(new Set(photoCandidates));
 
   useEffect(() => {
