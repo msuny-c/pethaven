@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.NoSuchElementException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -237,6 +238,20 @@ public class AnimalService {
 
     public List<AnimalMediaResponse> getMedia(Long animalId) {
         return animalMapper.toMediaResponses(animalMediaRepository.findByAnimalIdOrderByUploadedAtDesc(animalId));
+    }
+
+    @Transactional
+    public List<String> deleteMedia(Long animalId) {
+        List<AnimalMediaEntity> media = animalMediaRepository.findByAnimalIdOrderByUploadedAtDesc(animalId);
+        if (media.isEmpty()) {
+            return List.of();
+        }
+        List<String> keys = media.stream()
+                .map(AnimalMediaEntity::getStorageKey)
+                .filter(Objects::nonNull)
+                .toList();
+        animalMediaRepository.deleteAll(media);
+        return keys;
     }
 
     public List<AnimalNoteResponse> getNotes(Long animalId) {

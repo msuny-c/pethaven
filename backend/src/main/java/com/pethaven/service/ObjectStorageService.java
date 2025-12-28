@@ -11,6 +11,7 @@ import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -128,6 +129,22 @@ public class ObjectStorageService {
         } catch (SdkException | IOException e) {
             log.error("Failed to read object {}", key, e);
             throw new IllegalStateException("Не удалось получить файл", e);
+        }
+    }
+
+    public void delete(String key) {
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
+        ensureBucket();
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(properties.getBucket())
+                    .key(key)
+                    .build());
+        } catch (SdkException e) {
+            log.error("Failed to delete object {}", key, e);
+            throw new IllegalStateException("Не удалось удалить файл из хранилища", e);
         }
     }
 

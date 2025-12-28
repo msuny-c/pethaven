@@ -4,7 +4,7 @@ import { Plus, Search, Edit2, Trash2, Info, Check, X } from 'lucide-react';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { ConfirmModal } from '../../components/modals/ConfirmModal';
 import { Animal } from '../../types';
-import { createAnimal, deleteAnimal, getAnimals, reviewAnimal, updateAnimal, uploadAnimalMedia } from '../../services/api';
+import { createAnimal, deleteAnimal, deleteAnimalMedia, getAnimals, reviewAnimal, updateAnimal, uploadAnimalMedia } from '../../services/api';
 import { useAppModal } from '../../contexts/AppModalContext';
 import { AnimalAvatar } from '../../components/AnimalAvatar';
 export function AdminAnimals() {
@@ -47,6 +47,7 @@ export function AdminAnimals() {
       ageMonths: animalData.ageMonths ?? null,
       status: animalData.status
     };
+    const hasNewMedia = Boolean(animalData.mainPhoto || (animalData.extraPhotos && animalData.extraPhotos.length));
     setSaving(true);
     try {
       let saved;
@@ -56,6 +57,9 @@ export function AdminAnimals() {
         saved = await createAnimal(payload);
       }
       if (saved?.id) {
+        if (editingAnimal && hasNewMedia) {
+          await deleteAnimalMedia(saved.id);
+        }
         if (animalData.extraPhotos?.length) {
           for (const file of animalData.extraPhotos) {
             await uploadAnimalMedia(saved.id, file);

@@ -15,6 +15,8 @@ import com.pethaven.service.AnimalService;
 import com.pethaven.service.ObjectStorageService;
 import com.pethaven.service.SettingService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/animals")
 public class AnimalController {
 
+    private static final Logger log = LoggerFactory.getLogger(AnimalController.class);
     private final AnimalService animalService;
     private final ObjectStorageService storageService;
     private final AnimalMapper animalMapper;
@@ -248,6 +251,19 @@ public class AnimalController {
         String storageKey = storageService.uploadAnimalMedia(id, file);
         AnimalMediaResponse saved = animalService.addMedia(id, storageKey, description);
         return ResponseEntity.ok(saved);
+    }
+
+    @DeleteMapping("/{id}/media")
+    public ResponseEntity<Void> deleteMedia(@PathVariable Long id) {
+        List<String> keys = animalService.deleteMedia(id);
+        for (String key : keys) {
+            try {
+                storageService.delete(key);
+            } catch (IllegalStateException e) {
+                log.warn("Failed to delete animal media from storage: {}", key, e);
+            }
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/notes")

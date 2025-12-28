@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { AnimalModal } from '../../components/modals/AnimalModal';
 import { NotesModal } from '../../components/modals/NotesModal';
 import { Animal } from '../../types';
-import { createAnimal, getAnimals, uploadAnimalMedia, updateAnimal, requestAnimalReview } from '../../services/api';
+import { createAnimal, deleteAnimalMedia, getAnimals, uploadAnimalMedia, updateAnimal, requestAnimalReview } from '../../services/api';
 import { AnimalAvatar } from '../../components/AnimalAvatar';
 
 export function CoordinatorAnimals() {
@@ -48,6 +48,7 @@ export function CoordinatorAnimals() {
         status: (animalData.status as Animal['status']) || 'quarantine',
         description: animalData.description
       };
+      const hasNewMedia = Boolean(animalData.mainPhoto || (animalData.extraPhotos && animalData.extraPhotos.length));
       let created = editingAnimal;
       if (editingAnimal) {
         created = await updateAnimal(editingAnimal.id, payload);
@@ -55,6 +56,9 @@ export function CoordinatorAnimals() {
         created = await createAnimal(payload);
       }
       if (created?.id) {
+        if (editingAnimal && hasNewMedia) {
+          await deleteAnimalMedia(created.id);
+        }
         if (animalData.extraPhotos?.length) {
           for (const file of animalData.extraPhotos) {
             await uploadAnimalMedia(created.id, file);

@@ -54,6 +54,10 @@ export async function deleteAnimal(id: number) {
   await api.delete(`/animals/${id}`);
 }
 
+export async function deleteAnimalMedia(id: number) {
+  await api.delete(`/animals/${id}/media`);
+}
+
 export async function uploadAnimalMedia(id: number, file: File, description?: string): Promise<AnimalMedia> {
   const formData = new FormData();
   formData.append('file', file);
