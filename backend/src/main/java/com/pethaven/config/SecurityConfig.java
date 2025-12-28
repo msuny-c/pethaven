@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(registry -> registry
                         .requestMatchers("/api/v1/auth/**", "/api/v1/openapi/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/manifest.json", "/robots.txt").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/animals/**").permitAll()
                         .requestMatchers("/api/v1/settings/**").hasRole(SystemRole.admin.name().toUpperCase())
