@@ -4,17 +4,23 @@ import { StatCard } from '../../components/dashboard/StatCard';
 import { Calendar, Clock, CheckSquare } from 'lucide-react';
 import { getMyShifts } from '../../services/api';
 import { VolunteerShift, TaskShift } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 export function VolunteerDashboard() {
   const [shifts, setShifts] = useState<VolunteerShift[]>([]);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   useEffect(() => {
     getMyShifts().then(setShifts);
   }, []);
   const activeShifts = useMemo(() => shifts.filter((s) => s.attendanceStatus !== 'absent'), [shifts]);
-  const activeShiftTasks: TaskShift[] = useMemo(
-    () => activeShifts.filter((s) => !s.approvedAt).flatMap((s) => s.tasks || []),
-    [activeShifts]
-  );
+  const activeShiftTasks: TaskShift[] = useMemo(() => {
+    if (!userId) return [];
+    return activeShifts
+      .filter((s) => !s.approvedAt)
+      .flatMap((s) => s.tasks || [])
+      .filter((t) => t.completedBy === userId);
+  }, [activeShifts, userId]);
   const upcomingShifts = activeShifts.filter((s) => !s.approvedAt);
   return <DashboardLayout title="Кабинет волонтёра">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
