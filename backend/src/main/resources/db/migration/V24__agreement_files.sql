@@ -1,7 +1,0 @@
-ALTER TABLE agreement
-    ADD COLUMN IF NOT EXISTS template_storage_key TEXT,
-    ADD COLUMN IF NOT EXISTS signed_storage_key TEXT,
-    ADD COLUMN IF NOT EXISTS generated_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS confirmed_by INTEGER;

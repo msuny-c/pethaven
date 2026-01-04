@@ -1,3 +1,0 @@
-ALTER TABLE adoption_application
-    ADD COLUMN IF NOT EXISTS consent_given BOOLEAN DEFAULT FALSE NOT NULL,
-    ADD COLUMN IF NOT EXISTS passport_key TEXT;
