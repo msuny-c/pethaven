@@ -113,6 +113,7 @@ export interface Shift {
   id: number;
   shiftDate: string;
   shiftType: 'morning' | 'evening' | 'full_day';
+  closedAt?: string;
 }
 
 export interface Interview {

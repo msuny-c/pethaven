@@ -1,0 +1,1 @@
+ALTER TABLE shift ADD COLUMN closed_at TIMESTAMPTZ;

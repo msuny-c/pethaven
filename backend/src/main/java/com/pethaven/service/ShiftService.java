@@ -195,8 +195,9 @@ public class ShiftService {
         if (actorId == null) {
             throw new AccessDeniedException("Требуется авторизация");
         }
-        boolean shiftClosed = shiftVolunteerRepository.findByIdShiftId(shiftId).stream().allMatch(v -> v.getApprovedAt() != null);
-        if (shiftClosed) {
+        ShiftEntity shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new NoSuchElementException("Смена не найдена"));
+        if (shift.getClosedAt() != null) {
             throw new AccessDeniedException("Смена уже закрыта");
         }
         TaskShiftEntity assignment = taskShiftRepository.findById(new TaskShiftId(taskId, shiftId))
@@ -279,6 +280,7 @@ public class ShiftService {
         return shiftVolunteerRepository.save(entity);
     }
 
+    @Transactional
     public ShiftResponse closeShift(Long shiftId, Integer workedHoursOverride) {
         ShiftEntity shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new NoSuchElementException("Смена не найдена"));
@@ -296,8 +298,10 @@ public class ShiftService {
             v.setAttendanceStatus(AttendanceStatus.attended);
             v.setApprovedAt(now);
             v.setWorkedHours(hours);
+            shiftVolunteerRepository.saveAndFlush(v);
         }
-        shiftVolunteerRepository.saveAll(vols);
+        shift.setClosedAt(now);
+        shiftRepository.saveAndFlush(shift);
         return shiftMapper.toResponse(shift);
     }
 

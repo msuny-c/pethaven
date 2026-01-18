@@ -2,7 +2,6 @@ package com.pethaven.config;
 
 import com.pethaven.security.JwtAuthFilter;
 import com.pethaven.model.enums.SystemRole;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

@@ -20,7 +20,6 @@ export function CoordinatorShiftDetail() {
   const navigate = useNavigate();
   const shiftId = Number(id);
   const [shift, setShift] = useState<Shift | null>(null);
-  const [closedManually, setClosedManually] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assigned, setAssigned] = useState<TaskShift[]>([]);
   const [volunteers, setVolunteers] = useState<ShiftVolunteer[]>([]);
@@ -64,7 +63,7 @@ export function CoordinatorShiftDetail() {
     return { totalVolunteers, attended, submitted, approved, totalHours, tasksTotal, tasksDone, tasksInProgress };
   }, [volunteers, assigned]);
 
-  const shiftClosed = closedManually || (volunteers.length > 0 && volunteers.every((v) => v.approvedAt));
+  const shiftClosed = !!shift?.closedAt;
   const tasksCompleted = assigned.length === 0 || assigned.every((t) => t.taskState === 'done');
   const totalTaskHours = assigned.filter((t) => t.taskState === 'done').reduce((sum, t) => sum + (t.workedHours || 0), 0);
 
@@ -103,9 +102,9 @@ export function CoordinatorShiftDetail() {
     if (!shift) return;
     try {
       await closeShift(shiftId);
-      const vols = await getShiftVolunteers(shiftId);
+      const [shiftsList, vols] = await Promise.all([getShifts(), getShiftVolunteers(shiftId)]);
+      setShift(shiftsList.find((s) => s.id === shiftId) || null);
       setVolunteers(vols);
-      setClosedManually(true);
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Не удалось закрыть смену';
       alert(msg);

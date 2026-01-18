@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "shift")
@@ -30,4 +31,7 @@ public class ShiftEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "shift_type")
     private ShiftType shiftType;
+
+    @Column(name = "closed_at")
+    private OffsetDateTime closedAt;
 }

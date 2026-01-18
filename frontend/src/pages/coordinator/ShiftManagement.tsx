@@ -13,7 +13,6 @@ const SHIFT_LABEL: Record<Shift['shiftType'], string> = {
 
 export function CoordinatorShiftManagement() {
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [closedMap, setClosedMap] = useState<Record<number, boolean>>({});
   const [volCountMap, setVolCountMap] = useState<Record<number, number>>({});
   const [taskCountMap, setTaskCountMap] = useState<Record<number, number>>({});
   const [createOpen, setCreateOpen] = useState(false);
@@ -36,17 +35,14 @@ export function CoordinatorShiftManagement() {
         return { id: s.id, tasks };
       })
     );
-    const statusMap: Record<number, boolean> = {};
     const volMap: Record<number, number> = {};
     const taskMap: Record<number, number> = {};
     volunteerData.forEach((item) => {
-      statusMap[item.id] = item.vols.length > 0 && item.vols.every((v) => v.approvedAt);
       volMap[item.id] = item.vols.filter((v) => v.attendanceStatus !== 'absent').length;
     });
     tasksData.forEach((item) => {
       taskMap[item.id] = item.tasks.length;
     });
-    setClosedMap(statusMap);
     setVolCountMap(volMap);
     setTaskCountMap(taskMap);
   };
@@ -111,8 +107,8 @@ export function CoordinatorShiftManagement() {
                     <td className="px-6 py-4 text-sm text-gray-700">{taskCountMap[shift.id] ?? '—'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{volCountMap[shift.id] ?? '—'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${closedMap[shift.id] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {closedMap[shift.id] ? 'Закрыта' : 'Открыта'}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${shift.closedAt ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {shift.closedAt ? 'Закрыта' : 'Открыта'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

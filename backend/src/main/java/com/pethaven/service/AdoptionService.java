@@ -470,7 +470,7 @@ public class AdoptionService {
         String key = storageService.uploadSignedAgreement(agreementId, file);
         agreement.setSignedStorageKey(key);
         agreement.setSignedAt(java.time.OffsetDateTime.now());
-        agreementRepository.save(agreement);
+        agreementRepository.saveAndFlush(agreement);
         personRepository.findActiveByRole(SystemRole.coordinator.name())
                 .forEach(p -> notificationService.push(
                         p.getId(),
@@ -523,11 +523,12 @@ public class AdoptionService {
         return agreement;
     }
 
+    @Transactional(readOnly = true)
     public StorageFile downloadAgreementFile(Long agreementId, boolean signed) {
         AgreementEntity agreement = agreementRepository.findById(agreementId)
                 .orElseThrow(() -> new IllegalArgumentException("Договор не найден"));
         String key = signed ? agreement.getSignedStorageKey() : agreement.getTemplateStorageKey();
-        if (key == null) {
+        if (key == null || key.isBlank()) {
             throw new IllegalStateException(signed ? "Подписанный договор отсутствует" : "Шаблон договора ещё не сформирован");
         }
         return storageService.download(key);
