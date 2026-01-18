@@ -50,6 +50,11 @@ public class NotificationService {
         notificationRepository.markAllRead(personId);
     }
 
+    @Transactional
+    public void deleteAll(Long personId) {
+        notificationRepository.deleteAllByPersonId(personId);
+    }
+
     public void registerSocket(Long personId, WebSocketSession session) {
         wsSessions.computeIfAbsent(personId, k -> new ArrayList<>()).add(session);
     }

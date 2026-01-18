@@ -160,6 +160,10 @@ export async function markAllNotificationsRead() {
   await api.post(`/notifications/read-all`);
 }
 
+export async function deleteAllNotifications() {
+  await api.delete(`/notifications/me`);
+}
+
 export async function getMedicalRecords(animalId: number): Promise<MedicalRecord[]> {
   const { data } = await api.get<MedicalRecord[]>(`/medical/animal/${animalId}`);
   return data;

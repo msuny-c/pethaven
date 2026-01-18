@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Notification } from '../types';
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../services/api';
+import { getNotifications, markAllNotificationsRead, markNotificationRead, deleteAllNotifications } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 export function Notifications() {
   const { user } = useAuth();
@@ -58,8 +58,10 @@ export function Notifications() {
     })));
     await markAllNotificationsRead();
   };
-  const clearAll = () => {
+  const clearAll = async () => {
+    if (!user) return;
     setNotifications([]);
+    await deleteAllNotifications();
   };
   const getIcon = (type: string) => {
     switch (type) {

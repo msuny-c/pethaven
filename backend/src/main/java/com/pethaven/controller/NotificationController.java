@@ -4,6 +4,7 @@ import com.pethaven.entity.NotificationEntity;
 import com.pethaven.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,6 +49,16 @@ public class NotificationController {
             return ResponseEntity.status(401).build();
         }
         notificationService.markAllRead(uid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAll(Authentication authentication) {
+        Long uid = currentUser(authentication);
+        if (uid == null) {
+            return ResponseEntity.status(401).build();
+        }
+        notificationService.deleteAll(uid);
         return ResponseEntity.noContent().build();
     }
 
