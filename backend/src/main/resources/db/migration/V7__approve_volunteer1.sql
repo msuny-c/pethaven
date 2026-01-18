@@ -16,13 +16,3 @@ WHERE email = 'volunteer1@shelter.ru'
   AND NOT EXISTS (
       SELECT 1 FROM volunteer_application WHERE person_id = person.person_id
   );
-
-INSERT INTO volunteer_mentors (volunteer_id, approved_at)
-SELECT 
-    person_id,
-    NOW()
-FROM person
-WHERE email = 'volunteer1@shelter.ru'
-  AND NOT EXISTS (
-      SELECT 1 FROM volunteer_mentors WHERE volunteer_id = person.person_id
-  );
