@@ -14,6 +14,9 @@ import java.util.List;
 public interface ShiftRepository extends JpaRepository<ShiftEntity, Long> {
     List<ShiftEntity> findByShiftDateGreaterThanEqualOrderByShiftDateAsc(LocalDate fromDate);
 
+    @Query("SELECT s FROM ShiftEntity s WHERE s.shiftDate >= :fromDate AND s.closedAt IS NULL ORDER BY s.shiftDate ASC")
+    List<ShiftEntity> findAvailableByShiftDateGreaterThanEqualOrderByShiftDateAsc(@Param("fromDate") LocalDate fromDate);
+
     @Modifying
     @Query(value = "CALL signup_for_shift(CAST(:shiftId AS integer), CAST(:volunteerId AS integer))", nativeQuery = true)
     void signup(@Param("shiftId") Long shiftId, @Param("volunteerId") Long volunteerId);

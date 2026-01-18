@@ -70,7 +70,7 @@ public class ShiftService {
     }
 
     public List<ShiftResponse> getUpcoming(LocalDate from) {
-        return shiftMapper.toResponses(shiftRepository.findByShiftDateGreaterThanEqualOrderByShiftDateAsc(from));
+        return shiftMapper.toResponses(shiftRepository.findAvailableByShiftDateGreaterThanEqualOrderByShiftDateAsc(from));
     }
 
     public ShiftResponse createShift(ShiftCreateRequest request) {
@@ -97,9 +97,12 @@ public class ShiftService {
                     throw new IllegalStateException("Вы уже записаны на эту смену");
                 }
             }
-            LocalDate date = shiftRepository.findById(shiftId)
-                    .map(ShiftEntity::getShiftDate)
+            ShiftEntity shift = shiftRepository.findById(shiftId)
                     .orElseThrow(() -> new NoSuchElementException("Смена не найдена"));
+            if (shift.getClosedAt() != null) {
+                throw new IllegalStateException("Нельзя записаться на закрытую смену");
+            }
+            LocalDate date = shift.getShiftDate();
             List<ShiftVolunteerEntity> myShifts = shiftVolunteerRepository.findByIdVolunteerId(volunteerId);
             Set<Long> otherShiftIds = myShifts.stream()
                     .filter(v -> !v.getId().getShiftId().equals(shiftId) && v.getAttendanceStatus() != AttendanceStatus.absent)
